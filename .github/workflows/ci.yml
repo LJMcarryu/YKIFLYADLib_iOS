@@ -1,0 +1,307 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  verify-repository:
+    name: 校验分发清单与 Demo 边界
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 校验版本、清单与 SwiftPM 资源
+        run: |
+          swift package dump-package > /dev/null
+          pod ipc spec YKIFLYADLib.podspec > /dev/null
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          package = Path("Package.swift").read_text(encoding="utf-8")
+          podspec = Path("YKIFLYADLib.podspec").read_text(encoding="utf-8")
+          pod_version = re.search(r"s\.version\s*=\s*['\"]([^'\"]+)", podspec).group(1)
+          package_version = re.search(r"/releases/download/([^/]+)/IFLYADLib", package).group(1)
+          pod_url_version = re.search(r"/releases/download/([^/]+)/YKIFLYADLib", podspec).group(1)
+          assert pod_version == package_version == pod_url_version
+
+          checksum = re.search(r'checksum:\s*"([^"]+)"', package).group(1)
+          assert checksum == "RELEASE_CHECKSUM_PENDING" or re.fullmatch(r"[0-9a-f]{64}", checksum)
+          assert '.library(name: "IFLYADLib", targets: ["IFLYADLib", "IFLYAdResources"])' in package
+          assert '.copy("IFLYPlayer.bundle")' in package
+          assert Path("spm/IFLYAdResources/IFLYAdResourceAnchor.m").is_file()
+          assert Path("spm/IFLYAdResources/include/IFLYAdResourceAnchor.h").is_file()
+          assert Path("spm/IFLYAdResources/IFLYPlayer.bundle/PrivacyInfo.xcprivacy").is_file()
+          print(f"version={pod_version}, checksum={checksum}")
+          PY
+
+      - name: 校验 Demo 只含三个能力
+        run: |
+          test -f IFLYADLibSimple/IFLYADLibSimple/biz/splash/IFLYSplashViewController.m
+          test -f IFLYADLibSimple/IFLYADLibSimple/biz/interstitial/IFLYInterstitialViewController.m
+          test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/IFLYNativeViewController.m
+          test ! -d IFLYADLibSimple/IFLYADLibSimple/biz/banner
+          test ! -d IFLYADLibSimple/IFLYADLibSimple/biz/reward
+          ! rg -n 'IFLYBanner|IFLYReward' IFLYADLibSimple
+          ! rg -n 'DEVELOPMENT_TEAM = [A-Z0-9]+' IFLYADLibSimple/IFLYADLibSimple.xcodeproj/project.pbxproj
+          rg -n 'IFLYDemoPrivacyConsentViewController|exit\(0\)' IFLYADLibSimple/IFLYADLibSimple
+
+  verify-release:
+    name: 校验正式 Release 资产与 Demo 编译
+    if: github.event_name == 'release'
+    runs-on: macos-14
+    permissions:
+      contents: read
+    env:
+      EXPECTED_AD_REQUEST_URL: ${{ vars.YOUKU_AD_REQUEST_URL }}
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 下载本次 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/youku-release
+          gh release download "${RELEASE_TAG}" \
+            --repo "${{ github.repository }}" \
+            --dir /tmp/youku-release
+
+      - name: 校验 checksum、双包结构、能力、资源和请求地址
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import plistlib
+          import re
+          import subprocess
+          import zipfile
+          from pathlib import Path
+          from urllib.parse import urlsplit
+
+          root = Path("/tmp/youku-release")
+          manifest = json.loads((root / "delivery-manifest.json").read_text(encoding="utf-8"))
+          version = manifest["version"]
+          assert version == os.environ["RELEASE_TAG"], "Release tag 与 manifest 版本不一致"
+          assert manifest["distribution"] == "Youku"
+          assert manifest["variant"] == "Youku"
+          assert manifest["capabilities"] == ["Splash", "Interstitial", "NativeFeed"]
+          assert manifest["sourceBuild"]["customAdRequestURL"] is True
+          assert manifest["sourceBuild"]["sdkVersion"] == version
+          xcode_version = tuple(
+              int(item)
+              for item in re.search(r"\d+(?:\.\d+)+", manifest["sourceBuild"]["xcodeVersion"])
+              .group(0)
+              .split(".")
+          )
+          assert xcode_version <= (26, 2), f"正式 SDK 使用了超上限 Xcode: {xcode_version}"
+
+          expected_url = os.environ.get("EXPECTED_AD_REQUEST_URL", "").strip()
+          assert expected_url, "仓库变量 YOUKU_AD_REQUEST_URL 未配置"
+          assert manifest["adRequestURL"] == expected_url
+          assert manifest["sourceBuild"]["adRequestURL"] == expected_url
+          parsed = urlsplit(expected_url)
+          assert parsed.scheme == "https" and parsed.hostname
+          assert expected_url != "https://msdk.voiceads.cn/sdk/req"
+          assert not parsed.hostname.endswith((".invalid", ".example", ".test"))
+          assert parsed.hostname not in {"localhost", "127.0.0.1", "::1"}
+          expected_tracking_host = parsed.hostname.lower()
+
+          combined_name = f"YKIFLYADLib-{version}.zip"
+          exact_assets = {
+              "IFLYADLib.xcframework.zip",
+              combined_name,
+              "checksums.txt",
+              "delivery-manifest.json",
+          }
+          actual_assets = {item.name for item in root.iterdir() if item.is_file()}
+          assert actual_assets == exact_assets, (actual_assets, exact_assets)
+
+          assets = {item["name"]: item for item in manifest["assets"]}
+          assert set(assets) == {"IFLYADLib.xcframework.zip", combined_name}
+          for name, metadata in assets.items():
+              path = root / name
+              actual = hashlib.sha256(path.read_bytes()).hexdigest()
+              assert actual == metadata["sha256"], name
+
+          checksums = (root / "checksums.txt").read_text(encoding="utf-8")
+          for name, metadata in assets.items():
+              assert name in checksums and metadata["sha256"] in checksums
+
+          package = Path("Package.swift").read_text(encoding="utf-8")
+          podspec = Path("YKIFLYADLib.podspec").read_text(encoding="utf-8")
+          declared_checksum = re.search(r'checksum:\s*"([0-9a-f]{64})"', package).group(1)
+          assert declared_checksum == assets["IFLYADLib.xcframework.zip"]["swiftPackageChecksum"]
+          assert declared_checksum == assets["IFLYADLib.xcframework.zip"]["sha256"]
+          assert f"/releases/download/{version}/IFLYADLib.xcframework.zip" in package
+          assert f"s.version = '{version}'" in podspec
+          assert f"/releases/download/{version}/{combined_name}" in podspec
+
+          spm_out = root / "spm"
+          combined_out = root / "combined"
+          with zipfile.ZipFile(root / "IFLYADLib.xcframework.zip") as archive:
+              archive.extractall(spm_out)
+          with zipfile.ZipFile(root / combined_name) as archive:
+              archive.extractall(combined_out)
+
+          def top_level_entries(path):
+              return {
+                  item.name
+                  for item in path.iterdir()
+                  if item.name != "__MACOSX" and not item.name.startswith("._")
+              }
+
+          assert top_level_entries(spm_out) == {"IFLYADLib.xcframework"}
+          assert top_level_entries(combined_out) == {
+              "IFLYADLib.xcframework",
+              "IFLYPlayer.bundle",
+              "LICENSE",
+          }
+
+          spm_frameworks = list(spm_out.glob("IFLYADLib.xcframework"))
+          combined_frameworks = list(combined_out.glob("IFLYADLib.xcframework"))
+          assert len(spm_frameworks) == len(combined_frameworks) == 1
+          assert (combined_out / "IFLYPlayer.bundle/PrivacyInfo.xcprivacy").is_file()
+          assert (combined_out / "LICENSE").is_file()
+
+          def tree_hashes(path):
+              return {
+                  file.relative_to(path).as_posix(): hashlib.sha256(file.read_bytes()).hexdigest()
+                  for file in path.rglob("*")
+                  if file.is_file() and not file.name.startswith("._") and file.name != ".DS_Store"
+              }
+
+          assert tree_hashes(spm_frameworks[0]) == tree_hashes(combined_frameworks[0])
+          repo_bundle = Path("spm/IFLYAdResources/IFLYPlayer.bundle")
+          assert tree_hashes(repo_bundle) == tree_hashes(combined_out / "IFLYPlayer.bundle")
+          privacy_manifests = [
+              *spm_frameworks[0].rglob("PrivacyInfo.xcprivacy"),
+              *combined_frameworks[0].rglob("PrivacyInfo.xcprivacy"),
+              combined_out / "IFLYPlayer.bundle/PrivacyInfo.xcprivacy",
+              repo_bundle / "PrivacyInfo.xcprivacy",
+          ]
+          assert all(path.is_file() for path in privacy_manifests)
+          for privacy_manifest in privacy_manifests:
+              privacy = plistlib.loads(privacy_manifest.read_bytes())
+              domains = {
+                  item.lower() for item in privacy.get("NSPrivacyTrackingDomains", [])
+              }
+              assert expected_tracking_host in domains, privacy_manifest
+
+          required_headers = {
+              "IFLYSplashAd.h",
+              "IFLYInterstitialAd.h",
+              "IFLYNativeFeedAd.h",
+              "IFLYNativeFeedAdData.h",
+          }
+          denied_headers = {"IFLYBannerAd.h", "IFLYRewardVideoAd.h"}
+          default_url = "https://msdk.voiceads.cn/sdk/req"
+          team_ids = set()
+
+          for framework in (spm_frameworks[0], combined_frameworks[0]):
+              headers = {path.name for path in framework.rglob("Headers/*.h")}
+              assert required_headers <= headers
+              assert not (denied_headers & headers)
+
+              binaries = list(framework.rglob("IFLYADLib.framework/IFLYADLib"))
+              assert len(binaries) == 2, [str(item) for item in binaries]
+              device_arm64 = simulator_arm64 = simulator_x86_64 = False
+              for binary in binaries:
+                  framework_dir = binary.parent
+                  subprocess.check_call(
+                      ["codesign", "--verify", "--strict", "--verbose=2", str(framework_dir)]
+                  )
+                  signature = subprocess.check_output(
+                      ["codesign", "-d", "--verbose=4", str(framework_dir)],
+                      text=True,
+                      stderr=subprocess.STDOUT,
+                  )
+                  assert "Signature=adhoc" not in signature
+                  team_match = re.search(r"(?m)^TeamIdentifier=(.+)$", signature)
+                  assert team_match and team_match.group(1).strip().lower() not in {
+                      "",
+                      "not set",
+                      "none",
+                  }
+                  team_ids.add(team_match.group(1).strip())
+
+                  text = subprocess.check_output(["strings", str(binary)], text=True)
+                  lines = set(text.splitlines())
+                  assert expected_url in lines
+                  assert default_url not in lines
+                  symbols = subprocess.check_output(
+                      ["nm", "-g", str(binary)], text=True, errors="replace"
+                  )
+                  assert "_OBJC_CLASS_$_IFLYBanner" not in symbols
+                  assert "_OBJC_CLASS_$_IFLYReward" not in symbols
+
+                  architectures = set(
+                      subprocess.check_output(["lipo", "-archs", str(binary)], text=True).split()
+                  )
+                  is_simulator = "simulator" in binary.as_posix()
+                  if is_simulator:
+                      simulator_arm64 |= "arm64" in architectures
+                      simulator_x86_64 |= "x86_64" in architectures
+                  else:
+                      device_arm64 |= "arm64" in architectures
+
+                  info_path = binary.parent / "Info.plist"
+                  info = plistlib.loads(info_path.read_bytes())
+                  assert info["MinimumOSVersion"] == "11.0"
+                  assert info["CFBundleShortVersionString"] == version
+              assert device_arm64 and simulator_arm64 and simulator_x86_64
+          assert len(team_ids) == 1, f"framework 切片 TeamIdentifier 不一致: {team_ids}"
+
+          print(f"release {version} validated")
+          PY
+
+      - name: 使用本次 Release 产物编译 Demo
+        run: |
+          cp YKIFLYADLib.podspec /tmp/youku-release/combined/YKIFLYADLib.podspec
+          cat > IFLYADLibSimple/Podfile <<'EOF'
+          platform :ios, '11.0'
+          target 'IFLYADLibSimple' do
+            use_frameworks!
+            pod 'YKIFLYADLib', :path => '/tmp/youku-release/combined'
+          end
+          EOF
+          pod install --project-directory=IFLYADLibSimple
+          xcodebuild build \
+            -workspace IFLYADLibSimple/IFLYADLibSimple.xcworkspace \
+            -scheme IFLYADLibSimple \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: 使用本次 Release 产物编译 SwiftPM 产品并校验资源
+        run: |
+          rm -rf /tmp/youku-spm-package /tmp/youku-spm-derived
+          mkdir -p /tmp/youku-spm-package/spm
+          cp .github/fixtures/swiftpm-local/Package.swift /tmp/youku-spm-package/Package.swift
+          cp -R /tmp/youku-release/spm/IFLYADLib.xcframework \
+            /tmp/youku-spm-package/IFLYADLib.xcframework
+          cp -R spm/IFLYAdResources /tmp/youku-spm-package/spm/IFLYAdResources
+
+          (
+            cd /tmp/youku-spm-package
+            xcodebuild build \
+              -scheme YKIFLYADLibReleaseValidation \
+              -configuration Debug \
+              -destination 'generic/platform=iOS Simulator' \
+              -derivedDataPath /tmp/youku-spm-derived \
+              CODE_SIGNING_ALLOWED=NO \
+              IPHONEOS_DEPLOYMENT_TARGET=11.0 \
+              OTHER_LDFLAGS='$(inherited) -ObjC'
+          )
+
+          test -d \
+            /tmp/youku-spm-derived/Build/Products/Debug-iphonesimulator/YKIFLYADLibReleaseValidation_IFLYAdResources.bundle/IFLYPlayer.bundle
+          test -f \
+            /tmp/youku-spm-derived/Build/Products/Debug-iphonesimulator/YKIFLYADLibReleaseValidation_IFLYAdResources.bundle/IFLYPlayer.bundle/PrivacyInfo.xcprivacy

@@ -1,0 +1,40 @@
+//
+//  IFLYAdPrefixHeader.pch
+//  IFLYADLibSimple
+//
+//  Created by admin on 28.2.25.
+//
+
+#ifndef IFLYAdPrefixHeader_pch
+#define IFLYAdPrefixHeader_pch
+
+#import <Availability.h>
+
+#ifdef __OBJC__
+    #import <Foundation/Foundation.h>
+    #import <UIKit/UIKit.h>
+#endif
+
+#ifndef __OPTIMIZE__
+    #define IFLYSampleLogInfo(module, fmt, ...)  NSLog(@"[IFLYAdSample] [%@] " fmt, module, ##__VA_ARGS__)
+    #define IFLYSampleLogWarn(module, fmt, ...)  NSLog(@"[IFLYAdSample] [警告] [%@] " fmt, module, ##__VA_ARGS__)
+    #define IFLYSampleLogError(module, fmt, ...) NSLog(@"[IFLYAdSample] [错误] [%@] " fmt, module, ##__VA_ARGS__)
+#else
+    #define IFLYSampleLogInfo(...)  {}
+    #define IFLYSampleLogWarn(...)  {}
+    #define IFLYSampleLogError(...) {}
+#endif
+
+#define XH_ScreenW                       [UIScreen mainScreen].bounds.size.width
+#define XH_ScreenH                       [UIScreen mainScreen].bounds.size.height
+
+#define isStringEmpty(string) (string == nil || string == NULL || (![string isKindOfClass:[NSString class]]) || ([string isEqual:@""]) || [string isEqualToString:@""] || [string isEqualToString:@" "] || ([string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]].length == 0) || ([string respondsToSelector:@selector(length)] && [(NSData *)string length] == 0))
+
+// 请替换为优酷联调广告位。分发仓不提交生产广告位或其他媒体的测试广告位。
+#define __SPLASH_NATIVE_AD_UNIT_ID__     @""
+#define __SPLASH_VIDEO_AD_UNIT_ID__      @""
+#define __INTERSTITIAL_AD_UNIT_ID__      @""
+#define __TYPED_ONE_NATIVE_AD_UNIT_ID__  @""
+#define __FEED_VIDEO_AD_UNIT_ID__        @""
+
+#endif /* IFLYAdPrefixHeader_pch */
