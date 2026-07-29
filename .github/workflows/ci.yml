@@ -48,9 +48,11 @@ jobs:
           test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/IFLYNativeViewController.m
           test ! -d IFLYADLibSimple/IFLYADLibSimple/biz/banner
           test ! -d IFLYADLibSimple/IFLYADLibSimple/biz/reward
-          ! rg -n 'IFLYBanner|IFLYReward' IFLYADLibSimple
-          ! rg -n 'DEVELOPMENT_TEAM = [A-Z0-9]+' IFLYADLibSimple/IFLYADLibSimple.xcodeproj/project.pbxproj
-          rg -n 'IFLYDemoPrivacyConsentViewController|exit\(0\)' IFLYADLibSimple/IFLYADLibSimple
+          ! grep -R -n -E 'IFLYBanner|IFLYReward' IFLYADLibSimple
+          ! grep -n -E 'DEVELOPMENT_TEAM = [A-Z0-9]+' \
+            IFLYADLibSimple/IFLYADLibSimple.xcodeproj/project.pbxproj
+          grep -R -n -E 'IFLYDemoPrivacyConsentViewController|exit\(0\)' \
+            IFLYADLibSimple/IFLYADLibSimple
 
   verify-release:
     name: 校验正式 Release 资产与 Demo 编译
