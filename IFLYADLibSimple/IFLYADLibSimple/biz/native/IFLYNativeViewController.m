@@ -23,10 +23,10 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"媒体自渲染";
+    self.title = @"自渲染信息流示例";
     self.view.backgroundColor = UIColor.whiteColor;
     [self setupUI];
-    [self log:@"自渲染示例：Load -> 读取 adData -> 媒体渲染 -> Binder 绑定"];
+    [self log:@"自渲染信息流示例：Load -> 读取 adData -> 媒体渲染 -> Binder 绑定"];
 }
 
 - (void)dealloc {
@@ -168,8 +168,8 @@
 
     NSString *adUnitId = self.slotControl.selectedSegmentIndex == 1 ? __FEED_VIDEO_AD_UNIT_ID__ : __TYPED_ONE_NATIVE_AD_UNIT_ID__;
     if (adUnitId.length == 0) {
-        [self updateStatus:@"请先配置优酷自渲染广告位" color:UIColor.systemRedColor];
-        [self log:@"Load ignored: 自渲染广告位为空"];
+        [self updateStatus:@"请先配置优酷自渲染信息流广告位" color:UIColor.systemRedColor];
+        [self log:@"Load ignored: 自渲染信息流广告位为空"];
         return;
     }
     [self updateStatus:@"正在加载信息流" color:UIColor.systemBlueColor];

@@ -4,7 +4,7 @@
 
 - 开屏广告 `IFLYSplashAd`
 - 插屏广告 `IFLYInterstitialAd`
-- 媒体自渲染 `IFLYNativeFeedAd`
+- 自渲染信息流 `IFLYNativeFeedAd`
 
 图片和视频素材均受支持。Banner、激励视频不在本产物中，对应公开头、实现符号和专属资源已物理裁剪。
 
@@ -178,7 +178,7 @@ SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据�
 
 插屏支持图片、视频以及横竖版素材。`presentationStyle` 可选择半屏或全屏；媒体不需要自行创建播放器。
 
-## 媒体自渲染
+## 自渲染信息流
 
 自渲染链路为：
 
@@ -325,9 +325,15 @@ NSString *dealId = ad.bidInfo.dealId;
 
 ## Demo
 
-[IFLYADLibSimple](./IFLYADLibSimple) 仅保留开屏、插屏、媒体自渲染三个入口。首次启动会先展示隐私同意页面；同意后才允许配置 SDK、请求 ATT 和加载广告。
+[IFLYADLibSimple](./IFLYADLibSimple) 仅使用开屏、插屏、NativeFeed 三种 SDK 能力，并提供五个示例入口：
 
-Demo 按产品确认复用标准 Demo 的五个联调广告位，可直接发起开屏图片/视频、插屏及自渲染图片/视频请求；能否返回素材还取决于优酷域名路由和服务端广告位配置。这些广告位仅供联调，媒体正式接入必须替换为自身生产广告位。
+- 开屏广告。
+- 插屏广告。
+- 自渲染开屏：使用图片/视频开屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板开屏样式。
+- 自渲染插屏：使用横竖版图片/视频插屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板插屏样式。
+- 自渲染信息流示例。
+
+首次启动会先展示隐私同意页面；同意后才允许配置 SDK、请求 ATT 和加载广告。Demo 按产品确认复用标准 Demo 的联调广告位，可直接发起请求；能否返回素材还取决于优酷域名路由和服务端广告位配置。这些广告位仅供联调，媒体正式接入必须替换为自身生产广告位。
 
 ## 能力边界
 

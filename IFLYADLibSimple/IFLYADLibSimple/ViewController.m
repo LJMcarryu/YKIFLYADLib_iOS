@@ -6,6 +6,7 @@
 //
 
 #import "IFLYInterstitialViewController.h"
+#import "IFLYNativeFeedPresentationDemoViewController.h"
 #import "IFLYNativeViewController.h"
 #import "IFLYSplashViewController.h"
 #import "ViewController.h"
@@ -44,7 +45,7 @@
     y += 36;
 
     UILabel *descLabel = [IFLYADUtil
-        createSectionTitleWithText:@"仅演示优酷交付范围：开屏、插屏和媒体自渲染。示例代码只使用 SDK 公开 API。"
+        createSectionTitleWithText:@"仅演示优酷交付范围：开屏、插屏和自渲染信息流；同时提供开屏、插屏的自渲染视觉示例。"
                              frame:CGRectMake(margin, y, contentWidth, 52)];
     descLabel.textAlignment = NSTextAlignmentCenter;
     [scrollView addSubview:descLabel];
@@ -53,7 +54,9 @@
     NSArray<NSDictionary<NSString *, NSString *> *> *items = @[
         @{@"title" : @"开屏广告", @"selector" : @"splashADTypeClick:"},
         @{@"title" : @"插屏广告", @"selector" : @"interstitialADTypeClick:"},
-        @{@"title" : @"媒体自渲染", @"selector" : @"nativeADTypeClick:"},
+        @{@"title" : @"自渲染开屏", @"selector" : @"nativeSplashADTypeClick:"},
+        @{@"title" : @"自渲染插屏", @"selector" : @"nativeInterstitialADTypeClick:"},
+        @{@"title" : @"自渲染信息流示例", @"selector" : @"nativeFeedADTypeClick:"},
     ];
 
     for (NSDictionary<NSString *, NSString *> *item in items) {
@@ -73,7 +76,21 @@
     [self.navigationController pushViewController:IFLYSplashViewController.alloc.init animated:YES];
 }
 
-- (void)nativeADTypeClick:(UIButton *)sender {
+- (void)nativeSplashADTypeClick:(UIButton *)sender {
+    IFLYNativeFeedPresentationDemoViewController *controller =
+        [[IFLYNativeFeedPresentationDemoViewController alloc]
+            initWithPresentationStyle:IFLYNativeFeedDemoPresentationStyleSplash];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)nativeInterstitialADTypeClick:(UIButton *)sender {
+    IFLYNativeFeedPresentationDemoViewController *controller =
+        [[IFLYNativeFeedPresentationDemoViewController alloc]
+            initWithPresentationStyle:IFLYNativeFeedDemoPresentationStyleInterstitial];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)nativeFeedADTypeClick:(UIButton *)sender {
     [self.navigationController pushViewController:IFLYNativeViewController.alloc.init animated:YES];
 }
 

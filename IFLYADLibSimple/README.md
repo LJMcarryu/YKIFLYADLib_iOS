@@ -1,10 +1,12 @@
 # 优酷定制 Demo
 
-该工程仅演示优酷定制 SDK 的三种能力：
+该工程仅使用优酷定制 SDK 的开屏、插屏、NativeFeed 三种能力，提供以下五个示例：
 
 - 开屏广告：图片、视频。
 - 插屏广告：横竖版图片、横竖版视频。
-- 媒体自渲染：读取公开 `adData`，渲染图片或视频容器，再通过 Binder 绑定。
+- 自渲染开屏：使用图片/视频开屏广告位，按模板开屏样式渲染。
+- 自渲染插屏：使用横竖版图片/视频插屏广告位，按模板插屏样式渲染。
+- 自渲染信息流示例：读取公开 `adData`，渲染图片或视频容器，再通过 Binder 绑定。
 
 Demo 只调用 `IFLYADLib` 公开 API，不依赖私有 SDK 源码。首次启动必须先同意隐私政策；同意后才会配置 SDK、申请 ATT 并允许发起广告请求，选择“不同意并退出应用”会调用 `exit(0)`。
 
@@ -19,7 +21,7 @@ open IFLYADLibSimple.xcworkspace
 最低支持 iOS 11.0，支持 iPhone 和 iPad。真机运行前，请在 Xcode 的 Signing & Capabilities 中选择自己的开发者 Team。
 
 Demo 默认引用 tag `6.0.14` 的 `YKIFLYADLib.podspec`。升级 SDK 时，需要同步修改 `Podfile` 中的 tag。
-Demo 只有开屏、插屏和自渲染三个能力页面；其中开屏与自渲染分别提供图片/视频联调槽位，因此配置文件中共有五个素材场景广告位。当前按产品确认复用标准 Demo 的联调广告位，可直接发起请求；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。媒体正式接入时必须替换为自身生产广告位。
+Demo 首页只有上述五个示例入口，不包含 Banner、激励视频及其他进阶功能。当前按产品确认复用标准 Demo 的联调广告位，可直接发起请求；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。媒体正式接入时必须替换为自身生产广告位。
 
 ## 自渲染接入顺序
 
@@ -35,4 +37,23 @@ Demo 只有开屏、插屏和自渲染三个能力页面；其中开屏与自渲
 
 ## 广告位
 
-当前复用标准 Demo 的图片开屏、视频开屏、插屏、单图自渲染和视频自渲染联调广告位。它们只用于 Demo 联调，不属于媒体生产广告位。
+当前共复用八个标准 Demo 联调广告位：
+
+- 图片开屏、视频开屏。
+- 竖版图片插屏、横版图片插屏、竖版视频插屏、横版视频插屏。
+- 单图自渲染信息流、视频自渲染信息流。
+
+这些广告位集中配置在 `Supporting Files/IFLYAdPrefixHeader.pch`：
+
+| 场景 | 配置宏 |
+| --- | --- |
+| 图片开屏 | `__SPLASH_NATIVE_AD_UNIT_ID__` |
+| 视频开屏 | `__SPLASH_VIDEO_AD_UNIT_ID__` |
+| 竖版图片插屏 | `__INTERSTITIAL_AD_UNIT_ID__` |
+| 横版图片插屏 | `__INTERSTITIAL_LANDSCAPE_IMAGE_AD_UNIT_ID__` |
+| 竖版视频插屏 | `__INTERSTITIAL_PORTRAIT_VIDEO_AD_UNIT_ID__` |
+| 横版视频插屏 | `__INTERSTITIAL_LANDSCAPE_VIDEO_AD_UNIT_ID__` |
+| 单图自渲染信息流 | `__TYPED_ONE_NATIVE_AD_UNIT_ID__` |
+| 视频自渲染信息流 | `__FEED_VIDEO_AD_UNIT_ID__` |
+
+自渲染开屏复用两个开屏广告位；自渲染插屏复用四个插屏广告位。它们只用于 Demo 联调，不属于媒体生产广告位。

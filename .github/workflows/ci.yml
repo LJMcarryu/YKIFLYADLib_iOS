@@ -41,11 +41,17 @@ jobs:
           print(f"version={pod_version}, checksum={checksum}")
           PY
 
-      - name: 校验 Demo 只含三个能力
+      - name: 校验 Demo 只含三种能力并覆盖五个示例
         run: |
           test -f IFLYADLibSimple/IFLYADLibSimple/biz/splash/IFLYSplashViewController.m
           test -f IFLYADLibSimple/IFLYADLibSimple/biz/interstitial/IFLYInterstitialViewController.m
           test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/IFLYNativeViewController.m
+          test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/demo/IFLYNativeFeedDemoImageLoader.h
+          test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/demo/IFLYNativeFeedDemoImageLoader.m
+          test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/presentation/IFLYNativeFeedDemoPresentationView.h
+          test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/presentation/IFLYNativeFeedDemoPresentationView.m
+          test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/presentation/IFLYNativeFeedPresentationDemoViewController.h
+          test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/presentation/IFLYNativeFeedPresentationDemoViewController.m
           test ! -d IFLYADLibSimple/IFLYADLibSimple/biz/banner
           test ! -d IFLYADLibSimple/IFLYADLibSimple/biz/reward
           ! grep -R -n -E 'IFLYBanner|IFLYReward' IFLYADLibSimple
@@ -53,6 +59,41 @@ jobs:
             IFLYADLibSimple/IFLYADLibSimple.xcodeproj/project.pbxproj
           grep -R -n -E 'IFLYDemoPrivacyConsentViewController|exit\(0\)' \
             IFLYADLibSimple/IFLYADLibSimple
+          python3 - <<'PY'
+          from pathlib import Path
+
+          home = Path("IFLYADLibSimple/IFLYADLibSimple/ViewController.m").read_text(encoding="utf-8")
+          for title in (
+              "开屏广告",
+              "插屏广告",
+              "自渲染开屏",
+              "自渲染插屏",
+              "自渲染信息流示例",
+          ):
+              assert f'@"{title}"' in home, title
+          assert "IFLYNativeFeedDemoPresentationStyleSplash" in home
+          assert "IFLYNativeFeedDemoPresentationStyleInterstitial" in home
+
+          native = Path(
+              "IFLYADLibSimple/IFLYADLibSimple/biz/native/IFLYNativeViewController.m"
+          ).read_text(encoding="utf-8")
+          assert 'self.title = @"自渲染信息流示例"' in native
+
+          prefix = Path(
+              "IFLYADLibSimple/IFLYADLibSimple/Supporting Files/IFLYAdPrefixHeader.pch"
+          ).read_text(encoding="utf-8")
+          for macro in (
+              "__SPLASH_NATIVE_AD_UNIT_ID__",
+              "__SPLASH_VIDEO_AD_UNIT_ID__",
+              "__INTERSTITIAL_AD_UNIT_ID__",
+              "__INTERSTITIAL_LANDSCAPE_IMAGE_AD_UNIT_ID__",
+              "__INTERSTITIAL_PORTRAIT_VIDEO_AD_UNIT_ID__",
+              "__INTERSTITIAL_LANDSCAPE_VIDEO_AD_UNIT_ID__",
+              "__TYPED_ONE_NATIVE_AD_UNIT_ID__",
+              "__FEED_VIDEO_AD_UNIT_ID__",
+          ):
+              assert macro in prefix, macro
+          PY
 
   verify-release:
     name: 校验正式 Release 资产与 Demo 编译
