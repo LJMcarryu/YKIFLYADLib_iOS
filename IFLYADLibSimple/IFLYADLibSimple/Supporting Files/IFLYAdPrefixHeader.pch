@@ -30,11 +30,11 @@
 
 #define isStringEmpty(string) (string == nil || string == NULL || (![string isKindOfClass:[NSString class]]) || ([string isEqual:@""]) || [string isEqualToString:@""] || [string isEqualToString:@" "] || ([string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]].length == 0) || ([string respondsToSelector:@selector(length)] && [(NSData *)string length] == 0))
 
-// 请替换为优酷联调广告位。分发仓不提交生产广告位或其他媒体的测试广告位。
-#define __SPLASH_NATIVE_AD_UNIT_ID__     @""
-#define __SPLASH_VIDEO_AD_UNIT_ID__      @""
-#define __INTERSTITIAL_AD_UNIT_ID__      @""
-#define __TYPED_ONE_NATIVE_AD_UNIT_ID__  @""
-#define __FEED_VIDEO_AD_UNIT_ID__        @""
+// 按产品确认复用标准 Demo 联调广告位；媒体正式接入时须替换为自身生产广告位。
+#define __SPLASH_NATIVE_AD_UNIT_ID__     @"D65CC066BF3AE066C48F4A101A30005C"
+#define __SPLASH_VIDEO_AD_UNIT_ID__      @"DDC620929747D6DB85FFEB14AB893F4E"
+#define __INTERSTITIAL_AD_UNIT_ID__      @"22E131CFF097584531EAB3281C40769C"
+#define __TYPED_ONE_NATIVE_AD_UNIT_ID__  @"24556006C29E3C51A624F4B704BC7345"
+#define __FEED_VIDEO_AD_UNIT_ID__        @"3AE3AC7B093A4CC6A1E2F19CF16709FC"
 
 #endif /* IFLYAdPrefixHeader_pch */

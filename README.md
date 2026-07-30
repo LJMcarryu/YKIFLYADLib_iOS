@@ -14,7 +14,7 @@
 #import <IFLYADLib/IFLYADLib.h>
 ```
 
-所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷请求地址在二进制构建时固化，不提供公开运行时 URL setter。
+所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷普通请求地址在二进制构建时固化为 `https://youku-sdk.voiceads.cn/sdk/req`，不提供公开运行时 URL setter。
 
 当前版本：`6.0.14`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物要求使用不高于 Xcode 26.2 的工具链构建，具体版本记录在 Release 的 `delivery-manifest.json`。
@@ -327,7 +327,7 @@ NSString *dealId = ad.bidInfo.dealId;
 
 [IFLYADLibSimple](./IFLYADLibSimple) 仅保留开屏、插屏、媒体自渲染三个入口。首次启动会先展示隐私同意页面；同意后才允许配置 SDK、请求 ATT 和加载广告。
 
-分发仓不会提交生产广告位或其他媒体广告位，Demo 默认广告位为空。配置优酷分配的联调广告位后才能发起实际请求；正式接入必须换成生产广告位。
+Demo 按产品确认复用标准 Demo 的五个联调广告位，可直接发起开屏图片/视频、插屏及自渲染图片/视频请求；能否返回素材还取决于优酷域名路由和服务端广告位配置。这些广告位仅供联调，媒体正式接入必须替换为自身生产广告位。
 
 ## 能力边界
 

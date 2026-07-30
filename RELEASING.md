@@ -9,7 +9,7 @@ IFLY_NEW_VERSION_RELEASE=1 \
 IFLY_SDK_CODESIGN_IDENTITY='正式 SDK 签名身份' \
 scripts/package-youku-release.sh \
   --version 6.0.14 \
-  --ad-request-url 'https://优酷正式请求地址/完整路径'
+  --ad-request-url 'https://youku-sdk.voiceads.cn/sdk/req'
 ```
 
 脚本输出：
@@ -26,7 +26,7 @@ build/youku/release/
 
 - 只包含 Splash、Interstitial、NativeFeed。
 - 不包含 Banner、Reward 公开头和类符号。
-- 请求地址为优酷专属 URL，且不残留标准普通请求 URL。
+- 请求地址严格等于 `https://youku-sdk.voiceads.cn/sdk/req`，且不残留标准普通请求 URL。
 - 专属 URL 的 host 已写入 framework、外置资源和 SwiftPM 资源的 `NSPrivacyTrackingDomains`。
 - device 为 arm64，simulator 为 arm64/x86_64。
 - 最低系统版本为 iOS 11.0。
@@ -35,6 +35,12 @@ build/youku/release/
 - `xcodebuild -version` 必须不高于 Xcode 26.2；本地超版本验证产物不得发布。
 - 正式命令必须设置 `IFLY_SDK_CODESIGN_IDENTITY`；两个切片的 framework 签名均须完整、非 ad-hoc 且 TeamIdentifier 一致。
 - 正式发布时设置 `IFLY_NEW_VERSION_RELEASE=1`，对两个 zip 执行 Apple 审核扫描。
+
+### 当前联调状态
+
+2026 年 7 月 30 日已使用固化正式地址的模拟器产物，在 iOS 26.2 上完成 Demo 构建、启动及开屏、插屏、自渲染三条请求链路验证。Demo 使用复用的标准联调广告位，三条请求目前均收到 `https://youku-sdk.voiceads.cn/sdk/req` 返回的 HTTP 404，SDK 对应回调错误码 `71003`。
+
+这只能证明 SDK 地址固化、广告位传入和失败回调链路正确，不能视为真实广告联调通过。创建正式 Release 前必须由服务端确认并开通该 host 下的 `/sdk/req` 路由，并重新验证素材返回、解析、展示和监测。
 
 ## 2. 更新分发清单
 
