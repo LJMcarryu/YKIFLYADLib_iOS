@@ -21,7 +21,7 @@ open IFLYADLibSimple.xcworkspace
 最低支持 iOS 11.0，支持 iPhone 和 iPad。真机运行前，请在 Xcode 的 Signing & Capabilities 中选择自己的开发者 Team。
 
 Demo 默认引用 tag `6.0.14` 的 `YKIFLYADLib.podspec`。升级 SDK 时，需要同步修改 `Podfile` 中的 tag。
-Demo 首页只有上述五个示例入口，不包含 Banner、激励视频及其他进阶功能。当前按产品确认复用标准 Demo 的联调广告位，可直接发起请求；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。媒体正式接入时必须替换为自身生产广告位。
+Demo 首页只有上述五个示例入口，不包含 Banner、激励视频及其他进阶功能。五个示例均使用优酷定制联调广告位；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。
 
 ## 自渲染接入顺序
 
@@ -37,23 +37,16 @@ Demo 首页只有上述五个示例入口，不包含 Banner、激励视频及�
 
 ## 广告位
 
-当前共复用八个标准 Demo 联调广告位：
+Demo 使用以下六个优酷定制广告位，集中配置在
+`Supporting Files/IFLYAdPrefixHeader.pch`。开屏和插屏模板示例与对应自渲染示例共用广告位：
 
-- 图片开屏、视频开屏。
-- 竖版图片插屏、横版图片插屏、竖版视频插屏、横版视频插屏。
-- 单图自渲染信息流、视频自渲染信息流。
+| 场景 | 配置宏 | 广告位 ID |
+| --- | --- | --- |
+| 开屏图片 | `__SPLASH_NATIVE_AD_UNIT_ID__` | `BC05C9AA5D3E0D3E8F1B25CDAB603831` |
+| 开屏视频 | `__SPLASH_VIDEO_AD_UNIT_ID__` | `5AF6465D44FCFAD4935C20D620614506` |
+| 插屏图片（横竖共用） | `__INTERSTITIAL_AD_UNIT_ID__`、`__INTERSTITIAL_LANDSCAPE_IMAGE_AD_UNIT_ID__` | `A830C77F232A5DE10AF0E4B92E0426C9` |
+| 插屏视频（横竖共用） | `__INTERSTITIAL_PORTRAIT_VIDEO_AD_UNIT_ID__`、`__INTERSTITIAL_LANDSCAPE_VIDEO_AD_UNIT_ID__` | `784C8D7CF6CFC970473E3CB1DE893B61` |
+| 自渲染信息流图片 | `__TYPED_ONE_NATIVE_AD_UNIT_ID__` | `C954B4CD38EE3DE2D7A6283169B3E459` |
+| 自渲染信息流视频 | `__FEED_VIDEO_AD_UNIT_ID__` | `C389BA3CD04BF2771C944B58E493DF94` |
 
-这些广告位集中配置在 `Supporting Files/IFLYAdPrefixHeader.pch`：
-
-| 场景 | 配置宏 |
-| --- | --- |
-| 图片开屏 | `__SPLASH_NATIVE_AD_UNIT_ID__` |
-| 视频开屏 | `__SPLASH_VIDEO_AD_UNIT_ID__` |
-| 竖版图片插屏 | `__INTERSTITIAL_AD_UNIT_ID__` |
-| 横版图片插屏 | `__INTERSTITIAL_LANDSCAPE_IMAGE_AD_UNIT_ID__` |
-| 竖版视频插屏 | `__INTERSTITIAL_PORTRAIT_VIDEO_AD_UNIT_ID__` |
-| 横版视频插屏 | `__INTERSTITIAL_LANDSCAPE_VIDEO_AD_UNIT_ID__` |
-| 单图自渲染信息流 | `__TYPED_ONE_NATIVE_AD_UNIT_ID__` |
-| 视频自渲染信息流 | `__FEED_VIDEO_AD_UNIT_ID__` |
-
-自渲染开屏复用两个开屏广告位；自渲染插屏复用四个插屏广告位。它们只用于 Demo 联调，不属于媒体生产广告位。
+插屏横竖版选择只控制 Demo 展示布局，不再对应不同广告位。

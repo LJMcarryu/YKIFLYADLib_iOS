@@ -60,6 +60,7 @@ jobs:
           grep -R -n -E 'IFLYDemoPrivacyConsentViewController|exit\(0\)' \
             IFLYADLibSimple/IFLYADLibSimple
           python3 - <<'PY'
+          import re
           from pathlib import Path
 
           home = Path("IFLYADLibSimple/IFLYADLibSimple/ViewController.m").read_text(encoding="utf-8")
@@ -82,6 +83,41 @@ jobs:
           prefix = Path(
               "IFLYADLibSimple/IFLYADLibSimple/Supporting Files/IFLYAdPrefixHeader.pch"
           ).read_text(encoding="utf-8")
+          slot_macros = {
+              "__SPLASH_NATIVE_AD_UNIT_ID__": "BC05C9AA5D3E0D3E8F1B25CDAB603831",
+              "__SPLASH_VIDEO_AD_UNIT_ID__": "5AF6465D44FCFAD4935C20D620614506",
+              "__INTERSTITIAL_AD_UNIT_ID__": "A830C77F232A5DE10AF0E4B92E0426C9",
+              "__INTERSTITIAL_LANDSCAPE_IMAGE_AD_UNIT_ID__": "A830C77F232A5DE10AF0E4B92E0426C9",
+              "__INTERSTITIAL_PORTRAIT_VIDEO_AD_UNIT_ID__": "784C8D7CF6CFC970473E3CB1DE893B61",
+              "__INTERSTITIAL_LANDSCAPE_VIDEO_AD_UNIT_ID__": "784C8D7CF6CFC970473E3CB1DE893B61",
+              "__TYPED_ONE_NATIVE_AD_UNIT_ID__": "C954B4CD38EE3DE2D7A6283169B3E459",
+              "__FEED_VIDEO_AD_UNIT_ID__": "C389BA3CD04BF2771C944B58E493DF94",
+          }
+          assert len(set(slot_macros.values())) == 6
+          for macro, ad_unit_id in slot_macros.items():
+              pattern = rf'#define\s+{re.escape(macro)}\s+@"{ad_unit_id}"'
+              assert re.search(pattern, prefix), macro
+          old_ad_unit_ids = {
+              "D65CC066BF3AE066C48F4A101A30005C",
+              "DDC620929747D6DB85FFEB14AB893F4E",
+              "22E131CFF097584531EAB3281C40769C",
+              "28AA4CE6390C2F6A874B9425C2223E0A",
+              "2C87A382F3D0CFFC844328E8C8CD8B51",
+              "284707795BA1F6A692D315CD02CDD78D",
+              "24556006C29E3C51A624F4B704BC7345",
+              "3AE3AC7B093A4CC6A1E2F19CF16709FC",
+          }
+          assert not any(ad_unit_id in prefix for ad_unit_id in old_ad_unit_ids)
+          for macro in (
+              "__TYPED_ONE_NATIVE_AD_UNIT_ID__",
+              "__FEED_VIDEO_AD_UNIT_ID__",
+          ):
+              assert macro in native, macro
+
+          presentation = Path(
+              "IFLYADLibSimple/IFLYADLibSimple/biz/native/presentation/"
+              "IFLYNativeFeedPresentationDemoViewController.m"
+          ).read_text(encoding="utf-8")
           for macro in (
               "__SPLASH_NATIVE_AD_UNIT_ID__",
               "__SPLASH_VIDEO_AD_UNIT_ID__",
@@ -89,10 +125,8 @@ jobs:
               "__INTERSTITIAL_LANDSCAPE_IMAGE_AD_UNIT_ID__",
               "__INTERSTITIAL_PORTRAIT_VIDEO_AD_UNIT_ID__",
               "__INTERSTITIAL_LANDSCAPE_VIDEO_AD_UNIT_ID__",
-              "__TYPED_ONE_NATIVE_AD_UNIT_ID__",
-              "__FEED_VIDEO_AD_UNIT_ID__",
           ):
-              assert macro in prefix, macro
+              assert macro in presentation, macro
           PY
 
   verify-release:
