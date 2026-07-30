@@ -14,7 +14,7 @@
 #import <IFLYADLib/IFLYADLib.h>
 ```
 
-所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷普通请求地址在二进制构建时固化为 `https://youku-sdk.voiceads.cn/sdk/req`，不提供公开运行时 URL setter。
+所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷普通请求地址当前在二进制构建时固化为灰度地址 `https://youku-sdk-grey.voiceads.cn/sdk/req`，不提供公开运行时 URL setter。
 
 当前版本：`6.0.14`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物要求使用不高于 Xcode 26.2 的工具链构建，具体版本记录在 Release 的 `delivery-manifest.json`。

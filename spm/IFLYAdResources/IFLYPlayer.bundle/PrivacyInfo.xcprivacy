@@ -11,6 +11,7 @@
 		<string>ai.voiceads.cn</string>
 		<string>msdk.voiceads.cn</string>
 		<string>sdk-adx.voiceads.cn</string>
+		<string>youku-sdk-grey.voiceads.cn</string>
 		<string>caid-api.adn-plus.com.cn</string>
 	</array>
 	<key>NSPrivacyCollectedDataTypes</key>

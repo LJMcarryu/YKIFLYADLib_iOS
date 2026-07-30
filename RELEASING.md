@@ -9,7 +9,7 @@ IFLY_NEW_VERSION_RELEASE=1 \
 IFLY_SDK_CODESIGN_IDENTITY='正式 SDK 签名身份' \
 scripts/package-youku-release.sh \
   --version 6.0.14 \
-  --ad-request-url 'https://youku-sdk.voiceads.cn/sdk/req'
+  --ad-request-url 'https://youku-sdk-grey.voiceads.cn/sdk/req'
 ```
 
 脚本输出：
@@ -26,7 +26,7 @@ build/youku/release/
 
 - 只包含 Splash、Interstitial、NativeFeed。
 - 不包含 Banner、Reward 公开头和类符号。
-- 请求地址严格等于 `https://youku-sdk.voiceads.cn/sdk/req`，且不残留标准普通请求 URL。
+- 请求地址严格等于当前获准的灰度地址 `https://youku-sdk-grey.voiceads.cn/sdk/req`，且不残留标准普通请求 URL。
 - 专属 URL 的 host 已写入 framework、外置资源和 SwiftPM 资源的 `NSPrivacyTrackingDomains`。
 - device 为 arm64，simulator 为 arm64/x86_64。
 - 最低系统版本为 iOS 11.0。
@@ -38,9 +38,9 @@ build/youku/release/
 
 ### 当前联调状态
 
-2026 年 7 月 30 日已使用固化正式地址的模拟器产物，在 iOS 26.2 上完成 Demo 构建、启动和五个示例入口点验。六个优酷定制广告位均已从对应页面发起请求：开屏图片/视频、插屏图片/视频和自渲染信息流图片/视频；插屏横竖版已确认共用对应的图片广告位 `A830C77F232A5DE10AF0E4B92E0426C9` 或视频广告位 `784C8D7CF6CFC970473E3CB1DE893B61`。模板开屏和模板插屏入口也已确认使用对应的新优酷广告位。
+2026 年 7 月 30 日已使用固化灰度地址的模拟器产物，在 iOS 26.2 上完成 Demo 构建、启动和五个示例入口点验。六个优酷定制广告位均已从对应页面发起请求：开屏图片/视频、插屏图片/视频和自渲染信息流图片/视频；插屏横竖版已确认共用对应的图片广告位 `A830C77F232A5DE10AF0E4B92E0426C9` 或视频广告位 `784C8D7CF6CFC970473E3CB1DE893B61`。模板开屏和模板插屏入口也已确认使用对应的新优酷广告位。
 
-当前模板开屏、模板插屏、自渲染信息流和新增自渲染视觉示例的联调请求仍收到 `https://youku-sdk.voiceads.cn/sdk/req` 返回的 HTTP 404，SDK 对应回调错误码 `71003`。这只能证明 SDK 地址固化、广告位选择和失败回调链路正确，不能视为真实广告联调通过。创建正式 Release 前必须由服务端确认并开通该 host 下的 `/sdk/req` 路由，并重新验证素材返回、解析、展示和监测。
+旧地址 `https://youku-sdk.voiceads.cn/sdk/req` 在 2026 年 7 月 30 日联调时返回 HTTP 404；切换到 `https://youku-sdk-grey.voiceads.cn/sdk/req` 后，本地模拟器真实请求约 7 秒触发 SDK 超时并回调 `71006`。这只能证明灰度地址已固化、请求已发起且失败回调链路正确，不能视为真实广告联调通过。创建正式 Release 前必须重新验证素材返回、解析、展示和监测。
 
 ## 2. 更新分发清单
 
