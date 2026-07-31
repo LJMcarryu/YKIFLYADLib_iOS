@@ -57,9 +57,6 @@ build/youku/release/
 3. 创建 GitHub Release，上传两个 zip 以及 `checksums.txt`、`delivery-manifest.json`。
 4. Release CI 验证精确资产白名单、两个 zip 的同源 XCFramework、URL、架构、隐私清单、SwiftPM 产品/资源和 CocoaPods Demo 编译。
 
-仓库为 Private 时，GitHub 仓库权限不会自动解决 CocoaPods raw URL 或 SwiftPM 二进制 URL 的下载鉴权，不能把远程清单宣称为可用交付。正式开放远程接入前，发布负责人必须二选一：
-
-- 将分发仓及 Release 调整为 Public；
-- 把 podspec、Package.swift 和文档切换到具备明确鉴权方案的二进制托管地址。
+分发仓及 Release 必须保持 Public，确保 CocoaPods raw URL、SwiftPM 仓库和二进制资产均可匿名访问。每次发布后都要在不携带 GitHub 凭据的环境中验证仓库、podspec 和两个 Release 资产可下载。
 
 已发布的 tag 和 zip 不允许覆盖重打；任何二进制变化都必须发布新版本。

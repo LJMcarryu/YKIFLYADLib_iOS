@@ -29,7 +29,7 @@ IFLYADLibSimple/          仅含开屏、插屏、自渲染的 Demo 工程
 
 SDK 私有源码、构建脚本和测试代码不在本分发仓。二进制只通过同版本 GitHub Release 交付。
 
-当前仓库为 Private。GitHub 网页访问权限不会自动替 CocoaPods 的 `raw.githubusercontent.com` 或 SwiftPM 的二进制 URL 完成鉴权；在确定公开仓或经认证的二进制托管方案前，标准远程 CocoaPods/SwiftPM 地址不作为可用交付方式，只能使用获授权后下载的同版本合并包手动集成。若后续将仓库调整为 Public，则可直接使用下述远程接入方式。
+当前仓库与同版本 GitHub Release 均为 Public，可匿名使用下述 CocoaPods、SwiftPM 或手动接入方式。
 
 ## Release 资产
 
@@ -47,7 +47,7 @@ SDK 为 Objective-C 静态库，最终 App 链接必须包含 `-ObjC`。CocoaPod
 
 ## CocoaPods 接入
 
-以下远程方式要求仓库及 Release 可匿名访问；Private 阶段请使用获授权下载的合并包和本地 `:path` 接入。
+以下远程方式直接使用公开仓库中的 podspec 和同版本 GitHub Release 资产。
 
 ```ruby
 source 'https://cdn.cocoapods.org/'
@@ -72,7 +72,7 @@ Pod 名是 `YKIFLYADLib`，但 SDK 模块名仍是 `IFLYADLib`。不要同时集
 
 ## Swift Package Manager 接入
 
-以下远程方式要求仓库及 Release 可匿名访问，Private 阶段不可直接使用。
+以下远程方式直接使用公开仓库和同版本 GitHub Release 资产。
 
 在 Xcode 的 “Add Package Dependencies” 中添加：
 
