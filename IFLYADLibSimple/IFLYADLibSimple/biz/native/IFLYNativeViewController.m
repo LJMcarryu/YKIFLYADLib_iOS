@@ -35,6 +35,18 @@
     [self.nativeAd destroy];
 }
 
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    if (self.isMovingFromParentViewController ||
+        self.isBeingDismissed ||
+        self.navigationController.isBeingDismissed) {
+        // 页面离开前先解绑，确保 SDK 创建的播放器、观察者、手势和曝光监听
+        // 不继续占用已离屏的媒体容器。
+        [self destroyAdSilently];
+        [self resetAdCard];
+    }
+}
+
 - (void)setupUI {
     CGFloat margin = 16;
     CGFloat width = self.view.bounds.size.width;
@@ -230,9 +242,13 @@
     }
     self.adBadgeLabel.hidden = NO;
     self.closeButton.hidden = NO;
-    self.descLabel.text = data.desc.length > 0 ? data.desc : (data.content.length > 0 ? data.content : (data.title.length > 0 ? data.title : @"广告描述"));
+    NSString *descriptionText =
+        data.desc ?: data.content ?: data.title ?: data.appName ?: data.brand;
+    self.descLabel.text = descriptionText ?: @"广告描述";
 
-    [self log:[NSString stringWithFormat:@"素材 materialType=%ld title=%@", (long)data.materialType, data.title ?: @"无"]];
+    [self log:[NSString stringWithFormat:@"素材 materialType=%ld title=%@ appName=%@",
+                                         (long)data.materialType, data.title ?: @"无",
+                                         data.appName ?: @"无"]];
     if (ad.hasVideoTemplate) {
         // 视频：深色媒体区承载视频，先显示"视频加载中"占位
         self.imageView.hidden = YES;
@@ -307,12 +323,16 @@
 #pragma mark - IFLYNativeFeedAdDelegate
 
 - (void)nativeFeedAdDidLoad:(IFLYNativeFeedAd *)ad {
-    [self log:[NSString stringWithFormat:@"nativeFeedAdDidLoad materialType=%ld price=%.2f",
-                                      (long)ad.materialType,
-                                      ad.bidInfo.price ? ad.bidInfo.price.doubleValue : -1.0]];
     if (ad != self.nativeAd) {
         return;
     }
+    [self log:[NSString
+                  stringWithFormat:
+                      @"nativeFeedAdDidLoad materialType=%ld appName=%@ price=%@ dealId=%@",
+                      (long)ad.materialType,
+                      ad.adData.appName ?: @"无",
+                      ad.bidInfo.price ?: @"无",
+                      ad.bidInfo.dealId ?: @"无"]];
     [self updateStatus:@"加载成功，媒体侧开始渲染" color:[IFLYADUtil demoIndigoColor]];
     [self renderAndBindAd:ad];
 }

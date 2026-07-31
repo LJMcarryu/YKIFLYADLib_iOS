@@ -5,10 +5,8 @@
 //  Created by admin on 3.3.25.
 //
 
-#import "IFLYInterstitialViewController.h"
 #import "IFLYNativeFeedPresentationDemoViewController.h"
 #import "IFLYNativeViewController.h"
-#import "IFLYSplashViewController.h"
 #import "ViewController.h"
 
 #import "IFLYADUtil.h"
@@ -44,16 +42,14 @@
     [scrollView addSubview:versionLabel];
     y += 36;
 
-    UILabel *descLabel = [IFLYADUtil
-        createSectionTitleWithText:@"仅演示优酷交付范围：开屏、插屏和自渲染信息流；同时提供开屏、插屏的自渲染视觉示例。"
-                             frame:CGRectMake(margin, y, contentWidth, 52)];
+    UILabel *descLabel =
+        [IFLYADUtil createSectionTitleWithText:@"仅演示优酷交付的自渲染场景：开屏、插屏和信息流。"
+                                         frame:CGRectMake(margin, y, contentWidth, 52)];
     descLabel.textAlignment = NSTextAlignmentCenter;
     [scrollView addSubview:descLabel];
     y += 72;
 
     NSArray<NSDictionary<NSString *, NSString *> *> *items = @[
-        @{@"title" : @"开屏广告", @"selector" : @"splashADTypeClick:"},
-        @{@"title" : @"插屏广告", @"selector" : @"interstitialADTypeClick:"},
         @{@"title" : @"自渲染开屏", @"selector" : @"nativeSplashADTypeClick:"},
         @{@"title" : @"自渲染插屏", @"selector" : @"nativeInterstitialADTypeClick:"},
         @{@"title" : @"自渲染信息流示例", @"selector" : @"nativeFeedADTypeClick:"},
@@ -72,10 +68,6 @@
     scrollView.contentSize = CGSizeMake(width, y + 24);
 }
 
-- (void)splashADTypeClick:(UIButton *)sender {
-    [self.navigationController pushViewController:IFLYSplashViewController.alloc.init animated:YES];
-}
-
 - (void)nativeSplashADTypeClick:(UIButton *)sender {
     IFLYNativeFeedPresentationDemoViewController *controller =
         [[IFLYNativeFeedPresentationDemoViewController alloc]
@@ -92,10 +84,6 @@
 
 - (void)nativeFeedADTypeClick:(UIButton *)sender {
     [self.navigationController pushViewController:IFLYNativeViewController.alloc.init animated:YES];
-}
-
-- (void)interstitialADTypeClick:(UIButton *)sender {
-    [self.navigationController pushViewController:IFLYInterstitialViewController.alloc.init animated:YES];
 }
 
 @end

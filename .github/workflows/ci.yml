@@ -33,7 +33,7 @@ jobs:
           assert pod_version == package_version == pod_url_version
 
           checksum = re.search(r'checksum:\s*"([^"]+)"', package).group(1)
-          assert checksum == "RELEASE_CHECKSUM_PENDING" or re.fullmatch(r"[0-9a-f]{64}", checksum)
+          assert re.fullmatch(r"[0-9a-f]{64}", checksum)
           assert '.library(name: "IFLYADLib", targets: ["IFLYADLib", "IFLYAdResources"])' in package
           assert '.copy("IFLYPlayer.bundle")' in package
           assert Path("spm/IFLYAdResources/IFLYAdResourceAnchor.m").is_file()
@@ -43,15 +43,16 @@ jobs:
           tracking_domains = plistlib.loads(
               privacy_path.read_bytes()
           )["NSPrivacyTrackingDomains"]
-          assert "youku-sdk-grey.voiceads.cn" in tracking_domains
-          assert "youku-sdk.voiceads.cn" not in tracking_domains
+          assert "youku-sdk.voiceads.cn" in tracking_domains
+          assert "msdk.voiceads.cn" not in tracking_domains
+          assert "youku-sdk-grey.voiceads.cn" not in tracking_domains
           print(f"version={pod_version}, checksum={checksum}")
           PY
 
-      - name: 校验 Demo 只含三种能力并覆盖五个示例
+      - name: 校验 Demo 只含三个自渲染示例
         run: |
-          test -f IFLYADLibSimple/IFLYADLibSimple/biz/splash/IFLYSplashViewController.m
-          test -f IFLYADLibSimple/IFLYADLibSimple/biz/interstitial/IFLYInterstitialViewController.m
+          test ! -d IFLYADLibSimple/IFLYADLibSimple/biz/splash
+          test ! -d IFLYADLibSimple/IFLYADLibSimple/biz/interstitial
           test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/IFLYNativeViewController.m
           test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/demo/IFLYNativeFeedDemoImageLoader.h
           test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/demo/IFLYNativeFeedDemoImageLoader.m
@@ -72,13 +73,21 @@ jobs:
 
           home = Path("IFLYADLibSimple/IFLYADLibSimple/ViewController.m").read_text(encoding="utf-8")
           for title in (
-              "开屏广告",
-              "插屏广告",
               "自渲染开屏",
               "自渲染插屏",
               "自渲染信息流示例",
           ):
               assert f'@"{title}"' in home, title
+          for forbidden in (
+              '@"开屏广告"',
+              '@"插屏广告"',
+              "IFLYSplashViewController",
+              "IFLYInterstitialViewController",
+              "splashADTypeClick:",
+              "interstitialADTypeClick:",
+          ):
+              assert forbidden not in home, forbidden
+          assert home.count('@{@"title"') == 3
           assert "IFLYNativeFeedDemoPresentationStyleSplash" in home
           assert "IFLYNativeFeedDemoPresentationStyleInterstitial" in home
 
@@ -86,6 +95,31 @@ jobs:
               "IFLYADLibSimple/IFLYADLibSimple/biz/native/IFLYNativeViewController.m"
           ).read_text(encoding="utf-8")
           assert 'self.title = @"自渲染信息流示例"' in native
+          presentation = Path(
+              "IFLYADLibSimple/IFLYADLibSimple/biz/native/presentation/"
+              "IFLYNativeFeedPresentationDemoViewController.m"
+          ).read_text(encoding="utf-8")
+          presentation_view = Path(
+              "IFLYADLibSimple/IFLYADLibSimple/biz/native/presentation/"
+              "IFLYNativeFeedDemoPresentationView.m"
+          ).read_text(encoding="utf-8")
+          demo_sources = native + presentation + presentation_view
+          for required in (
+              "appName",
+              "bidInfo.price",
+              "bidInfo.dealId",
+              "unbindAd",
+              "binder.clickViews = @[]",
+              "nativeFeedAdDidPlayFinish:",
+          ):
+              assert required in demo_sources, required
+          for forbidden in (
+              "actionText",
+              "rawAdData",
+              ".ecpm",
+              "IFLYNativeFeedAdMaterialTypeThreeImages",
+          ):
+              assert forbidden not in demo_sources, forbidden
 
           prefix = Path(
               "IFLYADLibSimple/IFLYADLibSimple/Supporting Files/IFLYAdPrefixHeader.pch"
@@ -121,10 +155,6 @@ jobs:
           ):
               assert macro in native, macro
 
-          presentation = Path(
-              "IFLYADLibSimple/IFLYADLibSimple/biz/native/presentation/"
-              "IFLYNativeFeedPresentationDemoViewController.m"
-          ).read_text(encoding="utf-8")
           for macro in (
               "__SPLASH_NATIVE_AD_UNIT_ID__",
               "__SPLASH_VIDEO_AD_UNIT_ID__",
@@ -143,7 +173,7 @@ jobs:
     permissions:
       contents: read
     env:
-      EXPECTED_AD_REQUEST_URL: ${{ vars.YOUKU_AD_REQUEST_URL }}
+      EXPECTED_AD_REQUEST_URL: https://youku-sdk.voiceads.cn/ad/request
       RELEASE_TAG: ${{ github.event.release.tag_name }}
     steps:
       - uses: actions/checkout@v4
@@ -188,12 +218,12 @@ jobs:
           assert xcode_version <= (26, 2), f"正式 SDK 使用了超上限 Xcode: {xcode_version}"
 
           expected_url = os.environ.get("EXPECTED_AD_REQUEST_URL", "").strip()
-          assert expected_url, "仓库变量 YOUKU_AD_REQUEST_URL 未配置"
+          assert expected_url, "正式请求地址未配置"
           assert manifest["adRequestURL"] == expected_url
           assert manifest["sourceBuild"]["adRequestURL"] == expected_url
           parsed = urlsplit(expected_url)
           assert parsed.scheme == "https" and parsed.hostname
-          assert expected_url != "https://msdk.voiceads.cn/sdk/req"
+          assert expected_url == "https://youku-sdk.voiceads.cn/ad/request"
           assert not parsed.hostname.endswith((".invalid", ".example", ".test"))
           assert parsed.hostname not in {"localhost", "127.0.0.1", "::1"}
           expected_tracking_host = parsed.hostname.lower()
@@ -272,12 +302,17 @@ jobs:
               repo_bundle / "PrivacyInfo.xcprivacy",
           ]
           assert all(path.is_file() for path in privacy_manifests)
+          stale_tracking_hosts = {
+              "msdk.voiceads.cn",
+              "youku-sdk-grey.voiceads.cn",
+          }
           for privacy_manifest in privacy_manifests:
               privacy = plistlib.loads(privacy_manifest.read_bytes())
               domains = {
                   item.lower() for item in privacy.get("NSPrivacyTrackingDomains", [])
               }
               assert expected_tracking_host in domains, privacy_manifest
+              assert not (stale_tracking_hosts & domains), privacy_manifest
 
           required_headers = {
               "IFLYSplashAd.h",
@@ -286,7 +321,11 @@ jobs:
               "IFLYNativeFeedAdData.h",
           }
           denied_headers = {"IFLYBannerAd.h", "IFLYRewardVideoAd.h"}
-          default_url = "https://msdk.voiceads.cn/sdk/req"
+          previous_urls = {
+              "https://msdk.voiceads.cn/sdk/req",
+              "https://youku-sdk-grey.voiceads.cn/sdk/req",
+              "https://youku-sdk.voiceads.cn/sdk/req",
+          }
           team_ids = set()
 
           for framework in (spm_frameworks[0], combined_frameworks[0]):
@@ -319,7 +358,7 @@ jobs:
                   text = subprocess.check_output(["strings", str(binary)], text=True)
                   lines = set(text.splitlines())
                   assert expected_url in lines
-                  assert default_url not in lines
+                  assert not (previous_urls & lines)
                   symbols = subprocess.check_output(
                       ["nm", "-g", str(binary)], text=True, errors="replace"
                   )

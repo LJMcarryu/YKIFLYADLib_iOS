@@ -14,9 +14,9 @@
 #import <IFLYADLib/IFLYADLib.h>
 ```
 
-所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷普通请求地址当前在二进制构建时固化为灰度地址 `https://youku-sdk-grey.voiceads.cn/sdk/req`，不提供公开运行时 URL setter。
+所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷普通请求地址在二进制构建时固化为专属地址 `https://youku-sdk.voiceads.cn/ad/request`，不提供公开运行时 URL setter。
 
-当前版本：`6.0.14`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
+当前版本：`6.1.0`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物要求使用不高于 Xcode 26.2 的工具链构建，具体版本记录在 Release 的 `delivery-manifest.json`。
 
 ## 仓库内容
@@ -57,7 +57,7 @@ target 'YourApp' do
   use_frameworks!
 
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.0.14/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.1.0/YKIFLYADLib.podspec'
 end
 ```
 
@@ -283,6 +283,13 @@ SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据�
 
 页面复用或退出前必须先 `unbindAd`，再清除 delegate 并 `destroy`。一个广告实例绑定成功后即被消费，不能再次绑定到另一个容器。
 
+视频 Binder 成功后可在 `nativeFeedAdDidRender:` 中调用 `startPlay`。播放器的
+前后台暂停恢复、静音、缓冲、播放监测和资源释放由 SDK 管理；媒体只在
+`nativeFeedAdDidStartPlay:`、`nativeFeedAdDidPausePlay:`、
+`nativeFeedAdDidResumePlay:`、`nativeFeedAdDidPlayFinish:` 和播放失败回调中
+同步自己的封面、占位和状态 UI。页面离开、Cell 复用或容器改作他用前仍必须调用
+`unbindAd`，不能只移除 `videoView`。
+
 ### 自渲染公开字段
 
 `IFLYNativeFeedAdData` 公开以下媒体渲染字段：
@@ -291,15 +298,16 @@ SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据�
 - `templateId` / `materialType`
 - `interactionType`
 - `interactType`
-- `title`、`desc`、`content`、`ctaText`、`brand`
+- `title`、`desc`、`content`、`ctaText`、`brand`、`appName`
 - `adSourceMark`、`adSourceIconURL`
-- `mainImage`、`image1`、`image2`、`image3`、`imageList`、`imageURLs`
+- `mainImage`、`image1`、`image2`、`image3`、`imageList`、`imageURLs`、`imageSize`
 - `videoURL`、`videoCoverURL`、`videoDuration`、`videoSize`
 - `icon` / `iconURL`
 - `closeIconURL`
 - `targetURL`、`deeplinkURL`
 - `marketURL`、`downloadURL`
 - `packageName`
+- `hasShakeInteraction`
 
 `templateId` 归一值：
 
@@ -312,6 +320,17 @@ SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据�
 
 优先级是 `video → img1+img2 → img/icon → Unknown`。
 
+`interactionType` 只按服务端 `action_type` 归一：`1=Exposure`、
+`2=Redirect`、`3/4=Download`，`9` 及其他未支持值为 `Unknown`。
+`Exposure`、`Unknown` 必须给 Binder 显式传入空的 `clickViews`；媒体不得把它们
+兜底为可点击。`interactType` 按服务端 `interact` 归一：
+`1=Click`、`2=ClickAndShake`、`3=ClickAndSlide`、
+`4=ClickShakeAndSlide`，`5/6/7` 及其他未支持值为 `Unknown`。
+当前 NativeFeed 不安装上滑手势，包含上滑的枚举只保留归一语义。
+
+`appName` 对应服务端 `app_name`，仅用于下载类广告的应用名称。它与
+`IFLYAdRequestConfig.appName` 不同：后者是媒体宿主 App 的请求参数。
+
 ### 通用竞价字段
 
 三种广告都只通过以下对象读取通用竞价字段：
@@ -321,19 +340,19 @@ NSNumber *price = ad.bidInfo.price;
 NSString *dealId = ad.bidInfo.dealId;
 ```
 
-除 NativeFeed 自渲染外，开屏和插屏不公开 `adData`、创意 ID或完整服务端响应。
+`price` 可能为 `nil`；S2S 加载成功时为 `0`。除 NativeFeed 自渲染外，开屏和插屏
+不公开 `adData`、创意 ID 或完整服务端响应。`6.1.0` 只提供本节列出的自渲染
+白名单字段；CTA 使用 `ctaText`，竞价字段统一从 `bidInfo` 获取。
 
 ## Demo
 
-[IFLYADLibSimple](./IFLYADLibSimple) 仅使用开屏、插屏、NativeFeed 三种 SDK 能力，并提供五个示例入口：
+[IFLYADLibSimple](./IFLYADLibSimple) 使用开屏、插屏、NativeFeed 三种 SDK 能力，首页仅提供三个自渲染示例入口：
 
-- 开屏广告。
-- 插屏广告。
 - 自渲染开屏：使用图片/视频开屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板开屏样式。
 - 自渲染插屏：使用横竖版图片/视频插屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板插屏样式。
 - 自渲染信息流示例。
 
-首次启动会先展示隐私同意页面；同意后才允许配置 SDK、请求 ATT 和加载广告。五个示例已切换为六个优酷定制联调广告位，其中插屏横竖版共用对应的图片或视频广告位。能否返回素材仍取决于优酷请求域名路由和服务端广告位配置。
+首次启动会先展示隐私同意页面；同意后才允许配置 SDK、请求 ATT 和加载广告。三个示例使用六个优酷定制联调广告位，其中插屏横竖版共用对应的图片或视频广告位。能否返回素材仍取决于优酷请求域名路由和服务端广告位配置。
 
 ## 能力边界
 

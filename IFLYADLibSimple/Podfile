@@ -7,5 +7,5 @@ target 'IFLYADLibSimple' do
 
   # 优酷 Model B 单包：只含开屏、插屏和自渲染信息流，模块及公开 API 仍为 IFLYADLib / IFLY*。
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.0.14/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.1.0/YKIFLYADLib.podspec'
 end

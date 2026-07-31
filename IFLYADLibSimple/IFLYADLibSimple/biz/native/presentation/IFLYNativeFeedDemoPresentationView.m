@@ -1004,7 +1004,12 @@ static UIImage *IFLYNativeFeedTemplateMuteIcon(BOOL muted) {
     self.adSourceBadgeView.hidden = NO;
     self.adSourceIconView.image = nil;
 
-    self.titleLabel.text = adData.title ?: adData.brand ?: @"广告";
+    BOOL download =
+        adData.interactionType == IFLYNativeFeedAdInteractionTypeDownload;
+    NSString *advertiserName =
+        download ? (adData.appName ?: adData.brand)
+                 : (adData.brand ?: adData.appName);
+    self.titleLabel.text = adData.title ?: advertiserName ?: @"广告";
     self.descLabel.text = adData.desc ?: adData.content ?: @"";
 
     BOOL clickable =

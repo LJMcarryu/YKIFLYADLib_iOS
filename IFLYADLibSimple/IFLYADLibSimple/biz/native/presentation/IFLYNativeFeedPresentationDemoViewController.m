@@ -433,10 +433,15 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
     self.presentationView = presentationView;
     [self updateStatus:@"加载成功，媒体正在准备自渲染 UI ..."
                  color:[IFLYADUtil demoIndigoColor]];
-    [self log:[NSString stringWithFormat:@"didLoad：creativeId=%@ templateId=%ld materialType=%ld",
-                                         ad.adData.creativeId ?: @"无",
-                                         (long)ad.adData.templateId,
-                                         (long)ad.adData.materialType]];
+    [self log:[NSString
+                  stringWithFormat:
+                      @"didLoad：creativeId=%@ appName=%@ templateId=%ld materialType=%ld price=%@ dealId=%@",
+                      ad.adData.creativeId ?: @"无",
+                      ad.adData.appName ?: @"无",
+                      (long)ad.adData.templateId,
+                      (long)ad.adData.materialType,
+                      ad.bidInfo.price ?: @"无",
+                      ad.bidInfo.dealId ?: @"无"]];
 
     __weak typeof(self) weakSelf = self;
     __weak IFLYNativeFeedAd *weakAd = ad;
@@ -793,7 +798,8 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
 
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
-    if (self.isMovingFromParentViewController || self.navigationController.isBeingDismissed) {
+    if (self.isMovingFromParentViewController || self.isBeingDismissed ||
+        self.navigationController.isBeingDismissed) {
         self.lifecycleGeneration += 1;
         [self.splashTimer invalidate];
         [self dismissPresentedHostImmediately];

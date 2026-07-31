@@ -9,10 +9,9 @@
 		<string>voiceads.cn</string>
 		<string>bjimp.voiceads.cn</string>
 		<string>ai.voiceads.cn</string>
-		<string>msdk.voiceads.cn</string>
 		<string>sdk-adx.voiceads.cn</string>
-		<string>youku-sdk-grey.voiceads.cn</string>
 		<string>caid-api.adn-plus.com.cn</string>
+		<string>youku-sdk.voiceads.cn</string>
 	</array>
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>

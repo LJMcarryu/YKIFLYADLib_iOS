@@ -8,8 +8,8 @@
 IFLY_NEW_VERSION_RELEASE=1 \
 IFLY_SDK_CODESIGN_IDENTITY='正式 SDK 签名身份' \
 scripts/package-youku-release.sh \
-  --version 6.0.14 \
-  --ad-request-url 'https://youku-sdk-grey.voiceads.cn/sdk/req'
+  --version 6.1.0 \
+  --ad-request-url 'https://youku-sdk.voiceads.cn/ad/request'
 ```
 
 脚本输出：
@@ -17,7 +17,7 @@ scripts/package-youku-release.sh \
 ```text
 build/youku/release/
 ├── IFLYADLib.xcframework.zip
-├── YKIFLYADLib-6.0.14.zip
+├── YKIFLYADLib-6.1.0.zip
 ├── checksums.txt
 └── delivery-manifest.json
 ```
@@ -26,8 +26,8 @@ build/youku/release/
 
 - 只包含 Splash、Interstitial、NativeFeed。
 - 不包含 Banner、Reward 公开头和类符号。
-- 请求地址严格等于当前获准的灰度地址 `https://youku-sdk-grey.voiceads.cn/sdk/req`，且不残留标准普通请求 URL。
-- 专属 URL 的 host 已写入 framework、外置资源和 SwiftPM 资源的 `NSPrivacyTrackingDomains`。
+- 请求地址严格等于获准的优酷专属地址 `https://youku-sdk.voiceads.cn/ad/request`，且不残留通用、历史灰度或旧正式路径请求 URL。
+- 目标 URL 的 host 已写入 framework、外置资源和 SwiftPM 资源的 `NSPrivacyTrackingDomains`。
 - device 为 arm64，simulator 为 arm64/x86_64。
 - 最低系统版本为 iOS 11.0。
 - 外置 `IFLYPlayer.bundle` 包含 `PrivacyInfo.xcprivacy`。
@@ -38,9 +38,9 @@ build/youku/release/
 
 ### 当前联调状态
 
-2026 年 7 月 30 日已使用固化灰度地址的模拟器产物，在 iOS 26.2 上完成 Demo 构建、启动和五个示例入口点验。六个优酷定制广告位均已从对应页面发起请求：开屏图片/视频、插屏图片/视频和自渲染信息流图片/视频；插屏横竖版已确认共用对应的图片广告位 `A830C77F232A5DE10AF0E4B92E0426C9` 或视频广告位 `784C8D7CF6CFC970473E3CB1DE893B61`。模板开屏和模板插屏入口也已确认使用对应的新优酷广告位。
+2026 年 7 月 30 日已使用模拟器产物，在 iOS 26.2 上完成 Demo 构建、启动和三个自渲染示例入口点验。六个优酷定制广告位均已从对应页面发起请求：自渲染开屏图片/视频、自渲染插屏图片/视频和自渲染信息流图片/视频；插屏横竖版已确认共用对应的图片广告位 `A830C77F232A5DE10AF0E4B92E0426C9` 或视频广告位 `784C8D7CF6CFC970473E3CB1DE893B61`。
 
-旧地址 `https://youku-sdk.voiceads.cn/sdk/req` 在 2026 年 7 月 30 日联调时返回 HTTP 404；切换到 `https://youku-sdk-grey.voiceads.cn/sdk/req` 后，本地模拟器真实请求约 7 秒触发 SDK 超时并回调 `71006`。这只能证明灰度地址已固化、请求已发起且失败回调链路正确，不能视为真实广告联调通过。创建正式 Release 前必须重新验证素材返回、解析、展示和监测。
+2026 年 7 月 31 日使用 Xcode 26.2 重新构建固化 `https://youku-sdk.voiceads.cn/ad/request` 的 device arm64 与 simulator arm64/x86_64 候选包，并以本地 Pod 接入本仓 Demo。六个优酷广告位均至少一次完成 `didLoad`；图片完成 Binder 渲染与曝光，视频完成起播和播放结束，插屏横竖版及半屏/全屏均通过，CTA 触发点击及 `didJumpWithSuccess=YES`。开屏图片首次请求返回一次 `70204`，立即重试成功。该轮为模拟器和 ad-hoc 签名验证；App Store 下载跳转、服务端监测入库及正式签名仍须真机和服务端配合终验。
 
 ## 2. 更新分发清单
 
@@ -48,7 +48,7 @@ build/youku/release/
 - 用源码仓 `build/youku/swiftpm-resources/IFLYPlayer.bundle` 同步覆盖本仓 `spm/IFLYAdResources/IFLYPlayer.bundle`。
 - 将 `YKIFLYADLib.podspec`、Demo `Podfile`、README、CHANGELOG 中的版本同步更新。
 - `swift package dump-package` 和 `pod ipc spec YKIFLYADLib.podspec` 必须通过；Release 可下载后再执行完整 pod lint。
-- 仓库变量 `YOUKU_AD_REQUEST_URL` 必须配置为获准的正式完整 URL，Release CI 会与 manifest 和二进制逐项比对。
+- Release CI 固定使用获准的正式完整 URL `https://youku-sdk.voiceads.cn/ad/request`，并与 manifest 和二进制逐项比对；变更地址必须同步修改构建脚本、隐私清单和本门禁。
 
 ## 3. 提交和发布
 
