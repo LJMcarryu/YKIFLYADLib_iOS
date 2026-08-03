@@ -1,6 +1,6 @@
 # 优酷定制 Demo
 
-该工程使用优酷定制 SDK 的开屏、插屏、NativeFeed 三种能力，首页仅提供以下三个自渲染示例：
+该工程只调用优酷定制 SDK 的 `IFLYNativeFeedAd` 自渲染能力，使用开屏、插屏和信息流三类广告位提供以下三个示例：
 
 - 自渲染开屏：使用图片/视频开屏广告位，按模板开屏样式渲染。
 - 自渲染插屏：使用横竖版图片/视频插屏广告位，按模板插屏样式渲染。
@@ -19,7 +19,7 @@ open IFLYADLibSimple.xcworkspace
 最低支持 iOS 11.0，支持 iPhone 和 iPad。真机运行前，请在 Xcode 的 Signing & Capabilities 中选择自己的开发者 Team。
 
 Demo 默认引用 tag `6.1.0` 的 `YKIFLYADLib.podspec`。升级 SDK 时，需要同步修改 `Podfile` 中的 tag。
-Demo 首页只有上述三个自渲染示例入口，不包含开屏和插屏模板渲染示例，也不包含 Banner、激励视频及其他进阶功能。三个示例均使用优酷定制联调广告位；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。
+Demo 首页只有上述三个自渲染示例入口，不调用 `IFLYSplashAd` 或 `IFLYInterstitialAd` 的 SDK 内置模板渲染接口，也不包含 Banner、激励视频及其他进阶功能。三个示例均使用优酷定制联调广告位；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。
 
 ## 自渲染接入顺序
 
