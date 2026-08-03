@@ -24,7 +24,7 @@
 ```text
 YKIFLYADLib.podspec       CocoaPods 分发清单
 Package.swift             Swift Package Manager 分发清单
-IFLYADLibSimple/          仅含开屏、插屏、自渲染的 Demo 工程
+IFLYADLibSimple/          三个 NativeFeed 自渲染场景的 Demo 工程
 ```
 
 SDK 私有源码、构建脚本和测试代码不在本分发仓。二进制只通过同版本 GitHub Release 交付。
@@ -346,13 +346,15 @@ NSString *dealId = ad.bidInfo.dealId;
 
 ## Demo
 
-[IFLYADLibSimple](./IFLYADLibSimple) 使用开屏、插屏、NativeFeed 三种 SDK 能力，首页仅提供三个自渲染示例入口：
+[IFLYADLibSimple](./IFLYADLibSimple) 只调用 `IFLYNativeFeedAd` 自渲染能力，使用开屏、插屏和信息流三类广告位提供三个示例入口：
 
 - 自渲染开屏：使用图片/视频开屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板开屏样式。
 - 自渲染插屏：使用横竖版图片/视频插屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板插屏样式。
 - 自渲染信息流示例。
 
 首次启动会先展示隐私同意页面；同意后才允许配置 SDK、请求 ATT 和加载广告。三个示例使用六个优酷定制联调广告位，其中插屏横竖版共用对应的图片或视频广告位。能否返回素材仍取决于优酷请求域名路由和服务端广告位配置。
+
+自渲染开屏和自渲染插屏只是媒体侧视觉示例，不调用 `IFLYSplashAd` 或 `IFLYInterstitialAd` 的 SDK 内置模板渲染接口。
 
 ## 能力边界
 

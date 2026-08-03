@@ -44,6 +44,12 @@ jobs:
           assert '.copy("IFLYPlayer.bundle")' in package
           assert Path("spm/IFLYAdResources/IFLYAdResourceAnchor.m").is_file()
           assert Path("spm/IFLYAdResources/include/IFLYAdResourceAnchor.h").is_file()
+          executable_resources = [
+              path
+              for path in Path("spm/IFLYAdResources/IFLYPlayer.bundle").rglob("*")
+              if path.is_file() and path.stat().st_mode & 0o111
+          ]
+          assert not executable_resources, executable_resources
           privacy_path = Path("spm/IFLYAdResources/IFLYPlayer.bundle/PrivacyInfo.xcprivacy")
           assert privacy_path.is_file()
           tracking_domains = plistlib.loads(
