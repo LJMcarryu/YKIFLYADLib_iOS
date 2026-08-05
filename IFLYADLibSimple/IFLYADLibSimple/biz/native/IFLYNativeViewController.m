@@ -26,6 +26,13 @@
     self.title = @"自渲染信息流示例";
     self.view.backgroundColor = UIColor.whiteColor;
     [self setupUI];
+    self.navigationItem.rightBarButtonItem =
+        [[UIBarButtonItem alloc] initWithTitle:@"媒体摇一摇上报"
+                                        style:UIBarButtonItemStylePlain
+                                       target:self
+                                       action:@selector(reportMediaShakeTriggered)];
+    self.navigationItem.rightBarButtonItem.accessibilityIdentifier =
+        @"nativeFeed.demo.reportMediaShake";
     [self log:@"自渲染信息流示例：Load -> 读取 adData -> 媒体渲染 -> Binder 绑定"];
 }
 
@@ -200,6 +207,29 @@
     [self resetAdCard];
     [self updateStatus:@"已销毁" color:[IFLYADUtil demoTealColor]];
     [self log:@"Destroy"];
+}
+
+- (void)reportMediaShakeTriggered {
+    if (!self.nativeAd) {
+        [self updateStatus:@"无广告实例" color:UIColor.systemGrayColor];
+        [self log:@"媒体摇一摇上报忽略：无广告实例"];
+        return;
+    }
+
+    IFLYAdError *error = nil;
+    BOOL accepted = [self.nativeAd reportMediaShakeTriggeredWithError:&error];
+    if (accepted) {
+        [self updateStatus:@"媒体摇一摇已接受" color:[IFLYADUtil demoTealColor]];
+        [self log:@"媒体摇一摇：SDK 已接受并进入点击处理"];
+        return;
+    }
+
+    NSInteger errorCode = error ? error.errorCode : 0;
+    NSString *errorSummary = error ? [IFLYADUtil summaryForError:error] : @"无错误详情";
+    [self updateStatus:[NSString stringWithFormat:@"媒体摇一摇上报失败 (%ld)",
+                                                       (long)errorCode]
+                  color:UIColor.systemRedColor];
+    [self log:[NSString stringWithFormat:@"媒体摇一摇：SDK 拒绝 %@", errorSummary]];
 }
 
 - (void)destroyAdSilently {

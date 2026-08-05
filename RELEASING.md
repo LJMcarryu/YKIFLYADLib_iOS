@@ -8,7 +8,7 @@
 IFLY_NEW_VERSION_RELEASE=1 \
 IFLY_SDK_CODESIGN_IDENTITY='正式 SDK 签名身份' \
 scripts/package-youku-release.sh \
-  --version 6.1.0 \
+  --version 6.1.1 \
   --ad-request-url 'https://youku-sdk.voiceads.cn/ad/request'
 ```
 
@@ -17,7 +17,7 @@ scripts/package-youku-release.sh \
 ```text
 build/youku/release/
 ├── IFLYADLib.xcframework.zip
-├── YKIFLYADLib-6.1.0.zip
+├── YKIFLYADLib-6.1.1.zip
 ├── checksums.txt
 └── delivery-manifest.json
 ```
@@ -31,16 +31,18 @@ build/youku/release/
 - device 为 arm64，simulator 为 arm64/x86_64。
 - 最低系统版本为 iOS 11.0。
 - 外置 `IFLYPlayer.bundle` 包含 `PrivacyInfo.xcprivacy`。
-- 源码仓必须是干净提交，参数版本必须与 SDK 和 XCFramework 版本一致。
+- 源码仓必须是干净提交；优酷发布版本必须与获准版本、运行时 SDK 版本、XCFramework 和交付清单一致，不改变其他渠道的版本。
 - `xcodebuild -version` 必须不高于 Xcode 26.2；本地超版本验证产物不得发布。
 - 正式命令必须设置 `IFLY_SDK_CODESIGN_IDENTITY`；两个切片的 framework 签名均须完整、非 ad-hoc 且 TeamIdentifier 一致。
-- 正式发布时设置 `IFLY_NEW_VERSION_RELEASE=1`，对两个 zip 执行 Apple 审核扫描。
+- 正式发布时设置 `IFLY_NEW_VERSION_RELEASE=1`，对两个 zip 执行 Apple 审核扫描并保留报告；分发发布与宿主审核闭环分别记录。
 
 ### 当前联调状态
 
 2026 年 7 月 30 日已使用模拟器产物，在 iOS 26.2 上完成 Demo 构建、启动和三个自渲染示例入口点验。六个优酷定制广告位均已从对应页面发起请求：自渲染开屏图片/视频、自渲染插屏图片/视频和自渲染信息流图片/视频；插屏横竖版已确认共用对应的图片广告位 `A830C77F232A5DE10AF0E4B92E0426C9` 或视频广告位 `784C8D7CF6CFC970473E3CB1DE893B61`。
 
 2026 年 7 月 31 日使用 Xcode 26.2 重新构建固化 `https://youku-sdk.voiceads.cn/ad/request` 的 device arm64 与 simulator arm64/x86_64 候选包，并以本地 Pod 接入本仓 Demo。六个优酷广告位均至少一次完成 `didLoad`；图片完成 Binder 渲染与曝光，视频完成起播和播放结束，插屏横竖版及半屏/全屏均通过，CTA 触发点击及 `didJumpWithSuccess=YES`。开屏图片首次请求返回一次 `70204`，立即重试成功。该轮为模拟器和 ad-hoc 签名验证；App Store 下载跳转、服务端监测入库及正式签名仍须真机和服务端配合终验。
+
+2026 年 8 月 5 日使用 Xcode 26.2 和批准的开发签名生成优酷 `6.1.1` 正式分发资产。935 项 SDK 单测、Youku 变体构建、CocoaPods Demo、SwiftPM 产品与资源投递均通过；产物已固化媒体摇一摇上报 selector、采样实现和 `6.1.1` 运行时版本。Apple 审核扫描报告单独留存，不把二进制分发完成描述为最终宿主 App 审核闭环。
 
 ## 2. 更新分发清单
 

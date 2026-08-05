@@ -18,7 +18,7 @@ open IFLYADLibSimple.xcworkspace
 
 最低支持 iOS 11.0，支持 iPhone 和 iPad。真机运行前，请在 Xcode 的 Signing & Capabilities 中选择自己的开发者 Team。
 
-Demo 默认引用 tag `6.1.0` 的 `YKIFLYADLib.podspec`。升级 SDK 时，需要同步修改 `Podfile` 中的 tag。
+Demo 默认引用 tag `6.1.1` 的 `YKIFLYADLib.podspec`。升级 SDK 时，需要同步修改 `Podfile` 中的 tag。
 Demo 首页只有上述三个自渲染示例入口，不调用 `IFLYSplashAd` 或 `IFLYInterstitialAd` 的 SDK 内置模板渲染接口，也不包含 Banner、激励视频及其他进阶功能。三个示例均使用优酷定制联调广告位；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。
 
 ## 自渲染接入顺序
@@ -33,12 +33,14 @@ Demo 首页只有上述三个自渲染示例入口，不调用 `IFLYSplashAd` �
 
 视频场景不需要媒体创建 `AVPlayer`。媒体只提供普通 `UIView` 作为 `videoView`，SDK 会管理播放器图层、前后台、静音、缓冲、暂停、完播及监测。
 
-`6.1.0` 使用归一后的 `templateId/materialType`、`interactionType` 和
+`6.1.1` 使用归一后的 `templateId/materialType`、`interactionType` 和
 `interactType`，只读取公开白名单字段；CTA 读取 `ctaText`，竞价信息读取
 `bidInfo`。仅 `Redirect/Download` 传入实际 `clickViews`，
 `Exposure/Unknown` 显式传 `@[]`。页面复用、退出或主动关闭时，Demo 均先
 `unbindAd`，再清空 delegate 并 `destroy`；SDK 负责视频前后台、暂停恢复、
 完播和播放器资源释放。
+
+信息流页面导航栏提供“媒体摇一摇上报”入口。广告自然曝光且当前有效可见后，媒体判定摇一摇并调用 `reportMediaShakeTriggeredWithError:`；SDK 从调用前的短时窗口选择真实三轴样本完成宏替换和点击处理。SDK 不自主触发该类点击，媒体未调用时不会上报。
 
 ## 广告位
 

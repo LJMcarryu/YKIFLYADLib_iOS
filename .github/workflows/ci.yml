@@ -123,6 +123,8 @@ jobs:
               "unbindAd",
               "binder.clickViews = @[]",
               "nativeFeedAdDidPlayFinish:",
+              "reportMediaShakeTriggeredWithError:",
+              "nativeFeed.demo.reportMediaShake",
           ):
               assert required in demo_sources, required
           for forbidden in (
@@ -234,8 +236,12 @@ jobs:
           assert manifest["distribution"] == "Youku"
           assert manifest["variant"] == "Youku"
           assert manifest["capabilities"] == ["Splash", "Interstitial", "NativeFeed"]
+          assert manifest["mediaShakeReportingEnabled"] is True
           assert manifest["sourceBuild"]["customAdRequestURL"] is True
           assert manifest["sourceBuild"]["sdkVersion"] == version
+          assert manifest["sourceBuild"]["sourceTreeClean"] is True
+          assert manifest["sourceBuild"]["sourceCommit"] == manifest["sourceCommit"]
+          assert "IFLYAd_COMPILE_MEDIA_SHAKE_REPORTING" in manifest["sourceBuild"]["enabledMacros"]
           xcode_version = tuple(
               int(item)
               for item in re.search(r"\d+(?:\.\d+)+", manifest["sourceBuild"]["xcodeVersion"])
@@ -359,6 +365,18 @@ jobs:
               headers = {path.name for path in framework.rglob("Headers/*.h")}
               assert required_headers <= headers
               assert not (denied_headers & headers)
+              native_feed_headers = list(framework.rglob("Headers/IFLYNativeFeedAd.h"))
+              error_headers = list(framework.rglob("Headers/IFLYAdError.h"))
+              assert native_feed_headers and error_headers
+              assert all(
+                  "reportMediaShakeTriggeredWithError:" in path.read_text(encoding="utf-8")
+                  for path in native_feed_headers
+              )
+              for error_code in ("71512", "71513", "71514", "71515"):
+                  assert all(
+                      error_code in path.read_text(encoding="utf-8")
+                      for path in error_headers
+                  )
 
               binaries = list(framework.rglob("IFLYADLib.framework/IFLYADLib"))
               assert len(binaries) == 2, [str(item) for item in binaries]
@@ -386,11 +404,15 @@ jobs:
                   lines = set(text.splitlines())
                   assert expected_url in lines
                   assert not (previous_urls & lines)
+                  assert version in lines
+                  assert "reportMediaShakeTriggeredWithError:" in lines
+                  assert "IFLYAdMotionSamplingCoordinator" in lines
                   symbols = subprocess.check_output(
                       ["nm", "-g", str(binary)], text=True, errors="replace"
                   )
                   assert "_OBJC_CLASS_$_IFLYBanner" not in symbols
                   assert "_OBJC_CLASS_$_IFLYReward" not in symbols
+                  assert "_OBJC_CLASS_$_IFLYAdMotionSamplingCoordinator" in symbols
 
                   architectures = set(
                       subprocess.check_output(["lipo", "-archs", str(binary)], text=True).split()

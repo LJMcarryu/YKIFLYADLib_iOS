@@ -16,7 +16,7 @@
 
 所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷普通请求地址在二进制构建时固化为专属地址 `https://youku-sdk.voiceads.cn/ad/request`，不提供公开运行时 URL setter。
 
-当前版本：`6.1.0`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
+当前版本：`6.1.1`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物要求使用不高于 Xcode 26.2 的工具链构建，具体版本记录在 Release 的 `delivery-manifest.json`。
 
 ## 仓库内容
@@ -57,7 +57,7 @@ target 'YourApp' do
   use_frameworks!
 
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.1.0/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.1.1/YKIFLYADLib.podspec'
 end
 ```
 
@@ -271,6 +271,17 @@ SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据�
 - 不要把 `clickViews` 留为 `nil`；`nil` 会把整个容器作为默认点击区域。
 - DeepLink、landing、下载兜底和点击监测由 SDK 统一处理，媒体不要自行 `openURL`。
 
+### 媒体摇一摇上报
+
+优酷 `6.1.1` 的 NativeFeed 由媒体负责判定摇一摇，SDK 不自主按阈值触发。广告自然曝光且有效可见期间，SDK 对全部 NativeFeed 广告被动缓存短时三轴数据，不依赖服务端 `interact` 或素材类型；媒体确认摇一摇后在主线程调用：
+
+```objc
+IFLYAdError *error = nil;
+BOOL accepted = [ad reportMediaShakeTriggeredWithError:&error];
+```
+
+`YES` 只表示 SDK 已接受事件并进入宏替换、监测、跳转和点击回调，不保证一定匹配到加速度样本或跳转成功。每个 Binder 会话最多接受一次；广告尚未自然曝光、当前不可见、普通点击已进入处理或非主线程调用时会返回 `NO`，具体错误为 `71512`～`71515`。媒体未调用该接口时，不会形成这类摇一摇点击。
+
 ### 视频容器
 
 媒体只需提供普通 `UIView` 作为 `binder.videoView`，不需要创建 `AVPlayer`。SDK 只管理自己创建的播放器图层，并负责：
@@ -341,7 +352,7 @@ NSString *dealId = ad.bidInfo.dealId;
 ```
 
 `price` 可能为 `nil`；S2S 加载成功时为 `0`。除 NativeFeed 自渲染外，开屏和插屏
-不公开 `adData`、创意 ID 或完整服务端响应。`6.1.0` 只提供本节列出的自渲染
+不公开 `adData`、创意 ID 或完整服务端响应。`6.1.1` 只提供本节列出的自渲染
 白名单字段；CTA 使用 `ctaText`，竞价字段统一从 `bidInfo` 获取。
 
 ## Demo
@@ -350,7 +361,7 @@ NSString *dealId = ad.bidInfo.dealId;
 
 - 自渲染开屏：使用图片/视频开屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板开屏样式。
 - 自渲染插屏：使用横竖版图片/视频插屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板插屏样式。
-- 自渲染信息流示例。
+- 自渲染信息流示例，包含媒体摇一摇点击上报入口。
 
 首次启动会先展示隐私同意页面；同意后才允许配置 SDK、请求 ATT 和加载广告。三个示例使用六个优酷定制联调广告位，其中插屏横竖版共用对应的图片或视频广告位。能否返回素材仍取决于优酷请求域名路由和服务端广告位配置。
 
