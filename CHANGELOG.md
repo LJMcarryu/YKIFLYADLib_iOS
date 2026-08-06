@@ -1,5 +1,14 @@
 # 版本记录
 
+## 6.1.2
+
+- 同步全渠道共享 Core 修复：iOS 14 及以上仅在 ATT 状态为 `authorized` 时读取或接受 IDFA；未授权及撤权后不再复用缓存值，普通请求与 S2S 请求使用同一门控。
+- 跳转链路移除 `canOpenURL:` 预检，改为调用 `openURL:options:completionHandler:` 并以系统完成回调判断结果；DeepLink 打开失败时仍按既有规则回退 landing。
+- `jumpDirectly` 仅保留为源码兼容字段，设置该字段不再绕过 SDK 跳转处理或改变行为。
+- CocoaPods 清单显式链接 `AdSupport` 并弱链接 `AppTrackingTransparency`，保持 iOS 11～13 宿主可启动。
+- Demo 隐私政策链接仅接受 HTTP/HTTPS，不再调用 `canOpenURL:`。
+- 保持优酷专属请求地址、Splash/Interstitial/NativeFeed 三种能力和 `6.1.1` 引入的媒体摇一摇上报接口不变。
+
 ## 6.1.1
 
 - NativeFeed 新增媒体摇一摇点击上报接口 `reportMediaShakeTriggeredWithError:`。

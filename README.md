@@ -16,7 +16,7 @@
 
 所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷普通请求地址在二进制构建时固化为专属地址 `https://youku-sdk.voiceads.cn/ad/request`，不提供公开运行时 URL setter。
 
-当前版本：`6.1.1`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
+当前版本：`6.1.2`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物要求使用不高于 Xcode 26.2 的工具链构建，具体版本记录在 Release 的 `delivery-manifest.json`。
 
 ## 仓库内容
@@ -57,7 +57,7 @@ target 'YourApp' do
   use_frameworks!
 
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.1.1/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.1.2/YKIFLYADLib.podspec'
 end
 ```
 
@@ -100,6 +100,20 @@ https://github.com/LJMcarryu/YKIFLYADLib_iOS.git
 ```
 
 SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据实际业务在 App Store Connect 中完成隐私标签、ATT 和相关合规声明。
+
+`6.1.2` 在 SDK 内统一收紧 IDFA 门控：iOS 14 及以上仅在 ATT 状态为
+`authorized` 时读取或接受 IDFA，未授权阶段传入的 IDFA 不会留待授权后复用；
+授权被撤回后会清除缓存。普通广告请求与 S2S 请求遵循同一规则。iOS 11～13
+继续按系统广告跟踪状态处理；CocoaPods 清单显式链接 `AdSupport`，并弱链接
+`AppTrackingTransparency`，不会让 iOS 11～13 因缺少该系统框架而无法启动。
+
+## 跳转兼容说明
+
+`6.1.2` 不再使用 `canOpenURL:` 预检 DeepLink，而是直接调用系统
+`openURL:options:completionHandler:` 并根据完成回调判断是否打开；失败时仍按既有
+规则回退 landing。非法 HTTP URL、携带凭据的 URL 和危险 scheme 会在打开前拒绝。
+历史字段 `jumpDirectly` 仅为源码兼容保留，设置后不会绕过 SDK 的监测、回退或
+安全校验，也不会改变跳转行为。
 
 ## 全局配置
 
@@ -273,7 +287,7 @@ SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据�
 
 ### 媒体摇一摇上报
 
-优酷 `6.1.1` 的 NativeFeed 由媒体负责判定摇一摇，SDK 不自主按阈值触发。广告自然曝光且有效可见期间，SDK 对全部 NativeFeed 广告被动缓存短时三轴数据，不依赖服务端 `interact` 或素材类型；媒体确认摇一摇后在主线程调用：
+自优酷 `6.1.1` 起，NativeFeed 由媒体负责判定摇一摇，SDK 不自主按阈值触发。广告自然曝光且有效可见期间，SDK 对全部 NativeFeed 广告被动缓存短时三轴数据，不依赖服务端 `interact` 或素材类型；媒体确认摇一摇后在主线程调用：
 
 ```objc
 IFLYAdError *error = nil;
@@ -352,7 +366,7 @@ NSString *dealId = ad.bidInfo.dealId;
 ```
 
 `price` 可能为 `nil`；S2S 加载成功时为 `0`。除 NativeFeed 自渲染外，开屏和插屏
-不公开 `adData`、创意 ID 或完整服务端响应。`6.1.1` 只提供本节列出的自渲染
+不公开 `adData`、创意 ID 或完整服务端响应。`6.1.2` 继续只提供本节列出的自渲染
 白名单字段；CTA 使用 `ctaText`，竞价字段统一从 `bidInfo` 获取。
 
 ## Demo

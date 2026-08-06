@@ -8,7 +8,7 @@
 IFLY_NEW_VERSION_RELEASE=1 \
 IFLY_SDK_CODESIGN_IDENTITY='正式 SDK 签名身份' \
 scripts/package-youku-release.sh \
-  --version 6.1.1 \
+  --version 6.1.2 \
   --ad-request-url 'https://youku-sdk.voiceads.cn/ad/request'
 ```
 
@@ -17,7 +17,7 @@ scripts/package-youku-release.sh \
 ```text
 build/youku/release/
 ├── IFLYADLib.xcframework.zip
-├── YKIFLYADLib-6.1.1.zip
+├── YKIFLYADLib-6.1.2.zip
 ├── checksums.txt
 └── delivery-manifest.json
 ```
@@ -35,6 +35,9 @@ build/youku/release/
 - `xcodebuild -version` 必须不高于 Xcode 26.2；本地超版本验证产物不得发布。
 - 正式命令必须设置 `IFLY_SDK_CODESIGN_IDENTITY`；两个切片的 framework 签名均须完整、非 ad-hoc 且 TeamIdentifier 一致。
 - 正式发布时设置 `IFLY_NEW_VERSION_RELEASE=1`，对两个 zip 执行 Apple 审核扫描并保留报告；分发发布与宿主审核闭环分别记录。
+- iOS 14 及以上只有 ATT `authorized` 状态可读取或接受 IDFA；撤权清缓存，普通请求与 S2S 请求使用同一门控。
+- 二进制与 Demo 均不得调用 `canOpenURL:`；DeepLink 使用系统打开完成回调判定结果，失败时保留 landing 回退，`jumpDirectly` 保持兼容 no-op。
+- CocoaPods 消费侧显式链接 `AdSupport`、弱链接 `AppTrackingTransparency`，并通过 iOS 11 消费 Demo 的启动与依赖门禁。
 
 ### 当前联调状态
 
@@ -44,11 +47,23 @@ build/youku/release/
 
 2026 年 8 月 5 日使用 Xcode 26.2 和批准的开发签名生成优酷 `6.1.1` 正式分发资产。935 项 SDK 单测、Youku 变体构建、CocoaPods Demo、SwiftPM 产品与资源投递均通过；产物已固化媒体摇一摇上报 selector、采样实现和 `6.1.1` 运行时版本。Apple 审核扫描报告单独留存，不把二进制分发完成描述为最终宿主 App 审核闭环。
 
+2026 年 8 月 6 日使用 Xcode 26.2，从私有源码仓提交
+`cf68ee40924916bfa4b19943ae8248ff338555f4` 生成优酷 `6.1.2` 正式分发资产。
+两个 framework 切片的 `TeamIdentifier` 均为 `FM295M5CZ5`；SDK 950 项测试和
+Demo 128 项测试全部通过。
+
+本次 Apple 审核扫描仍以 `high` 阈值阻断确定性失败，并原样保留
+`RRA-003`、`TRACK-001/002`、`SRC-009`、`ADS-011` 等启发式、人工复核或
+最终宿主责任状态，不将其改写为已通过。该风险边界只绑定优酷 `6.1.2`、
+上述源码提交和本次归档产物，不延伸到后续版本、最终宿主 App 或新增数据链路；
+二进制分发完成不代表最终宿主 App 审核和合规证据已闭环。
+
 ## 2. 更新分发清单
 
 - 将 `Package.swift` 中的 URL、版本和 checksum 替换为 `checksums.txt` 的结果。
 - 用源码仓 `build/youku/swiftpm-resources/IFLYPlayer.bundle` 同步覆盖本仓 `spm/IFLYAdResources/IFLYPlayer.bundle`。
 - 将 `YKIFLYADLib.podspec`、Demo `Podfile`、README、CHANGELOG 中的版本同步更新。
+- 确认 podspec 显式链接 `AdSupport`、弱链接 `AppTrackingTransparency`，并核对最终二进制没有对 `AppTrackingTransparency` 的强依赖。
 - `swift package dump-package` 和 `pod ipc spec YKIFLYADLib.podspec` 必须通过；Release 可下载后再执行完整 pod lint。
 - Release CI 固定使用获准的正式完整 URL `https://youku-sdk.voiceads.cn/ad/request`，并与 manifest 和二进制逐项比对；变更地址必须同步修改构建脚本、隐私清单和本门禁。
 

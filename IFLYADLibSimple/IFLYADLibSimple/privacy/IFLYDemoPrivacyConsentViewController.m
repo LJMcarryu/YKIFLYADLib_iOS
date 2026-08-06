@@ -33,10 +33,11 @@ static NSString *const IFLYDemoPrivacyPolicyName = @"《讯飞AI营销SDK隐私�
             _URLOpener = [URLOpener copy];
         } else {
             _URLOpener = ^BOOL(NSURL *URL) {
-                UIApplication *application = UIApplication.sharedApplication;
-                if (![application canOpenURL:URL]) {
+                NSString *scheme = URL.scheme.lowercaseString;
+                if (![scheme isEqualToString:@"http"] && ![scheme isEqualToString:@"https"]) {
                     return NO;
                 }
+                UIApplication *application = UIApplication.sharedApplication;
                 [application openURL:URL options:@{} completionHandler:nil];
                 return YES;
             };

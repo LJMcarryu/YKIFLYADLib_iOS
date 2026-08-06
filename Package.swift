@@ -17,9 +17,9 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "IFLYADLib",
-            url: "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/download/6.1.1/IFLYADLib.xcframework.zip",
-            // 6.1.1 正式签名 zip 的 `swift package compute-checksum`。
-            checksum: "ab269e9563212812454ca9abc2f569dd223ce0f7843e2bf768b5e5c56651a79d"
+            url: "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/download/6.1.2/IFLYADLib.xcframework.zip",
+            // checksum 来自 6.1.2 正式签名 zip，并已与交付清单核对。
+            checksum: "8513263664511d5330cfc383b3bf30e397eb317327b9567ae549cb499169bbb6"
         ),
         .target(
             name: "IFLYAdResources",

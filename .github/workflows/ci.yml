@@ -25,18 +25,34 @@ jobs:
       - name: 校验版本、清单与 SwiftPM 资源
         run: |
           swift package dump-package > /dev/null
-          pod ipc spec YKIFLYADLib.podspec > /dev/null
+          pod ipc spec YKIFLYADLib.podspec > /tmp/youku-podspec.json
           python3 - <<'PY'
+          import json
           import plistlib
           import re
           from pathlib import Path
 
           package = Path("Package.swift").read_text(encoding="utf-8")
           podspec = Path("YKIFLYADLib.podspec").read_text(encoding="utf-8")
+          podspec_json = json.loads(
+              Path("/tmp/youku-podspec.json").read_text(encoding="utf-8")
+          )
           pod_version = re.search(r"s\.version\s*=\s*['\"]([^'\"]+)", podspec).group(1)
           package_version = re.search(r"/releases/download/([^/]+)/IFLYADLib", package).group(1)
           pod_url_version = re.search(r"/releases/download/([^/]+)/YKIFLYADLib", podspec).group(1)
           assert pod_version == package_version == pod_url_version
+          assert "AdSupport" in podspec_json.get("frameworks", []), (
+              "podspec 缺少 AdSupport 强链接声明"
+          )
+          assert "AppTrackingTransparency" in podspec_json.get("weak_frameworks", []), (
+              "podspec 缺少 AppTrackingTransparency 弱链接声明"
+          )
+          assert "-ObjC" in podspec_json.get("pod_target_xcconfig", {}).get(
+              "OTHER_LDFLAGS", ""
+          ).split(), "pod target 未声明 -ObjC"
+          assert "-ObjC" in podspec_json.get("user_target_xcconfig", {}).get(
+              "OTHER_LDFLAGS", ""
+          ).split(), "aggregate/user target 未声明 -ObjC"
 
           checksum = re.search(r'checksum:\s*"([^"]+)"', package).group(1)
           assert re.fullmatch(r"[0-9a-f]{64}", checksum)
@@ -450,7 +466,33 @@ jobs:
             -scheme IFLYADLibSimple \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath /tmp/youku-pod-derived \
             CODE_SIGNING_ALLOWED=NO
+
+          xcodebuild \
+            -workspace IFLYADLibSimple/IFLYADLibSimple.xcworkspace \
+            -scheme IFLYADLibSimple \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -showBuildSettings \
+            -json > /tmp/youku-pod-build-settings.json
+
+          python3 - <<'PY'
+          import json
+          import shlex
+          from pathlib import Path
+
+          records = json.loads(
+              Path("/tmp/youku-pod-build-settings.json").read_text(encoding="utf-8")
+          )
+          apps = [item for item in records if item.get("target") == "IFLYADLibSimple"]
+          if len(apps) != 1:
+              raise SystemExit(f"无法唯一定位最终 App build settings: {len(apps)}")
+          flags = apps[0].get("buildSettings", {}).get("OTHER_LDFLAGS", "")
+          if "-ObjC" not in shlex.split(flags):
+              raise SystemExit(f"最终 App OTHER_LDFLAGS 未包含 -ObjC: {flags}")
+          print(f"OK 最终 App OTHER_LDFLAGS: {flags}")
+          PY
 
       - name: 使用本次 Release 产物编译 SwiftPM 产品并校验资源
         run: |
@@ -477,3 +519,82 @@ jobs:
             /tmp/youku-spm-derived/Build/Products/Debug-iphonesimulator/YKIFLYADLibReleaseValidation_IFLYAdResources.bundle/IFLYPlayer.bundle
           test -f \
             /tmp/youku-spm-derived/Build/Products/Debug-iphonesimulator/YKIFLYADLibReleaseValidation_IFLYAdResources.bundle/IFLYPlayer.bundle/PrivacyInfo.xcprivacy
+
+          spm_product_dir=/tmp/youku-spm-derived/Build/Products/Debug-iphonesimulator
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          xcrun clang \
+            -ObjC \
+            -fobjc-arc \
+            -isysroot "${simulator_sdk}" \
+            -target arm64-apple-ios11.0-simulator \
+            -F "${spm_product_dir}" \
+            -framework IFLYADLib \
+            -x objective-c - \
+            -o /tmp/youku-spm-consumer <<'EOF'
+          #import <IFLYADLib/IFLYADLib.h>
+          int main(void) {
+            @autoreleasepool {
+              NSLog(@"linked %@", [IFLYAdBase class]);
+            }
+            return 0;
+          }
+          EOF
+
+      - name: 校验 CocoaPods 与 SwiftPM 最终链接的 IDFA 系统框架依赖
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+
+          binaries = {
+              "CocoaPods Demo": Path(
+                  "/tmp/youku-pod-derived/Build/Products/Debug-iphonesimulator/"
+                  "IFLYADLibSimple.app/IFLYADLibSimple"
+              ),
+              "SwiftPM 最小消费端": Path("/tmp/youku-spm-consumer"),
+          }
+
+          def framework_load_commands(binary: Path, framework: str) -> list[str]:
+              output = subprocess.check_output(
+                  ["xcrun", "otool", "-l", str(binary)],
+                  text=True,
+              )
+              current_command = ""
+              commands = []
+              framework_marker = f"/{framework}.framework/"
+              for raw_line in output.splitlines():
+                  fields = raw_line.strip().split()
+                  if len(fields) >= 2 and fields[0] == "cmd":
+                      current_command = fields[1]
+                  elif (
+                      len(fields) >= 2
+                      and fields[0] == "name"
+                      and framework_marker in fields[1]
+                  ):
+                      commands.append(current_command)
+              return commands
+
+          for description, binary in binaries.items():
+              assert binary.is_file(), f"{description} 最终链接产物不存在: {binary}"
+              dependencies = subprocess.check_output(
+                  ["xcrun", "otool", "-L", str(binary)],
+                  text=True,
+              )
+              assert "/AdSupport.framework/AdSupport" in dependencies, (
+                  f"{description} 缺少 AdSupport 依赖"
+              )
+              att_commands = framework_load_commands(
+                  binary, "AppTrackingTransparency"
+              )
+              assert att_commands, (
+                  f"{description} 缺少 AppTrackingTransparency 依赖"
+              )
+              assert set(att_commands) == {"LC_LOAD_WEAK_DYLIB"}, (
+                  f"{description} 的 AppTrackingTransparency 未保持弱链接: "
+                  f"{att_commands}"
+              )
+              print(
+                  f"{description}: AdSupport 已链接，"
+                  "AppTrackingTransparency=LC_LOAD_WEAK_DYLIB"
+              )
+          PY
