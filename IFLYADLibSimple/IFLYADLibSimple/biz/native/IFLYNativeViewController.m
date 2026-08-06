@@ -1,22 +1,284 @@
 #import "IFLYNativeViewController.h"
 
 #import "IFLYADUtil.h"
+#import "demo/IFLYNativeFeedDemoImageLoader.h"
 #import <IFLYADLib/IFLYADLib.h>
 
-@interface IFLYNativeViewController () <IFLYNativeFeedAdDelegate>
+static NSInteger const IFLYNativeFeedDemoAdRow = 4;
+static NSInteger const IFLYNativeFeedDemoRowCount = 13;
+static NSString *const IFLYNativeFeedDemoContentCellIdentifier = @"youku-native-content";
+static NSString *const IFLYNativeFeedDemoAdCellIdentifier = @"youku-native-ad";
+static NSString *const IFLYNativeFeedDemoAdItemIdentifier = @"youku-native-stable-ad-item";
 
-@property (nonatomic, strong) IFLYNativeFeedAd *nativeAd;
+/// 数据层对象与稳定 itemIdentifier 同生命周期；Cell 复用不会替换这里的 Ad 或 DisplaySession。
+@interface IFLYNativeFeedDemoItem : NSObject
+@property (nonatomic, copy) NSString *itemIdentifier;
+@property (nonatomic, strong) IFLYNativeFeedAd *ad;
+@property (nonatomic, strong, nullable) IFLYNativeFeedDisplaySession *displaySession;
+@property (nonatomic, assign) NSUInteger loadGeneration;
+@property (nonatomic, assign) BOOL videoCoverVisible;
+@property (nonatomic, copy, nullable) NSString *videoStatusText;
+@end
+
+@implementation IFLYNativeFeedDemoItem
+@end
+
+/// Cell 只拥有当前一次挂载返回的 Binding，绝不拥有或销毁逻辑广告条目。
+@interface IFLYNativeFeedDemoCell : UITableViewCell
+@property (nonatomic, strong, readonly, nullable) IFLYNativeFeedAdBinding *binding;
+@property (nonatomic, strong, readonly, nullable) IFLYNativeFeedAd *boundAd;
+@property (nonatomic, copy, readonly, nullable) NSString *representedItemIdentifier;
+- (BOOL)attachDisplaySession:(IFLYNativeFeedDisplaySession *)displaySession
+              itemIdentifier:(NSString *)itemIdentifier
+                       error:(IFLYAdError *_Nullable *_Nullable)error;
+- (void)detachBinding;
+- (void)setVideoCoverVisible:(BOOL)visible text:(nullable NSString *)text;
+@end
+
+@interface IFLYNativeFeedDemoCell ()
+@property (nonatomic, strong) UIView *cardView;
+@property (nonatomic, strong) UIView *mediaView;
+@property (nonatomic, strong) UIImageView *coverImageView;
+@property (nonatomic, strong) UILabel *mediaPlaceholderLabel;
+@property (nonatomic, strong) UILabel *titleLabel;
+@property (nonatomic, strong) UILabel *descLabel;
+@property (nonatomic, strong) UILabel *adBadgeLabel;
+@property (nonatomic, strong) UIButton *closeButton;
+@property (nonatomic, strong) IFLYNativeFeedDemoImageLoader *imageLoader;
+@property (nonatomic, strong, nullable) id<IFLYNativeFeedDemoImageRequest> imageRequest;
+@property (nonatomic, strong, readwrite, nullable) IFLYNativeFeedAdBinding *binding;
+@property (nonatomic, copy, readwrite, nullable) NSString *representedItemIdentifier;
+@property (nonatomic, assign) NSUInteger renderGeneration;
+@property (nonatomic, assign) BOOL videoCoverVisible;
+@end
+
+@implementation IFLYNativeFeedDemoCell
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
+    self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
+    if (self) {
+        self.selectionStyle = UITableViewCellSelectionStyleNone;
+        _imageLoader = [[IFLYNativeFeedDemoImageLoader alloc] init];
+
+        _cardView = [[UIView alloc] init];
+        _cardView.backgroundColor = UIColor.whiteColor;
+        _cardView.layer.cornerRadius = 8.0;
+        _cardView.layer.borderWidth = 1.0;
+        _cardView.layer.borderColor = [UIColor colorWithWhite:0.86 alpha:1.0].CGColor;
+        _cardView.clipsToBounds = YES;
+        [self.contentView addSubview:_cardView];
+
+        _mediaView = [[UIView alloc] init];
+        _mediaView.backgroundColor = [UIColor colorWithWhite:0.12 alpha:1.0];
+        _mediaView.clipsToBounds = YES;
+        [_cardView addSubview:_mediaView];
+
+        _coverImageView = [[UIImageView alloc] init];
+        _coverImageView.contentMode = UIViewContentModeScaleAspectFill;
+        _coverImageView.clipsToBounds = YES;
+        [_mediaView addSubview:_coverImageView];
+
+        _mediaPlaceholderLabel = [[UILabel alloc] init];
+        _mediaPlaceholderLabel.textAlignment = NSTextAlignmentCenter;
+        _mediaPlaceholderLabel.textColor = UIColor.whiteColor;
+        _mediaPlaceholderLabel.font = [UIFont systemFontOfSize:13.0];
+        [_mediaView addSubview:_mediaPlaceholderLabel];
+
+        _adBadgeLabel = [[UILabel alloc] init];
+        _adBadgeLabel.text = @"广告";
+        _adBadgeLabel.textAlignment = NSTextAlignmentCenter;
+        _adBadgeLabel.font = [UIFont systemFontOfSize:10.0];
+        _adBadgeLabel.textColor = UIColor.whiteColor;
+        _adBadgeLabel.backgroundColor = [UIColor colorWithWhite:0.25 alpha:0.8];
+        _adBadgeLabel.layer.cornerRadius = 3.0;
+        _adBadgeLabel.clipsToBounds = YES;
+        [_cardView addSubview:_adBadgeLabel];
+
+        _titleLabel = [[UILabel alloc] init];
+        _titleLabel.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightSemibold];
+        _titleLabel.textColor = UIColor.blackColor;
+        [_cardView addSubview:_titleLabel];
+
+        _descLabel = [[UILabel alloc] init];
+        _descLabel.font = [UIFont systemFontOfSize:13.0];
+        _descLabel.textColor = [UIColor colorWithWhite:0.35 alpha:1.0];
+        _descLabel.numberOfLines = 2;
+        [_cardView addSubview:_descLabel];
+
+        _closeButton = [UIButton buttonWithType:UIButtonTypeSystem];
+        _closeButton.backgroundColor = [UIColor colorWithWhite:0.2 alpha:0.75];
+        _closeButton.layer.cornerRadius = 14.0;
+        [_closeButton setTitle:@"×" forState:UIControlStateNormal];
+        [_closeButton setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+        [_cardView addSubview:_closeButton];
+
+        [self resetVisuals];
+    }
+    return self;
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    CGFloat margin = 12.0;
+    CGFloat width = CGRectGetWidth(self.contentView.bounds) - margin * 2.0;
+    self.cardView.frame = CGRectMake(margin, 8.0, width, CGRectGetHeight(self.contentView.bounds) - 16.0);
+    CGFloat innerWidth = width - 24.0;
+    self.mediaView.frame = CGRectMake(12.0, 12.0, innerWidth, 190.0);
+    self.coverImageView.frame = self.mediaView.bounds;
+    self.mediaPlaceholderLabel.frame = self.mediaView.bounds;
+    self.closeButton.frame = CGRectMake(width - 40.0, 14.0, 28.0, 28.0);
+    self.adBadgeLabel.frame = CGRectMake(12.0, 212.0, 38.0, 20.0);
+    self.titleLabel.frame = CGRectMake(58.0, 208.0, width - 110.0, 26.0);
+    self.descLabel.frame = CGRectMake(12.0, 238.0, innerWidth, 42.0);
+}
+
+- (IFLYNativeFeedAd *)boundAd {
+    return self.binding.displaySession.ad;
+}
+
+- (BOOL)attachDisplaySession:(IFLYNativeFeedDisplaySession *)displaySession
+              itemIdentifier:(NSString *)itemIdentifier
+                       error:(IFLYAdError **)error {
+    if (self.binding.isActive && self.binding.displaySession == displaySession &&
+        [self.representedItemIdentifier isEqualToString:itemIdentifier]) {
+        if (error) {
+            *error = nil;
+        }
+        return YES;
+    }
+    [self detachBinding];
+
+    IFLYNativeFeedAd *ad = displaySession.ad;
+    IFLYNativeFeedAdData *data = ad.adData;
+    if (!ad || !data || !data.isMaterialComplete ||
+        data.materialType == IFLYNativeFeedAdMaterialTypeUnknown) {
+        if (error) {
+            *error = [IFLYAdError generateByCode:IFLYAdErrorCodeNativeFeedMaterialInvalid];
+        }
+        return NO;
+    }
+
+    self.representedItemIdentifier = [itemIdentifier copy];
+    self.titleLabel.text = data.title ?: data.appName ?: data.brand ?: @"广告";
+    self.descLabel.text = data.desc ?: data.content ?: data.ctaText ?: @"";
+    self.adBadgeLabel.hidden = NO;
+    self.closeButton.hidden = NO;
+    BOOL isVideo = data.materialType == IFLYNativeFeedAdMaterialTypeVideo;
+    [self setVideoCoverVisible:YES text:(isVideo ? @"视频加载中" : @"图片加载中")];
+
+    NSString *imageURL = isVideo ? (data.videoCoverURL ?: data.mainImage.url)
+                                 : data.imageURLs.firstObject;
+    NSUInteger generation = self.renderGeneration;
+    NSString *representedIdentifier = self.representedItemIdentifier;
+    __weak typeof(self) weakSelf = self;
+    self.imageRequest =
+        [self.imageLoader loadImageWithURLString:imageURL
+                                      completion:^(UIImage *image) {
+                                          __strong typeof(weakSelf) self = weakSelf;
+                                          if (!self || generation != self.renderGeneration ||
+                                              ![self.representedItemIdentifier
+                                                  isEqualToString:representedIdentifier]) {
+                                              return;
+                                          }
+                                          self.coverImageView.image = image;
+                                          if (isVideo) {
+                                              self.coverImageView.hidden =
+                                                  !self.videoCoverVisible || image == nil;
+                                              self.mediaPlaceholderLabel.hidden =
+                                                  !self.videoCoverVisible || image != nil;
+                                          } else {
+                                              self.coverImageView.hidden = image == nil;
+                                              self.mediaPlaceholderLabel.hidden = image != nil;
+                                          }
+                                      }];
+
+    IFLYNativeFeedAdViewBinder *binder = [[IFLYNativeFeedAdViewBinder alloc] init];
+    binder.containerView = self.cardView;
+    binder.renderViews = @[
+        self.mediaView,
+        self.coverImageView,
+        self.mediaPlaceholderLabel,
+        self.adBadgeLabel,
+        self.titleLabel,
+        self.descLabel,
+        self.closeButton,
+    ];
+    BOOL clickable =
+        data.interactionType == IFLYNativeFeedAdInteractionTypeRedirect ||
+        data.interactionType == IFLYNativeFeedAdInteractionTypeDownload;
+    // nil 会默认让整个容器可点击；纯曝光和未知行为必须显式传空数组。
+    binder.clickViews = clickable ? @[ self.mediaView, self.titleLabel ] : @[];
+    binder.closeView = self.closeButton;
+    binder.videoView = isVideo ? self.mediaView : nil;
+    binder.imageView = isVideo ? nil : self.coverImageView;
+    binder.titleView = self.titleLabel;
+    binder.descView = self.descLabel;
+    binder.adSourceView = self.adBadgeLabel;
+
+    IFLYNativeFeedAdBinding *binding = [displaySession attachWithViewBinder:binder error:error];
+    if (!binding) {
+        [self resetAfterFailedAttach];
+        return NO;
+    }
+    self.binding = binding;
+    return YES;
+}
+
+- (void)detachBinding {
+    IFLYNativeFeedAdBinding *binding = self.binding;
+    self.binding = nil;
+    self.renderGeneration += 1;
+    [self.imageRequest cancel];
+    self.imageRequest = nil;
+    [binding detach];
+    self.representedItemIdentifier = nil;
+    [self resetVisuals];
+}
+
+- (void)prepareForReuse {
+    [super prepareForReuse];
+    [self detachBinding];
+}
+
+- (void)setVideoCoverVisible:(BOOL)visible text:(NSString *)text {
+    self.videoCoverVisible = visible;
+    self.coverImageView.hidden = !visible || self.coverImageView.image == nil;
+    self.mediaPlaceholderLabel.hidden = !visible || self.coverImageView.image != nil;
+    self.mediaPlaceholderLabel.text = text ?: @"";
+}
+
+- (void)resetAfterFailedAttach {
+    self.renderGeneration += 1;
+    [self.imageRequest cancel];
+    self.imageRequest = nil;
+    self.representedItemIdentifier = nil;
+    [self resetVisuals];
+}
+
+- (void)resetVisuals {
+    self.videoCoverVisible = NO;
+    self.coverImageView.image = nil;
+    self.coverImageView.hidden = YES;
+    self.mediaPlaceholderLabel.hidden = NO;
+    self.mediaPlaceholderLabel.text = @"等待广告条目进入屏幕";
+    self.titleLabel.text = nil;
+    self.descLabel.text = nil;
+    self.adBadgeLabel.hidden = YES;
+    self.closeButton.hidden = YES;
+}
+
+@end
+
+@interface IFLYNativeViewController ()
+    <UITableViewDataSource, UITableViewDelegate, IFLYNativeFeedAdDelegate>
+@property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) UISegmentedControl *slotControl;
 @property (nonatomic, strong) UILabel *statusLabel;
-@property (nonatomic, strong) UIView *adContainer;
-@property (nonatomic, strong) UIView *videoView;
-@property (nonatomic, strong) UIImageView *imageView;
-@property (nonatomic, strong) UILabel *placeholderLabel;
-@property (nonatomic, strong) UILabel *adBadgeLabel;
-@property (nonatomic, strong) UILabel *descLabel;
-@property (nonatomic, strong) UIButton *closeButton;
-@property (nonatomic, strong) UITextView *logView;
-
+@property (nonatomic, strong, nullable) IFLYNativeFeedDemoItem *adItem;
+@property (nonatomic, assign) NSUInteger loadGeneration;
+@property (nonatomic, weak, nullable) IFLYNativeFeedDemoCell *visibleAdCell;
+@property (nonatomic, weak, nullable) IFLYNativeFeedDemoCell *attachedAdCell;
+@property (nonatomic, copy, nullable) NSString *visibleAdItemIdentifier;
 @end
 
 @implementation IFLYNativeViewController
@@ -25,7 +287,7 @@
     [super viewDidLoad];
     self.title = @"自渲染信息流示例";
     self.view.backgroundColor = UIColor.whiteColor;
-    [self setupUI];
+
     self.navigationItem.rightBarButtonItem =
         [[UIBarButtonItem alloc] initWithTitle:@"媒体摇一摇上报"
                                         style:UIBarButtonItemStylePlain
@@ -33,427 +295,396 @@
                                        action:@selector(reportMediaShakeTriggered)];
     self.navigationItem.rightBarButtonItem.accessibilityIdentifier =
         @"nativeFeed.demo.reportMediaShake";
-    [self log:@"自渲染信息流示例：Load -> 读取 adData -> 媒体渲染 -> Binder 绑定"];
-}
 
-- (void)dealloc {
-    [self.nativeAd unbindAd];
-    self.nativeAd.delegate = nil;
-    [self.nativeAd destroy];
+    self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStylePlain];
+    self.tableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.tableView.dataSource = self;
+    self.tableView.delegate = self;
+    [self.tableView registerClass:UITableViewCell.class
+           forCellReuseIdentifier:IFLYNativeFeedDemoContentCellIdentifier];
+    [self.tableView registerClass:IFLYNativeFeedDemoCell.class
+           forCellReuseIdentifier:IFLYNativeFeedDemoAdCellIdentifier];
+    [self.view addSubview:self.tableView];
+    [self configureTableHeader];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
-    if (self.isMovingFromParentViewController ||
-        self.isBeingDismissed ||
+    if (self.isMovingFromParentViewController || self.isBeingDismissed ||
         self.navigationController.isBeingDismissed) {
-        // 页面离开前先解绑，确保 SDK 创建的播放器、观察者、手势和曝光监听
-        // 不继续占用已离屏的媒体容器。
-        [self destroyAdSilently];
-        [self resetAdCard];
+        [self clearCurrentItem];
     }
 }
 
-- (void)setupUI {
-    CGFloat margin = 16;
-    CGFloat width = self.view.bounds.size.width;
-    CGFloat contentWidth = width - margin * 2;
-    CGFloat y = 100;
+- (void)dealloc {
+    [self clearCurrentItem];
+}
 
-    UILabel *desc = [IFLYADUtil createSectionTitleWithText:@"媒体侧根据 adData 自行渲染 UI，然后通过 Binder 把容器、点击视图、关闭按钮和视频容器交给 SDK。"
-                                                     frame:CGRectMake(margin, y, contentWidth, 42)];
-    [self.view addSubview:desc];
-    y += 54;
+- (void)configureTableHeader {
+    CGFloat width = CGRectGetWidth(self.view.bounds);
+    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0.0, 0.0, width, 112.0)];
+    header.autoresizingMask = UIViewAutoresizingFlexibleWidth;
 
-    self.slotControl = [[UISegmentedControl alloc] initWithItems:@[@"图文", @"视频"]];
-    self.slotControl.frame = CGRectMake(margin, y, contentWidth, 32);
+    UILabel *hint = [[UILabel alloc] initWithFrame:CGRectMake(16.0, 10.0, width - 32.0, 40.0)];
+    hint.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    hint.numberOfLines = 2;
+    hint.font = [UIFont systemFontOfSize:13.0];
+    hint.textColor = [UIColor colorWithWhite:0.35 alpha:1.0];
+    hint.text = @"上下滚动让广告 Cell 离屏再回屏：数据层保留原 Ad + DisplaySession，Cell 仅 detach/attach Binding。";
+    [header addSubview:hint];
+
+    self.slotControl = [[UISegmentedControl alloc] initWithItems:@[ @"图文", @"视频" ]];
+    self.slotControl.frame = CGRectMake(16.0, 54.0, width - 32.0, 30.0);
+    self.slotControl.autoresizingMask = UIViewAutoresizingFlexibleWidth;
     self.slotControl.selectedSegmentIndex = 0;
-    [self.view addSubview:self.slotControl];
-    y += 48;
+    [self.slotControl addTarget:self
+                         action:@selector(slotSelectionChanged:)
+               forControlEvents:UIControlEventValueChanged];
+    [header addSubview:self.slotControl];
 
-    CGFloat buttonWidth = (contentWidth - 8) / 2.0;
-    UIButton *loadButton = [IFLYADUtil createADTypeButtonWithFrame:CGRectMake(margin, y, buttonWidth, 44)
-                                                            title:@"Load"
-                                                           target:self
-                                                           action:@selector(loadAd)];
-    [self.view addSubview:loadButton];
-
-    UIButton *destroyButton = [IFLYADUtil createADTypeButtonWithFrame:CGRectMake(margin + buttonWidth + 8, y, buttonWidth, 44)
-                                                                title:@"Destroy"
-                                                               target:self
-                                                               action:@selector(destroyAd)];
-    destroyButton.backgroundColor = UIColor.systemRedColor;
-    [self.view addSubview:destroyButton];
-    y += 54;
-
-    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(margin, y, contentWidth, 22)];
-    self.statusLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
-    self.statusLabel.textColor = UIColor.systemBlueColor;
-    self.statusLabel.text = @"等待加载";
-    [self.view addSubview:self.statusLabel];
-    y += 32;
-
-    [self buildNativeAdCardAtY:y contentWidth:contentWidth margin:margin];
-    y += 246;
-
-    UILabel *logTitle = [IFLYADUtil createSectionTitleWithText:@"回调日志"
-                                                         frame:CGRectMake(margin, y, contentWidth, 18)];
-    [self.view addSubview:logTitle];
-    y += 22;
-
-    CGFloat logHeight = MAX(170, self.view.bounds.size.height - y - 24);
-    self.logView = [IFLYADUtil createLogTextViewWithFrame:CGRectMake(margin, y, contentWidth, logHeight)];
-    [self.view addSubview:self.logView];
-    [self resetAdCard];
+    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(16.0, 88.0, width - 32.0, 18.0)];
+    self.statusLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    self.statusLabel.font = [UIFont systemFontOfSize:12.0 weight:UIFontWeightMedium];
+    self.statusLabel.textColor = [IFLYADUtil demoIndigoColor];
+    self.statusLabel.text = @"等待广告条目进入屏幕";
+    [header addSubview:self.statusLabel];
+    self.tableView.tableHeaderView = header;
 }
 
-// 卡片布局参考私有库 Demo：深色媒体区（视频承载/图片叠加）+ 下方一行「广告角标 | 描述 | 圆形关闭」。
-- (void)buildNativeAdCardAtY:(CGFloat)y contentWidth:(CGFloat)contentWidth margin:(CGFloat)margin {
-    self.adContainer = [[UIView alloc] initWithFrame:CGRectMake(margin, y, contentWidth, 230)];
-    self.adContainer.backgroundColor = UIColor.whiteColor;
-    self.adContainer.layer.cornerRadius = 8;
-    self.adContainer.layer.borderColor = [UIColor colorWithWhite:0.86 alpha:1.0].CGColor;
-    self.adContainer.layer.borderWidth = 1;
-    self.adContainer.clipsToBounds = YES;
-    [self.view addSubview:self.adContainer];
+#pragma mark - UITableViewDataSource
 
-    CGFloat padding = 12;
-    CGFloat innerW = contentWidth - padding * 2;
-
-    // 媒体区：视频素材承载视图（深色底），图片素材叠加同区域的 imageView
-    self.videoView = [[UIView alloc] initWithFrame:CGRectMake(padding, padding, innerW, 170)];
-    self.videoView.backgroundColor = [UIColor colorWithRed:0.11 green:0.12 blue:0.14 alpha:1.0];
-    self.videoView.layer.cornerRadius = 6;
-    self.videoView.clipsToBounds = YES;
-    [self.adContainer addSubview:self.videoView];
-
-    self.placeholderLabel = [[UILabel alloc] initWithFrame:self.videoView.bounds];
-    self.placeholderLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.placeholderLabel.text = @"广告素材展示区域";
-    self.placeholderLabel.textAlignment = NSTextAlignmentCenter;
-    self.placeholderLabel.textColor = [UIColor colorWithWhite:0.55 alpha:1.0];
-    self.placeholderLabel.font = [UIFont systemFontOfSize:14];
-    [self.videoView addSubview:self.placeholderLabel];
-
-    self.imageView = [[UIImageView alloc] initWithFrame:self.videoView.frame];
-    self.imageView.backgroundColor = [UIColor colorWithRed:0.95 green:0.95 blue:0.96 alpha:1.0];
-    self.imageView.contentMode = UIViewContentModeScaleAspectFill;
-    self.imageView.clipsToBounds = YES;
-    self.imageView.layer.cornerRadius = 6;
-    self.imageView.hidden = YES;
-    [self.adContainer addSubview:self.imageView];
-
-    CGFloat rowY = CGRectGetMaxY(self.videoView.frame) + 10;
-    CGFloat rowH = 28;
-    CGFloat badgeW = 40;
-    CGFloat badgeH = 20;
-    CGFloat closeSide = 28;
-    CGFloat gap = 8;
-
-    self.adBadgeLabel = [[UILabel alloc] initWithFrame:CGRectMake(padding, rowY + (rowH - badgeH) * 0.5, badgeW, badgeH)];
-    self.adBadgeLabel.text = @"广告";
-    self.adBadgeLabel.textAlignment = NSTextAlignmentCenter;
-    self.adBadgeLabel.textColor = UIColor.whiteColor;
-    self.adBadgeLabel.font = [UIFont systemFontOfSize:10];
-    self.adBadgeLabel.backgroundColor = [UIColor colorWithRed:0.3 green:0.3 blue:0.3 alpha:0.4];
-    self.adBadgeLabel.layer.cornerRadius = 4;
-    self.adBadgeLabel.clipsToBounds = YES;
-    self.adBadgeLabel.hidden = YES;
-    [self.adContainer addSubview:self.adBadgeLabel];
-
-    self.closeButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    self.closeButton.frame = CGRectMake(contentWidth - padding - closeSide, rowY, closeSide, closeSide);
-    self.closeButton.backgroundColor = [UIColor colorWithRed:0.3 green:0.3 blue:0.3 alpha:0.4];
-    self.closeButton.layer.cornerRadius = closeSide * 0.5;
-    self.closeButton.clipsToBounds = YES;
-    self.closeButton.titleLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightSemibold];
-    [self.closeButton setTitle:@"×" forState:UIControlStateNormal];
-    [self.closeButton setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-    [self.adContainer addSubview:self.closeButton];
-
-    CGFloat descX = CGRectGetMaxX(self.adBadgeLabel.frame) + gap;
-    CGFloat descW = CGRectGetMinX(self.closeButton.frame) - gap - descX;
-    self.descLabel = [[UILabel alloc] initWithFrame:CGRectMake(descX, rowY, descW, rowH)];
-    self.descLabel.font = [UIFont systemFontOfSize:13];
-    self.descLabel.textColor = UIColor.darkGrayColor;
-    self.descLabel.numberOfLines = 1;
-    self.descLabel.lineBreakMode = NSLineBreakByTruncatingTail;
-    [self.adContainer addSubview:self.descLabel];
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return IFLYNativeFeedDemoRowCount;
 }
 
-- (void)loadAd {
-    [self destroyAdSilently];
-    [self resetAdCard];
+- (UITableViewCell *)tableView:(UITableView *)tableView
+         cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (indexPath.row == IFLYNativeFeedDemoAdRow) {
+        return [tableView dequeueReusableCellWithIdentifier:IFLYNativeFeedDemoAdCellIdentifier
+                                                forIndexPath:indexPath];
+    }
 
-    NSString *adUnitId = self.slotControl.selectedSegmentIndex == 1 ? __FEED_VIDEO_AD_UNIT_ID__ : __TYPED_ONE_NATIVE_AD_UNIT_ID__;
-    if (adUnitId.length == 0) {
-        [self updateStatus:@"请先配置优酷自渲染信息流广告位" color:UIColor.systemRedColor];
-        [self log:@"Load ignored: 自渲染信息流广告位为空"];
+    UITableViewCell *cell =
+        [tableView dequeueReusableCellWithIdentifier:IFLYNativeFeedDemoContentCellIdentifier
+                                        forIndexPath:indexPath];
+    cell.textLabel.text = [NSString stringWithFormat:@"内容行 %ld", (long)indexPath.row + 1];
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    return cell;
+}
+
+#pragma mark - UITableViewDelegate
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return indexPath.row == IFLYNativeFeedDemoAdRow ? 304.0 : 64.0;
+}
+
+- (void)tableView:(UITableView *)tableView
+ willDisplayCell:(UITableViewCell *)cell
+forRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (indexPath.row != IFLYNativeFeedDemoAdRow ||
+        ![cell isKindOfClass:IFLYNativeFeedDemoCell.class]) {
         return;
     }
-    [self updateStatus:@"正在加载信息流" color:UIColor.systemBlueColor];
-    [self log:[NSString stringWithFormat:@"Load adUnitId=%@", adUnitId]];
 
-    IFLYNativeFeedAd *ad = [[IFLYNativeFeedAd alloc] initWithAdUnitId:adUnitId];
-    ad.delegate = self;
-    ad.currentViewController = self;
-    ad.muteOnStart = YES;
-    self.nativeAd = ad;
-    [ad loadAdWithRequestConfig:[IFLYADUtil mediaSampleRequestConfig]];
+    IFLYNativeFeedDemoCell *adCell = (IFLYNativeFeedDemoCell *)cell;
+    self.visibleAdCell = adCell;
+    self.visibleAdItemIdentifier = IFLYNativeFeedDemoAdItemIdentifier;
+
+    IFLYNativeFeedDisplaySession *session = self.adItem.displaySession;
+    if (session) {
+        if (session.isValid) {
+            [self attachCurrentSessionToCell:adCell];
+            return;
+        }
+
+        // TTL/视频截止时间只禁止下一次 attach；当前活动 Binding 不在 willDisplay 中强拆。
+        BOOL cellKeepsCurrentBinding =
+            adCell.binding.isActive && adCell.binding.displaySession == session;
+        if (cellKeepsCurrentBinding || session.isAttached) {
+            return;
+        }
+        [self clearCurrentItem];
+        self.visibleAdCell = adCell;
+        self.visibleAdItemIdentifier = IFLYNativeFeedDemoAdItemIdentifier;
+    } else if (self.adItem.ad) {
+        return;
+    }
+    [self startLoadingCurrentItem];
 }
 
-- (void)destroyAd {
-    [self destroyAdSilently];
-    [self resetAdCard];
-    [self updateStatus:@"已销毁" color:[IFLYADUtil demoTealColor]];
-    [self log:@"Destroy"];
+- (void)tableView:(UITableView *)tableView
+didEndDisplayingCell:(UITableViewCell *)cell
+forRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (![cell isKindOfClass:IFLYNativeFeedDemoCell.class]) {
+        return;
+    }
+
+    IFLYNativeFeedDemoCell *adCell = (IFLYNativeFeedDemoCell *)cell;
+    NSString *itemIdentifier = adCell.representedItemIdentifier ?: IFLYNativeFeedDemoAdItemIdentifier;
+    [adCell detachBinding];
+    if (self.attachedAdCell == adCell) {
+        self.attachedAdCell = nil;
+    }
+    if (self.visibleAdCell == adCell) {
+        self.visibleAdCell = nil;
+        self.visibleAdItemIdentifier = nil;
+    }
+
+    // 数据源变化后 indexPath 可能已过期。这里只 detach 回调 Cell 自己持有的 Binding，
+    // 再用稳定 itemIdentifier 处理 willDisplay(new) 先于 didEndDisplaying(old) 的乱序。
+    [self continueDisplayingItemAfterCellDetached:itemIdentifier];
+}
+
+#pragma mark - Stable item lifecycle
+
+- (void)startLoadingCurrentItem {
+    if (self.adItem) {
+        return;
+    }
+
+    NSString *adUnitId = self.slotControl.selectedSegmentIndex == 1
+                             ? __FEED_VIDEO_AD_UNIT_ID__
+                             : __TYPED_ONE_NATIVE_AD_UNIT_ID__;
+    if (adUnitId.length == 0) {
+        [self updateStatus:@"请先配置优酷信息流广告位" color:UIColor.redColor];
+        return;
+    }
+
+    self.loadGeneration += 1;
+    IFLYNativeFeedDemoItem *item = [[IFLYNativeFeedDemoItem alloc] init];
+    item.itemIdentifier = IFLYNativeFeedDemoAdItemIdentifier;
+    item.loadGeneration = self.loadGeneration;
+    item.videoCoverVisible = YES;
+    item.videoStatusText = @"视频加载中";
+    item.ad = [[IFLYNativeFeedAd alloc] initWithAdUnitId:adUnitId];
+    item.ad.delegate = self;
+    item.ad.currentViewController = self;
+    item.ad.muteOnStart = YES;
+    self.adItem = item;
+    [self updateStatus:@"正在加载原逻辑广告条目" color:[IFLYADUtil demoIndigoColor]];
+    [item.ad loadAdWithRequestConfig:[IFLYADUtil mediaSampleRequestConfig]];
+}
+
+- (BOOL)attachCurrentSessionToCell:(IFLYNativeFeedDemoCell *)cell {
+    IFLYNativeFeedDemoItem *item = self.adItem;
+    IFLYNativeFeedDisplaySession *session = item.displaySession;
+    if (!cell || !session || !session.isValid || session.ad != item.ad) {
+        return NO;
+    }
+    if (cell.binding.isActive && cell.binding.displaySession == session) {
+        self.attachedAdCell = cell;
+        return YES;
+    }
+
+    IFLYAdError *error = nil;
+    BOOL attached = [cell attachDisplaySession:session
+                                itemIdentifier:item.itemIdentifier
+                                         error:&error];
+    if (attached) {
+        self.attachedAdCell = cell;
+        if (item.ad.adData.materialType == IFLYNativeFeedAdMaterialTypeVideo) {
+            // attach 内可能同步恢复播放并先触发 delegate；稳定条目保存该状态，待 Binding
+            // 写入 Cell 后再回填，避免封面继续遮住已经恢复的播放器。
+            [cell setVideoCoverVisible:item.videoCoverVisible text:item.videoStatusText];
+        }
+        NSString *state = session.hasExposed ? @"已恢复原广告（不重复曝光）"
+                                             : @"已挂载原广告（重新累计连续可见时长）";
+        [self updateStatus:state color:[IFLYADUtil demoTealColor]];
+    } else if (!session.isAttached) {
+        [self updateStatus:[NSString stringWithFormat:@"挂载失败：%@",
+                                                      [IFLYADUtil summaryForError:error]]
+                      color:UIColor.redColor];
+        // valid 在前置检查与实际 attach 之间可能因 TTL/视频截止时间到达而变为 NO。
+        // 当前已无活动 Binding，直接淘汰旧会话并为仍可见的稳定条目请求新广告。
+        if (!session.isValid && self.visibleAdCell == cell &&
+            [self.visibleAdItemIdentifier isEqualToString:item.itemIdentifier]) {
+            [self clearCurrentItem];
+            [self startLoadingCurrentItem];
+        }
+    }
+    return attached;
+}
+
+- (void)continueDisplayingItemAfterCellDetached:(NSString *)itemIdentifier {
+    IFLYNativeFeedDemoCell *visibleCell = self.visibleAdCell;
+    if (!visibleCell || visibleCell.binding ||
+        ![self.visibleAdItemIdentifier isEqualToString:itemIdentifier]) {
+        return;
+    }
+
+    IFLYNativeFeedDisplaySession *session = self.adItem.displaySession;
+    if (!session || session.isAttached) {
+        return;
+    }
+    if (session.isValid) {
+        [self attachCurrentSessionToCell:visibleCell];
+        return;
+    }
+
+    // 到期发生在活动 Binding 期间时，等待该 Binding 正常 detach 后才淘汰旧条目。
+    [self clearCurrentItem];
+    if (self.visibleAdCell == visibleCell &&
+        [self.visibleAdItemIdentifier isEqualToString:itemIdentifier]) {
+        [self startLoadingCurrentItem];
+    }
+}
+
+- (void)clearCurrentItem {
+    IFLYNativeFeedDemoItem *item = self.adItem;
+    if (!item) {
+        return;
+    }
+    self.loadGeneration += 1;
+    self.adItem = nil;
+
+    IFLYNativeFeedDemoCell *attachedCell = self.attachedAdCell;
+    self.attachedAdCell = nil;
+    if ((item.displaySession && attachedCell.binding.displaySession == item.displaySession) ||
+        (item.ad && attachedCell.boundAd == item.ad)) {
+        [attachedCell detachBinding];
+    }
+    IFLYNativeFeedDemoCell *visibleCell = self.visibleAdCell;
+    if (visibleCell != attachedCell &&
+        ((item.displaySession && visibleCell.binding.displaySession == item.displaySession) ||
+         (item.ad && visibleCell.boundAd == item.ad))) {
+        [visibleCell detachBinding];
+    }
+    // 逻辑条目淘汰的固定顺序：Cell detach -> Session end -> Ad destroy。
+    [item.displaySession endDisplaySession];
+    item.ad.delegate = nil;
+    [item.ad destroy];
+}
+
+#pragma mark - Actions
+
+- (void)slotSelectionChanged:(UISegmentedControl *)sender {
+    [self clearCurrentItem];
+    [self updateStatus:@"已切换广告位，原逻辑条目已淘汰" color:[IFLYADUtil demoIndigoColor]];
+    if (self.visibleAdCell) {
+        [self startLoadingCurrentItem];
+    }
 }
 
 - (void)reportMediaShakeTriggered {
-    if (!self.nativeAd) {
-        [self updateStatus:@"无广告实例" color:UIColor.systemGrayColor];
-        [self log:@"媒体摇一摇上报忽略：无广告实例"];
+    IFLYNativeFeedAd *ad = self.adItem.ad;
+    if (!ad || self.visibleAdCell.boundAd != ad || !self.visibleAdCell.binding.isActive) {
+        [self updateStatus:@"媒体摇一摇忽略：当前没有活动 Binding" color:UIColor.grayColor];
         return;
     }
 
     IFLYAdError *error = nil;
-    BOOL accepted = [self.nativeAd reportMediaShakeTriggeredWithError:&error];
+    BOOL accepted = [ad reportMediaShakeTriggeredWithError:&error];
     if (accepted) {
         [self updateStatus:@"媒体摇一摇已接受" color:[IFLYADUtil demoTealColor]];
-        [self log:@"媒体摇一摇：SDK 已接受并进入点击处理"];
-        return;
-    }
-
-    NSInteger errorCode = error ? error.errorCode : 0;
-    NSString *errorSummary = error ? [IFLYADUtil summaryForError:error] : @"无错误详情";
-    [self updateStatus:[NSString stringWithFormat:@"媒体摇一摇上报失败 (%ld)",
-                                                       (long)errorCode]
-                  color:UIColor.systemRedColor];
-    [self log:[NSString stringWithFormat:@"媒体摇一摇：SDK 拒绝 %@", errorSummary]];
-}
-
-- (void)destroyAdSilently {
-    IFLYNativeFeedAd *ad = self.nativeAd;
-    if (!ad) {
-        return;
-    }
-    self.nativeAd = nil;
-    [ad unbindAd];
-    ad.delegate = nil;
-    [ad destroy];
-}
-
-- (void)resetAdCard {
-    // 复位媒体区：移除视频承载视图里临时添加的子视图，保留占位标签
-    for (UIView *subview in [self.videoView.subviews copy]) {
-        if (subview != self.placeholderLabel) {
-            [subview removeFromSuperview];
-        }
-    }
-    self.videoView.hidden = NO;
-    self.placeholderLabel.hidden = NO;
-    self.placeholderLabel.text = @"广告素材展示区域";
-    self.imageView.hidden = YES;
-    self.imageView.image = nil;
-    self.adBadgeLabel.hidden = YES;
-    self.descLabel.text = @"";
-    self.closeButton.hidden = YES;
-}
-
-- (void)renderAndBindAd:(IFLYNativeFeedAd *)ad {
-    IFLYNativeFeedAdData *data = ad.adData;
-    if (!data || !data.isMaterialComplete ||
-        data.materialType == IFLYNativeFeedAdMaterialTypeUnknown) {
-        [self log:@"素材不完整或类型未知，不渲染、不绑定"];
-        [self updateStatus:@"素材不可用" color:UIColor.systemRedColor];
-        [self destroyAdSilently];
-        [self resetAdCard];
-        return;
-    }
-    self.adBadgeLabel.hidden = NO;
-    self.closeButton.hidden = NO;
-    NSString *descriptionText =
-        data.desc ?: data.content ?: data.title ?: data.appName ?: data.brand;
-    self.descLabel.text = descriptionText ?: @"广告描述";
-
-    [self log:[NSString stringWithFormat:@"素材 materialType=%ld title=%@ appName=%@",
-                                         (long)data.materialType, data.title ?: @"无",
-                                         data.appName ?: @"无"]];
-    if (ad.hasVideoTemplate) {
-        // 视频：深色媒体区承载视频，先显示"视频加载中"占位
-        self.imageView.hidden = YES;
-        self.videoView.hidden = NO;
-        self.placeholderLabel.hidden = NO;
-        self.placeholderLabel.text = @"视频加载中...";
-        [self bindNativeAd:ad video:YES];
-        return;
-    }
-
-    NSString *imageURL = data.imageURLs.firstObject;
-    __weak typeof(self) weakSelf = self;
-    [IFLYADUtil loadImageWithURLString:imageURL
-                            completion:^(UIImage *image, NSError *error) {
-                                __strong typeof(weakSelf) self = weakSelf;
-                                if (!self || self.nativeAd != ad) {
-                                    return;
-                                }
-                                if (image) {
-                                    // 图文：图片素材覆盖媒体区，隐藏深色占位
-                                    self.placeholderLabel.hidden = YES;
-                                    self.videoView.hidden = YES;
-                                    self.imageView.hidden = NO;
-                                    self.imageView.image = image;
-                                    [self log:@"图片素材已渲染，开始绑定"];
-                                    [self bindNativeAd:ad video:NO];
-                                } else {
-                                    [self log:[NSString stringWithFormat:@"图片加载失败：%@", error.localizedDescription ?: @"未知"]];
-                                    [self updateStatus:@"图片加载失败，未绑定广告" color:UIColor.systemRedColor];
-                                }
-                            }];
-}
-
-- (void)bindNativeAd:(IFLYNativeFeedAd *)ad video:(BOOL)isVideo {
-    IFLYNativeFeedAdData *data = ad.adData;
-    UIView *mediaView = isVideo ? self.videoView : self.imageView;
-    IFLYNativeFeedAdViewBinder *binder = [[IFLYNativeFeedAdViewBinder alloc] init];
-    binder.containerView = self.adContainer;
-    binder.renderViews = @[mediaView, self.adBadgeLabel, self.descLabel, self.closeButton];
-    BOOL clickable =
-        data.interactionType == IFLYNativeFeedAdInteractionTypeRedirect ||
-        data.interactionType == IFLYNativeFeedAdInteractionTypeDownload;
-    // 必须显式区分：nil 会默认让整个 containerView 可点击；纯曝光和未知行为应传空数组。
-    binder.clickViews = clickable ? @[mediaView] : @[];
-    binder.closeView = self.closeButton;
-    binder.videoView = isVideo ? self.videoView : nil;
-    binder.imageView = isVideo ? nil : self.imageView;
-    binder.descView = self.descLabel;
-    binder.adSourceView = self.adBadgeLabel;
-
-    IFLYAdError *error = nil;
-    BOOL success = [ad bindAdWithViewBinder:binder error:&error];
-    [self log:[NSString stringWithFormat:@"bindAdWithViewBinder success=%@ %@", success ? @"YES" : @"NO",
-                                      error ? [IFLYADUtil summaryForError:error] : @""]];
-    if (!success) {
-        [self updateStatus:@"信息流绑定失败" color:UIColor.systemRedColor];
-        [self destroyAdSilently];
-        [self resetAdCard];
+    } else {
+        [self updateStatus:[NSString stringWithFormat:@"媒体摇一摇失败：%@",
+                                                      [IFLYADUtil summaryForError:error]]
+                      color:UIColor.redColor];
     }
 }
 
 - (void)updateStatus:(NSString *)text color:(UIColor *)color {
     self.statusLabel.text = text;
     self.statusLabel.textColor = color;
+    IFLYSampleLogInfo(@"NativeFeed列表复用", @"%@", text);
 }
 
-- (void)log:(NSString *)text {
-    [IFLYADUtil appendLog:text toTextView:self.logView];
-    IFLYSampleLogInfo(@"NativeFeed", @"%@", text);
+- (void)recordVideoCoverVisible:(BOOL)visible
+                           text:(nullable NSString *)text
+                          forAd:(IFLYNativeFeedAd *)ad {
+    IFLYNativeFeedDemoItem *item = self.adItem;
+    if (ad != item.ad) {
+        return;
+    }
+    item.videoCoverVisible = visible;
+    item.videoStatusText = text;
+
+    // attach 内同步回调时 Cell 尚未保存新 Binding；先更新数据层，attach 返回后会回填。
+    // 其他时刻只更新真实 Binding owner，旧 Cell 的迟到事件不会污染新 Cell。
+    IFLYNativeFeedDemoCell *cell = self.attachedAdCell;
+    if (cell.boundAd != ad) {
+        cell = self.visibleAdCell;
+    }
+    if (cell.boundAd == ad) {
+        [cell setVideoCoverVisible:visible text:text];
+    }
 }
 
 #pragma mark - IFLYNativeFeedAdDelegate
 
 - (void)nativeFeedAdDidLoad:(IFLYNativeFeedAd *)ad {
-    if (ad != self.nativeAd) {
+    IFLYNativeFeedDemoItem *item = self.adItem;
+    if (ad != item.ad || item.loadGeneration != self.loadGeneration) {
         return;
     }
-    [self log:[NSString
-                  stringWithFormat:
-                      @"nativeFeedAdDidLoad materialType=%ld appName=%@ price=%@ dealId=%@",
-                      (long)ad.materialType,
-                      ad.adData.appName ?: @"无",
-                      ad.bidInfo.price ?: @"无",
-                      ad.bidInfo.dealId ?: @"无"]];
-    [self updateStatus:@"加载成功，媒体侧开始渲染" color:[IFLYADUtil demoIndigoColor]];
-    [self renderAndBindAd:ad];
-}
 
-- (void)nativeFeedAdDidRender:(IFLYNativeFeedAd *)ad {
-    [self log:@"nativeFeedAdDidRender"];
-    [self updateStatus:@"绑定成功，等待曝光" color:UIColor.systemGreenColor];
-    if (ad == self.nativeAd && ad.hasVideoTemplate) {
-        [ad startPlay];
-        [self log:@"视频信息流调用 startPlay"];
+    IFLYAdError *error = nil;
+    IFLYNativeFeedDisplaySession *session = [ad beginDisplaySessionWithError:&error];
+    if (!session) {
+        [self updateStatus:[NSString stringWithFormat:@"创建 DisplaySession 失败：%@",
+                                                      [IFLYADUtil summaryForError:error]]
+                      color:UIColor.redColor];
+        [self clearCurrentItem];
+        return;
     }
-}
-
-- (void)nativeFeedAdDidExpose:(IFLYNativeFeedAd *)ad {
-    [self log:@"nativeFeedAdDidExpose"];
-    [self updateStatus:@"信息流已曝光" color:UIColor.systemGreenColor];
-}
-
-- (void)nativeFeedAdDidClick:(IFLYNativeFeedAd *)ad {
-    [self log:@"nativeFeedAdDidClick"];
-}
-
-- (void)nativeFeedAdDidClose:(IFLYNativeFeedAd *)ad {
-    [self log:@"nativeFeedAdDidClose"];
-    [self updateStatus:@"信息流已关闭" color:[IFLYADUtil demoTealColor]];
-    if (ad == self.nativeAd) {
-        [self destroyAdSilently];
-        [self resetAdCard];
+    item.displaySession = session;
+    [self updateStatus:@"数据层已保存 Ad + DisplaySession" color:[IFLYADUtil demoIndigoColor]];
+    if (self.visibleAdCell && !self.visibleAdCell.binding) {
+        [self attachCurrentSessionToCell:self.visibleAdCell];
     }
 }
 
 - (void)nativeFeedAd:(IFLYNativeFeedAd *)ad didFailWithError:(IFLYAdError *)error {
-    if (ad != self.nativeAd) {
+    if (ad != self.adItem.ad) {
         return;
     }
-    [self log:[NSString stringWithFormat:@"nativeFeedAd didFailWithError %@", [IFLYADUtil summaryForError:error]]];
-    [self updateStatus:@"信息流加载失败" color:UIColor.systemRedColor];
-    [self destroyAdSilently];
-    [self resetAdCard];
+    [self updateStatus:[NSString stringWithFormat:@"加载失败：%@",
+                                                  [IFLYADUtil summaryForError:error]]
+                  color:UIColor.redColor];
+    [self clearCurrentItem];
 }
 
-- (void)nativeFeedAd:(IFLYNativeFeedAd *)ad didFailToRenderWithError:(IFLYAdError *)error {
-    if (ad != self.nativeAd) {
+- (void)nativeFeedAdDidRender:(IFLYNativeFeedAd *)ad {
+    if (ad == self.adItem.ad && self.visibleAdCell.boundAd == ad) {
+        [self updateStatus:@"当前 Cell Binding 已生效" color:[IFLYADUtil demoTealColor]];
+    }
+}
+
+- (void)nativeFeedAdDidExpose:(IFLYNativeFeedAd *)ad {
+    if (ad == self.adItem.ad) {
+        [self updateStatus:@"原逻辑广告条目已曝光（后续恢复不重复曝光）"
+                      color:[IFLYADUtil demoTealColor]];
+    }
+}
+
+- (void)nativeFeedAdDidClose:(IFLYNativeFeedAd *)ad {
+    if (ad != self.adItem.ad) {
         return;
     }
-    [self log:[NSString stringWithFormat:@"nativeFeedAd didFailToRender %@", [IFLYADUtil summaryForError:error]]];
-    [self updateStatus:@"信息流渲染失败" color:UIColor.systemRedColor];
-    [self destroyAdSilently];
-    [self resetAdCard];
+    [self clearCurrentItem];
+    [self updateStatus:@"广告已关闭，逻辑条目已永久淘汰" color:UIColor.grayColor];
 }
 
 - (void)nativeFeedAdDidStartPlay:(IFLYNativeFeedAd *)ad {
-    [self log:@"nativeFeedAdDidStartPlay"];
-    if (ad == self.nativeAd) {
-        self.placeholderLabel.hidden = YES;
-    }
-}
-
-- (void)nativeFeedAdDidPausePlay:(IFLYNativeFeedAd *)ad {
-    [self log:@"nativeFeedAdDidPausePlay"];
-    if (ad == self.nativeAd) {
-        self.placeholderLabel.hidden = NO;
-        self.placeholderLabel.text = @"视频已暂停";
-    }
+    [self recordVideoCoverVisible:NO text:nil forAd:ad];
 }
 
 - (void)nativeFeedAdDidResumePlay:(IFLYNativeFeedAd *)ad {
-    [self log:@"nativeFeedAdDidResumePlay"];
-    if (ad == self.nativeAd) {
-        self.placeholderLabel.hidden = YES;
-    }
+    [self recordVideoCoverVisible:NO text:nil forAd:ad];
+}
+
+- (void)nativeFeedAdDidPausePlay:(IFLYNativeFeedAd *)ad {
+    [self recordVideoCoverVisible:YES text:@"视频已暂停" forAd:ad];
 }
 
 - (void)nativeFeedAdDidPlayFinish:(IFLYNativeFeedAd *)ad {
-    [self log:@"nativeFeedAdDidPlayFinish"];
-    if (ad == self.nativeAd) {
-        self.placeholderLabel.hidden = NO;
-        self.placeholderLabel.text = @"视频播放完成";
-    }
+    [self recordVideoCoverVisible:YES text:@"视频播放完成" forAd:ad];
 }
 
-- (void)nativeFeedAd:(IFLYNativeFeedAd *)ad didFailToPlayWithError:(IFLYAdError *)error {
-    [self log:[NSString stringWithFormat:@"nativeFeedAd didFailToPlay %@", [IFLYADUtil summaryForError:error]]];
-    if (ad == self.nativeAd) {
-        self.placeholderLabel.hidden = NO;
-        self.placeholderLabel.text = @"视频播放失败";
-    }
-}
-
-- (void)nativeFeedAd:(IFLYNativeFeedAd *)ad didJumpWithSuccess:(BOOL)success {
-    [self log:[NSString stringWithFormat:@"nativeFeedAd didJumpWithSuccess=%@", success ? @"YES" : @"NO"]];
+- (void)nativeFeedAd:(IFLYNativeFeedAd *)ad
+didFailToPlayWithError:(IFLYAdError *)error {
+    (void)error;
+    [self recordVideoCoverVisible:YES text:@"视频播放失败" forAd:ad];
 }
 
 @end

@@ -4,7 +4,7 @@
 
 - 自渲染开屏：使用图片/视频开屏广告位，按模板开屏样式渲染。
 - 自渲染插屏：使用横竖版图片/视频插屏广告位，按模板插屏样式渲染。
-- 自渲染信息流示例：读取公开 `adData`，渲染图片或视频容器，再通过 Binder 绑定。
+- 自渲染信息流示例：用真实 `UITableView` 展示图文/视频 Cell 复用，同一稳定逻辑条目滚出后回屏仍恢复原广告。
 
 Demo 只调用 `IFLYADLib` 公开 API，不依赖私有 SDK 源码。首次启动必须先同意隐私政策；同意后才会配置 SDK、申请 ATT 并允许发起广告请求，选择“不同意并退出应用”会调用 `exit(0)`。
 
@@ -18,34 +18,33 @@ open IFLYADLibSimple.xcworkspace
 
 最低支持 iOS 11.0，支持 iPhone 和 iPad。真机运行前，请在 Xcode 的 Signing & Capabilities 中选择自己的开发者 Team。
 
-Demo 默认引用 tag `6.1.2` 的 `YKIFLYADLib.podspec`。升级 SDK 时，需要同步修改 `Podfile` 中的 tag。
+Demo 默认引用 tag `6.2.1` 的 `YKIFLYADLib.podspec`。升级 SDK 时，需要同步修改 `Podfile` 中的 tag。
 Demo 首页只有上述三个自渲染示例入口，不调用 `IFLYSplashAd` 或 `IFLYInterstitialAd` 的 SDK 内置模板渲染接口，也不包含 Banner、激励视频及其他进阶功能。三个示例均使用优酷定制联调广告位；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。
 
-`6.1.2` 同步全渠道共享修复：iOS 14 及以上只有 ATT `authorized` 时 SDK
+`6.2.1` 保留 `6.1.2` 的全渠道共享修复：iOS 14 及以上只有 ATT `authorized` 时 SDK
 才读取或接受 IDFA，撤权后清除缓存；普通请求与 S2S 请求使用同一门控。
 DeepLink 不再经过 `canOpenURL:` 预检，而是以系统打开完成回调判定结果并保留
 landing 回退；`jumpDirectly` 仅作为兼容 no-op。CocoaPods 清单显式链接
 `AdSupport`、弱链接 `AppTrackingTransparency`，保持 iOS 11～13 可启动。
 Demo 的隐私政策链接也只允许 HTTP/HTTPS，并直接交给系统打开。
 
-## 自渲染接入顺序
+## 信息流列表复用顺序
 
-1. 创建一个 `IFLYNativeFeedAd` 实例并设置 delegate。
-2. 调用 `loadAdWithRequestConfig:`。
-3. 在 `nativeFeedAdDidLoad:` 中读取 `ad.adData`。
-4. 媒体根据 `templateId`、`imageURLs`、`videoURL`、`appName` 等公开字段渲染 UI，并通过 `ad.bidInfo.price/dealId` 读取竞价信息。
-5. 构造 `IFLYNativeFeedAdViewBinder`，设置容器、渲染视图、点击视图、关闭视图和可选 `videoView`。
-6. 在主线程调用 `bindAdWithViewBinder:error:`。
-7. 页面复用或离开前调用 `unbindAd`，不再使用广告时调用 `destroy`。
+1. 数据模型以稳定 `itemIdentifier` 创建并持有 `IFLYNativeFeedAd`，设置 delegate 后调用 `loadAdWithRequestConfig:`。
+2. 在 `nativeFeedAdDidLoad:` 中读取 `ad.adData`，并调用 `beginDisplaySessionWithError:` 创建该逻辑条目的唯一 DisplaySession。
+3. `willDisplay` 中用原 `adData` 重画当前 Cell，构造 Binder，再调用 `attachWithViewBinder:error:`；Cell 只持有返回的 `IFLYNativeFeedAdBinding`。
+4. `didEndDisplaying` 和 `prepareForReuse` 对该 Cell 自己的 Binding 调用 `detach`，不根据可能过期的 `indexPath` 反查广告。
+5. 条目仍在数据源时保留 Ad + DisplaySession；条目永久删除、关闭、页面退出或缓存淘汰时，按 `detach -> endDisplaySession -> delegate=nil -> destroy` 收口。
 
 视频场景不需要媒体创建 `AVPlayer`。媒体只提供普通 `UIView` 作为 `videoView`，SDK 会管理播放器图层、前后台、静音、缓冲、暂停、完播及监测。
+视频 detach 时移除旧 Cell 宿主，但保留播放器、进度和既有 `playRequested` 播放意图；同一稳定条目回屏后可从原状态恢复。媒体显式调用 `pausePlay` / `stopPlay` 后回屏不会自动起播，只有 `resumePlay` / `startPlay` 才重新申请播放。
 
-`6.1.2` 继续使用归一后的 `templateId/materialType`、`interactionType` 和
+`6.2.1` 继续使用归一后的 `templateId/materialType`、`interactionType` 和
 `interactType`，只读取公开白名单字段；CTA 读取 `ctaText`，竞价信息读取
 `bidInfo`。仅 `Redirect/Download` 传入实际 `clickViews`，
-`Exposure/Unknown` 显式传 `@[]`。页面复用、退出或主动关闭时，Demo 均先
-`unbindAd`，再清空 delegate 并 `destroy`；SDK 负责视频前后台、暂停恢复、
-完播和播放器资源释放。
+`Exposure/Unknown` 显式传 `@[]`。固定卡片仍使用一次性 `bindAdWithViewBinder:error:` / `unbindAd`；列表不得混用该入口，必须使用 DisplaySession/Binding。
+
+曝光前滚出再回来会重新累计连续可见 `500ms`；已曝光条目恢复时不重复曝光。TTL 或视频投放截止时间只拒绝后续 attach，不强拆当前活动 Binding；该 Binding 正常 detach 后旧会话不可再恢复。
 
 信息流页面导航栏提供 `6.1.1` 引入的“媒体摇一摇上报”入口。广告自然曝光且当前有效可见后，媒体判定摇一摇并调用 `reportMediaShakeTriggeredWithError:`；SDK 从调用前的短时窗口选择真实三轴样本完成宏替换和点击处理。SDK 不自主触发该类点击，媒体未调用时不会上报。
 

@@ -34,13 +34,31 @@ jobs:
 
           package = Path("Package.swift").read_text(encoding="utf-8")
           podspec = Path("YKIFLYADLib.podspec").read_text(encoding="utf-8")
+          readme = Path("README.md").read_text(encoding="utf-8")
+          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          demo_podfile = Path("IFLYADLibSimple/Podfile").read_text(encoding="utf-8")
+          demo_readme = Path("IFLYADLibSimple/README.md").read_text(encoding="utf-8")
           podspec_json = json.loads(
               Path("/tmp/youku-podspec.json").read_text(encoding="utf-8")
           )
           pod_version = re.search(r"s\.version\s*=\s*['\"]([^'\"]+)", podspec).group(1)
           package_version = re.search(r"/releases/download/([^/]+)/IFLYADLib", package).group(1)
           pod_url_version = re.search(r"/releases/download/([^/]+)/YKIFLYADLib", podspec).group(1)
-          assert pod_version == package_version == pod_url_version
+          demo_pod_version = re.search(
+              r"YKIFLYADLib_iOS/([^/]+)/YKIFLYADLib\.podspec", demo_podfile
+          ).group(1)
+          assert pod_version == package_version == pod_url_version == demo_pod_version
+          assert f"当前版本：`{pod_version}`" in readme
+          assert re.search(r"^##\s+" + re.escape(pod_version) + r"\s*$", changelog, re.M)
+          for lifecycle_token in (
+              "playRequested",
+              "pausePlay",
+              "stopPlay",
+              "resumePlay",
+              "startPlay",
+          ):
+              assert lifecycle_token in readme, lifecycle_token
+              assert lifecycle_token in demo_readme, lifecycle_token
           assert "AdSupport" in podspec_json.get("frameworks", []), (
               "podspec 缺少 AdSupport 强链接声明"
           )
@@ -136,11 +154,21 @@ jobs:
               "appName",
               "bidInfo.price",
               "bidInfo.dealId",
-              "unbindAd",
               "binder.clickViews = @[]",
               "nativeFeedAdDidPlayFinish:",
               "reportMediaShakeTriggeredWithError:",
               "nativeFeed.demo.reportMediaShake",
+              "IFLYNativeFeedDemoItem",
+              "IFLYNativeFeedDisplaySession",
+              "IFLYNativeFeedAdBinding",
+              "beginDisplaySessionWithError:",
+              "attachWithViewBinder:",
+              "detachBinding",
+              "endDisplaySession",
+              "didEndDisplayingCell:",
+              "representedItemIdentifier",
+              "videoCoverVisible",
+              "recordVideoCoverVisible:",
           ):
               assert required in demo_sources, required
           for forbidden in (
@@ -150,6 +178,24 @@ jobs:
               "IFLYNativeFeedAdMaterialTypeThreeImages",
           ):
               assert forbidden not in demo_sources, forbidden
+          assert "unbindAd" not in native, (
+              "DisplaySession 列表 Cell 不得用广告级 unbindAd 代替 Binding detach"
+          )
+          detach_at = native.index("[attachedCell detachBinding]")
+          end_at = native.index("[item.displaySession endDisplaySession]")
+          destroy_at = native.index("[item.ad destroy]")
+          assert detach_at < end_at < destroy_at, "逻辑条目淘汰顺序错误"
+          did_end = native.index("didEndDisplayingCell:")
+          continue_after_detach = native.index(
+              "continueDisplayingItemAfterCellDetached:", did_end
+          )
+          assert native.index("[adCell detachBinding]", did_end) < continue_after_detach
+          attach_success = native.index("if (attached)")
+          video_state_restore = native.index(
+              "[cell setVideoCoverVisible:item.videoCoverVisible", attach_success
+          )
+          assert attach_success < video_state_restore
+          assert native.count("[self recordVideoCoverVisible:") >= 5
 
           prefix = Path(
               "IFLYADLibSimple/IFLYADLibSimple/Supporting Files/IFLYAdPrefixHeader.pch"
@@ -388,7 +434,19 @@ jobs:
                   "reportMediaShakeTriggeredWithError:" in path.read_text(encoding="utf-8")
                   for path in native_feed_headers
               )
-              for error_code in ("71512", "71513", "71514", "71515"):
+              for reusable_api in (
+                  "IFLYNativeFeedDisplaySession",
+                  "IFLYNativeFeedAdBinding",
+                  "beginDisplaySessionWithError:",
+                  "attachWithViewBinder:",
+                  "endDisplaySession",
+                  "detach",
+              ):
+                  assert all(
+                      reusable_api in path.read_text(encoding="utf-8")
+                      for path in native_feed_headers
+                  ), reusable_api
+              for error_code in ("71506", "71512", "71513", "71514", "71515"):
                   assert all(
                       error_code in path.read_text(encoding="utf-8")
                       for path in error_headers
@@ -422,6 +480,9 @@ jobs:
                   assert not (previous_urls & lines)
                   assert version in lines
                   assert "reportMediaShakeTriggeredWithError:" in lines
+                  assert "beginDisplaySessionWithError:" in lines
+                  assert "attachWithViewBinder:error:" in lines
+                  assert "endDisplaySession" in lines
                   assert "IFLYAdMotionSamplingCoordinator" in lines
                   symbols = subprocess.check_output(
                       ["nm", "-g", str(binary)], text=True, errors="replace"
@@ -429,6 +490,8 @@ jobs:
                   assert "_OBJC_CLASS_$_IFLYBanner" not in symbols
                   assert "_OBJC_CLASS_$_IFLYReward" not in symbols
                   assert "_OBJC_CLASS_$_IFLYAdMotionSamplingCoordinator" in symbols
+                  assert "_OBJC_CLASS_$_IFLYNativeFeedDisplaySession" in symbols
+                  assert "_OBJC_CLASS_$_IFLYNativeFeedAdBinding" in symbols
 
                   architectures = set(
                       subprocess.check_output(["lipo", "-archs", str(binary)], text=True).split()

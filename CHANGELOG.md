@@ -1,5 +1,14 @@
 # 版本记录
 
+## 6.2.1
+
+- NativeFeed 新增 `IFLYNativeFeedDisplaySession` 和 `IFLYNativeFeedAdBinding`，支持同一稳定逻辑广告条目在 `UITableView` / `UICollectionView` 复用 Cell 之间串行恢复；固定卡片的 `bindAdWithViewBinder:error:` / `unbindAd` 仍保持一次性语义。
+- 数据层按稳定 ID 持有 Ad + DisplaySession，Cell 只持有当前 Binding；离屏调用 `detach`，条目永久删除、页面退出或缓存淘汰时按 `detach -> endDisplaySession -> destroy` 收口。
+- 曝光前重挂载不累加不同 Cell 的可见时长；已曝光后恢复不重复曝光。Binding generation 隔离迟到的 detach、手势、曝光和视频事件。
+- 视频跨 Cell 恢复时保留播放器、进度和播放意图。素材 TTL 或视频投放截止时间只拒绝后续 attach，不中途强拆当前活动 Binding；正常 detach 后不得再恢复。
+- Demo 改为真实列表复用示例，覆盖 `willDisplay` / `didEndDisplaying` 乱序与图文/视频条目，并保留优酷媒体摇一摇上报入口。
+- 保持优酷专属请求地址 `https://youku-sdk.voiceads.cn/ad/request`、Splash/Interstitial/NativeFeed 三种能力、iOS 11.0 最低系统和既有 ATT/跳转边界不变。
+
 ## 6.1.2
 
 - 同步全渠道共享 Core 修复：iOS 14 及以上仅在 ATT 状态为 `authorized` 时读取或接受 IDFA；未授权及撤权后不再复用缓存值，普通请求与 S2S 请求使用同一门控。

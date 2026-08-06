@@ -16,8 +16,15 @@
 
 所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷普通请求地址在二进制构建时固化为专属地址 `https://youku-sdk.voiceads.cn/ad/request`，不提供公开运行时 URL setter。
 
-当前版本：`6.1.2`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
+当前版本：`6.2.1`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物要求使用不高于 Xcode 26.2 的工具链构建，具体版本记录在 Release 的 `delivery-manifest.json`。
+
+`6.2.1` 正式资产于 2026-08-07 由私有源码提交
+`3fcc0007b47a66d82f3134fab2a1eac58b35c94d` 生成。SwiftPM zip 的 SHA-256 为
+`a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f`，合并 zip 的
+SHA-256 为 `8cb718c2895e6e2d7370da6ffab801b8a0aecb6c4452b0fb4ac5b1df3f8b92db`；
+两个 framework 切片的 `TeamIdentifier` 均为 `FM295M5CZ5`。匿名下载、公开仓 CI
+和宿主合规验收仍是独立步骤，不因正式产包完成而自动视为通过。
 
 ## 仓库内容
 
@@ -57,7 +64,7 @@ target 'YourApp' do
   use_frameworks!
 
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.1.2/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.2.1/YKIFLYADLib.podspec'
 end
 ```
 
@@ -194,7 +201,7 @@ SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据�
 
 ## 自渲染信息流
 
-自渲染链路为：
+固定卡片的一次性链路为：
 
 ```text
 创建 IFLYNativeFeedAd
@@ -206,6 +213,15 @@ SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据�
 → bindAdWithViewBinder:error:
 → SDK 管理曝光、点击、跳转、视频和监测
 → unbindAd / destroy
+```
+
+`6.2.1` 另提供 DisplaySession 列表链路，用于“同一逻辑广告条目滚出后再回来仍展示原广告”：
+
+```text
+数据层按稳定 itemID 持有 Ad + DisplaySession
+→ Cell 进屏时重画 adData 并 attach，只持有 Binding
+→ Cell 离屏或复用时对自己的 Binding 调用 detach
+→ 条目永久淘汰时 detach → endDisplaySession → destroy
 ```
 
 ### 请求和渲染
@@ -277,6 +293,39 @@ SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据�
 ```
 
 绑定必须在主线程进行。`containerView` 必填，Binder 中的视图必须属于该容器层级。
+本节使用的 `bindAdWithViewBinder:error:` / `unbindAd` 只适用于固定卡片；成功绑定后即使尚未曝光，也不能通过重复 bind/unbind 实现 Cell 复用。
+
+### UITableView / UICollectionView 复用
+
+DisplaySession 与旧一次性绑定互斥。列表数据模型以稳定 `itemID` 持有 Ad 和会话，不要用会随 diff、插入和删除变化的 `indexPath` 作为广告身份：
+
+```objc
+// didLoad：创建并保存该稳定条目的唯一会话。
+IFLYAdError *error = nil;
+item.ad = ad;
+item.displaySession = [ad beginDisplaySessionWithError:&error];
+
+// willDisplay：先用 item.ad.adData 重画当前 Cell，再串行挂载。
+cell.adBinding =
+    [item.displaySession attachWithViewBinder:binder error:&error];
+
+// didEndDisplaying / prepareForReuse：只解除该 Cell 自己的句柄。
+[cell.adBinding detach];
+cell.adBinding = nil;
+
+// 条目删除、页面退出或缓存淘汰：显式收口。
+[cell.adBinding detach];
+cell.adBinding = nil;
+[item.displaySession endDisplaySession];
+item.ad.delegate = nil;
+[item.ad destroy];
+```
+
+`beginDisplaySessionWithError:` 和 `attachWithViewBinder:error:` 必须在主线程调用。`detach` 幂等且可从任意线程调用；每次 attach 都返回新的 generation Binding，旧 Cell 迟到的 detach、手势、曝光或视频事件不会影响新 Cell。`didEndDisplaying` 应直接处理回调 Cell 持有的 Binding，不应根据可能已过期的 `indexPath` 反查数据并解绑。
+
+未曝光时重挂载会重新累计连续可见 `500ms`，不累加不同 Cell 的时长；已曝光后恢复不重复发送曝光监测或公开曝光回调。同一会话同时只允许一个活动 Binding。视频 detach 后保留播放器、进度和既有 `playRequested` 播放意图；显式 `pausePlay` / `stopPlay` 后不会因回屏自动恢复，只有 `resumePlay` / `startPlay` 才重新申请播放。
+
+素材 TTL 或视频投放截止时间在当前 Binding 活动期间到达时，只会使 `session.valid=NO` 并拒绝下一次 attach，不中途强拆当前 Cell；该 Binding 正常 detach 后应结束旧会话并请求新广告。未结束 DisplaySession 期间，广告级 `unbindAd` 会被忽略，不是 Binding `detach` 的替代入口。
 
 ### 点击语义
 
@@ -294,7 +343,7 @@ IFLYAdError *error = nil;
 BOOL accepted = [ad reportMediaShakeTriggeredWithError:&error];
 ```
 
-`YES` 只表示 SDK 已接受事件并进入宏替换、监测、跳转和点击回调，不保证一定匹配到加速度样本或跳转成功。每个 Binder 会话最多接受一次；广告尚未自然曝光、当前不可见、普通点击已进入处理或非主线程调用时会返回 `NO`，具体错误为 `71512`～`71515`。媒体未调用该接口时，不会形成这类摇一摇点击。
+`YES` 只表示 SDK 已接受事件并进入宏替换、监测、跳转和点击回调，不保证一定匹配到加速度样本或跳转成功。每个逻辑广告展示会话最多接受一次；Cell detach/attach 不重置次数。广告尚未自然曝光、当前没有活动可见 Binding、普通点击已进入处理或非主线程调用时会返回 `NO`，具体错误为 `71512`～`71515`。媒体未调用该接口时，不会形成这类摇一摇点击。
 
 ### 视频容器
 
@@ -306,14 +355,14 @@ BOOL accepted = [ad reportMediaShakeTriggeredWithError:&error];
 - 静音、缓冲、暂停、恢复和完播
 - 播放事件及广告监测
 
-页面复用或退出前必须先 `unbindAd`，再清除 delegate 并 `destroy`。一个广告实例绑定成功后即被消费，不能再次绑定到另一个容器。
+固定卡片页面退出前先 `unbindAd`，再清除 delegate 并 `destroy`。一次性 Binder 成功后即被消费，不能再绑定到另一个容器。列表中则对 Cell 持有的 Binding 调用 `detach`；只有逻辑条目永久终止时才 `endDisplaySession` 并 `destroy`。
 
-视频 Binder 成功后可在 `nativeFeedAdDidRender:` 中调用 `startPlay`。播放器的
+固定卡片的首次视频 Binder 成功后，可在 `nativeFeedAdDidRender:` 中调用 `startPlay`。DisplaySession 列表每次 attach 都可收到 `didRender`，不应在该回调中无条件重置播放意图；回屏时应保留原 `playRequested`，只有媒体明确需要重新起播时才调用 `startPlay` / `resumePlay`。播放器的
 前后台暂停恢复、静音、缓冲、播放监测和资源释放由 SDK 管理；媒体只在
 `nativeFeedAdDidStartPlay:`、`nativeFeedAdDidPausePlay:`、
 `nativeFeedAdDidResumePlay:`、`nativeFeedAdDidPlayFinish:` 和播放失败回调中
-同步自己的封面、占位和状态 UI。页面离开、Cell 复用或容器改作他用前仍必须调用
-`unbindAd`，不能只移除 `videoView`。
+同步自己的封面、占位和状态 UI。固定卡片容器改作他用前调用
+`unbindAd`；列表 Cell 离屏或复用时调用其 Binding 的 `detach`，两种场景都不能只移除 `videoView`。
 
 ### 自渲染公开字段
 
@@ -366,7 +415,7 @@ NSString *dealId = ad.bidInfo.dealId;
 ```
 
 `price` 可能为 `nil`；S2S 加载成功时为 `0`。除 NativeFeed 自渲染外，开屏和插屏
-不公开 `adData`、创意 ID 或完整服务端响应。`6.1.2` 继续只提供本节列出的自渲染
+不公开 `adData`、创意 ID 或完整服务端响应。`6.2.1` 继续只提供本节列出的自渲染
 白名单字段；CTA 使用 `ctaText`，竞价字段统一从 `bidInfo` 获取。
 
 ## Demo
@@ -375,7 +424,7 @@ NSString *dealId = ad.bidInfo.dealId;
 
 - 自渲染开屏：使用图片/视频开屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板开屏样式。
 - 自渲染插屏：使用横竖版图片/视频插屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板插屏样式。
-- 自渲染信息流示例，包含媒体摇一摇点击上报入口。
+- 自渲染信息流列表复用示例，可切换图文/视频广告位，展示稳定 ID 数据层、DisplaySession/Binding 和媒体摇一摇上报。
 
 首次启动会先展示隐私同意页面；同意后才允许配置 SDK、请求 ATT 和加载广告。三个示例使用六个优酷定制联调广告位，其中插屏横竖版共用对应的图片或视频广告位。能否返回素材仍取决于优酷请求域名路由和服务端广告位配置。
 

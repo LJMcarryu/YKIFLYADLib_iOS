@@ -8,7 +8,7 @@
 IFLY_NEW_VERSION_RELEASE=1 \
 IFLY_SDK_CODESIGN_IDENTITY='正式 SDK 签名身份' \
 scripts/package-youku-release.sh \
-  --version 6.1.2 \
+  --version 6.2.1 \
   --ad-request-url 'https://youku-sdk.voiceads.cn/ad/request'
 ```
 
@@ -17,7 +17,7 @@ scripts/package-youku-release.sh \
 ```text
 build/youku/release/
 ├── IFLYADLib.xcframework.zip
-├── YKIFLYADLib-6.1.2.zip
+├── YKIFLYADLib-6.2.1.zip
 ├── checksums.txt
 └── delivery-manifest.json
 ```
@@ -38,6 +38,8 @@ build/youku/release/
 - iOS 14 及以上只有 ATT `authorized` 状态可读取或接受 IDFA；撤权清缓存，普通请求与 S2S 请求使用同一门控。
 - 二进制与 Demo 均不得调用 `canOpenURL:`；DeepLink 使用系统打开完成回调判定结果，失败时保留 landing 回退，`jumpDirectly` 保持兼容 no-op。
 - CocoaPods 消费侧显式链接 `AdSupport`、弱链接 `AppTrackingTransparency`，并通过 iOS 11 消费 Demo 的启动与依赖门禁。
+- NativeFeed 公开头、符号和 Demo 必须同时包含 `IFLYNativeFeedDisplaySession`、`IFLYNativeFeedAdBinding`、`beginDisplaySessionWithError:`、`attachWithViewBinder:error:`、`detach` 和 `endDisplaySession`；列表按稳定 ID 持有 Ad + Session，Cell 只持有 Binding。
+- 曝光前后重挂载、迟到 detach、视频进度/播放意图恢复、活动 Binding 跨 TTL/视频截止时间不强拆及 detach 后失效必须通过专项测试。
 
 ### 当前联调状态
 
@@ -57,6 +59,23 @@ Demo 128 项测试全部通过。
 最终宿主责任状态，不将其改写为已通过。该风险边界只绑定优酷 `6.1.2`、
 上述源码提交和本次归档产物，不延伸到后续版本、最终宿主 App 或新增数据链路；
 二进制分发完成不代表最终宿主 App 审核和合规证据已闭环。
+
+2026 年 8 月 7 日使用 Xcode 26.2，从私有源码仓提交
+`3fcc0007b47a66d82f3134fab2a1eac58b35c94d` 生成优酷 `6.2.1` 正式分发资产。
+`IFLYADLib.xcframework.zip` 的 SHA-256 为
+`a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f`，
+`YKIFLYADLib-6.2.1.zip` 的 SHA-256 为
+`8cb718c2895e6e2d7370da6ffab801b8a0aecb6c4452b0fb4ac5b1df3f8b92db`。
+
+两个 framework 切片的 `TeamIdentifier` 均为 `FM295M5CZ5`。SDK
+`977/977`、Demo `133/133`、NativeFeed 可复用绑定专项 `27/27`、
+Demo 列表专项 `16/16` 和 Youku 分发测试 `31/31` 通过。源码扫描
+记录失败 0、风险 11、待人工确认 80、通过 21、未扫描 9；变体产物扫描
+记录 1 个 `medium` 确定性失败、风险 12、待人工确认 80、通过 27、未扫描 1。
+本次按已批准的 `failOn=high`、`failOnWarning=false`、`strict=false`、
+`requireManual=false` 执行，中等结果原样保留但不阻断 SDK 分发；不得由此宣称宿主 App
+合规、App Privacy、真机、监测入库、功耗、`Validate App` 或 Apple 人工审核已闭环。
+匿名下载和公开仓 CI 是 Release 发布后的独立验收项，不由本节的正式产包事实推定为已通过。
 
 ## 2. 更新分发清单
 
