@@ -106,6 +106,7 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
 @property (nonatomic, strong) IFLYNativeFeedAd *nativeFeedAd;
 @property (nonatomic, strong) IFLYNativeFeedDemoPresentationView *presentationView;
 @property (nonatomic, strong) IFLYNativeFeedPresentationHostViewController *presentationHost;
+@property (nonatomic, weak) UIView *attachedContainerView;
 @property (nonatomic, strong) UILabel *statusLabel;
 @property (nonatomic, strong) UITextView *logView;
 @property (nonatomic, strong) UISegmentedControl *interstitialOrientationControl;
@@ -173,9 +174,13 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
     [self.splashTimer invalidate];
     IFLYNativeFeedAd *ad = self.nativeFeedAd;
     if (ad) {
-        [ad unbindAd];
+        UIView *containerView = self.attachedContainerView;
+        if (containerView) {
+            [IFLYNativeFeedAd detachAdFromContainerView:containerView];
+        }
         ad.delegate = nil;
         ad.currentViewController = nil;
+        // 一次性视觉 Demo 离开页面时主动提前终止；媒体正常释放最后一个强引用即可。
         [ad destroy];
     }
 }
@@ -570,8 +575,11 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
     ad.currentViewController = host;
     IFLYNativeFeedAdViewBinder *binder = [presentationView makeViewBinder];
     IFLYAdError *bindError = nil;
-    BOOL didBind = binder && [ad bindAdWithViewBinder:binder error:&bindError];
+    BOOL didBind = binder && [ad attachWithViewBinder:binder error:&bindError];
     if (![self isCurrentGeneration:generation ad:ad view:presentationView]) {
+        if (didBind && binder.containerView) {
+            [IFLYNativeFeedAd detachAdFromContainerView:binder.containerView];
+        }
         return;
     }
     if (!didBind) {
@@ -582,9 +590,10 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
     }
 
     self.bound = YES;
+    self.attachedContainerView = binder.containerView;
     [self updateStatus:@"已入窗并绑定，等待曝光/点击回调" color:UIColor.systemGreenColor];
     [self log:[NSString stringWithFormat:
-                   @"host 入窗并完成布局：设置 currentViewController 后 Binder 单次绑定成功，templateId=%ld materialType=%ld",
+                   @"host 入窗并完成布局：设置 currentViewController 后 Ad 级托管挂载成功，templateId=%ld materialType=%ld",
                    (long)ad.adData.templateId,
                    (long)ad.adData.materialType]];
     if (ad.hasVideoTemplate) {
@@ -691,6 +700,7 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
     self.lifecycleGeneration += 1;
     IFLYNativeFeedAd *ad = self.nativeFeedAd;
     IFLYNativeFeedPresentationHostViewController *host = self.presentationHost;
+    UIView *attachedContainerView = self.attachedContainerView;
     __weak typeof(self) weakSelf = self;
     __weak IFLYNativeFeedPresentationHostViewController *weakHost = host;
     __block BOOL didFinish = NO;
@@ -702,9 +712,12 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
         __strong typeof(weakSelf) self = weakSelf;
         weakHost.didDisappearHandler = nil;
         if (!self) {
-            [ad unbindAd];
+            if (attachedContainerView) {
+                [IFLYNativeFeedAd detachAdFromContainerView:attachedContainerView];
+            }
             ad.delegate = nil;
             ad.currentViewController = nil;
+            // 一次性视觉 Demo 已无宿主，主动提前终止残留广告。
             [ad destroy];
             return;
         }
@@ -776,9 +789,16 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
 
 - (void)cleanupAd:(IFLYNativeFeedAd *)ad resetPresentation:(BOOL)resetPresentation {
     if (ad) {
-        [ad unbindAd];
+        if (ad == self.nativeFeedAd) {
+            UIView *containerView = self.attachedContainerView;
+            if (containerView) {
+                [IFLYNativeFeedAd detachAdFromContainerView:containerView];
+            }
+            self.attachedContainerView = nil;
+        }
         ad.delegate = nil;
         ad.currentViewController = nil;
+        // 该视觉 Demo 需要立即终止一次性展示；正常列表释放最后一个 Ad 引用即可。
         [ad destroy];
         if (ad == self.nativeFeedAd) {
             self.nativeFeedAd = nil;
@@ -900,7 +920,7 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
     if (![self isCurrentAd:ad]) {
         return;
     }
-    [self log:@"nativeFeedAdDidClose：先 dismiss，再 unbind → delegate=nil → destroy"];
+    [self log:@"nativeFeedAdDidClose：先 dismiss，再按容器 detach 并释放 Demo 持有的 Ad"];
     [self closeCurrentPresentationWithStatus:@"广告已通过 SDK 关闭回调清理"
                                        color:[IFLYADUtil demoTealColor]];
 }

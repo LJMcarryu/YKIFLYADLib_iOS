@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['*.*.*']
   pull_request:
     branches: [main]
   release:
@@ -21,6 +22,10 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.release_tag || github.ref }}
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: 校验版本、清单与 SwiftPM 资源
         run: |
@@ -28,6 +33,7 @@ jobs:
           pod ipc spec YKIFLYADLib.podspec > /tmp/youku-podspec.json
           python3 - <<'PY'
           import json
+          import os
           import plistlib
           import re
           from pathlib import Path
@@ -36,6 +42,7 @@ jobs:
           podspec = Path("YKIFLYADLib.podspec").read_text(encoding="utf-8")
           readme = Path("README.md").read_text(encoding="utf-8")
           changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          releasing = Path("RELEASING.md").read_text(encoding="utf-8")
           demo_podfile = Path("IFLYADLibSimple/Podfile").read_text(encoding="utf-8")
           demo_readme = Path("IFLYADLibSimple/README.md").read_text(encoding="utf-8")
           podspec_json = json.loads(
@@ -48,8 +55,15 @@ jobs:
               r"YKIFLYADLib_iOS/([^/]+)/YKIFLYADLib\.podspec", demo_podfile
           ).group(1)
           assert pod_version == package_version == pod_url_version == demo_pod_version
-          assert f"当前版本：`{pod_version}`" in readme
-          assert re.search(r"^##\s+" + re.escape(pod_version) + r"\s*$", changelog, re.M)
+          pending_changelog_heading = f"## {pod_version}（待发布）"
+          final_changelog_heading = f"## {pod_version}"
+          release_state_match = re.search(
+              r"### 当前联调状态\s+(.*?)(?=\n2026 年 7 月 30 日)",
+              releasing,
+              re.S,
+          )
+          assert release_state_match, "RELEASING.md 缺少 6.2.2 当前状态段"
+          release_state = release_state_match.group(1)
           for lifecycle_token in (
               "playRequested",
               "pausePlay",
@@ -73,7 +87,67 @@ jobs:
           ).split(), "aggregate/user target 未声明 -ObjC"
 
           checksum = re.search(r'checksum:\s*"([^"]+)"', package).group(1)
-          assert re.fullmatch(r"[0-9a-f]{64}", checksum)
+          pending_checksum = "__IFLYADLIB_YOUKU_6_2_2_CHECKSUM_PENDING__"
+          is_tag_push = os.environ.get("GITHUB_REF_TYPE") == "tag"
+          if is_tag_push:
+              assert os.environ.get("GITHUB_REF_NAME") == pod_version, (
+                  os.environ.get("GITHUB_REF_NAME"), pod_version
+              )
+          if checksum == pending_checksum:
+              assert not is_tag_push, "tag push 不得携带 PENDING checksum"
+              assert pod_version == "6.2.2"
+              assert f"当前清单目标版本：`{pod_version}`" in readme
+              assert "发布准备" in readme
+              assert "正式签名资产、checksum、tag 和 Release 尚未生成" in readme
+              assert "待发布 tag `6.2.2`" in demo_readme
+              assert "进入公开仓准备态" in release_state
+              assert "尚未完成" in release_state
+              assert re.search(
+                  r"^" + re.escape(pending_changelog_heading) + r"\s*$",
+                  changelog,
+                  re.M,
+              )
+              checksum_state = "PENDING（不可发布）"
+          else:
+              assert re.fullmatch(r"[0-9a-f]{64}", checksum)
+              assert checksum != "0" * 64
+              assert checksum != "a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f", (
+                  "6.2.2 不得沿用 6.2.1 checksum"
+              )
+              assert f"当前版本：`{pod_version}`" in readme
+              for stale_marker in (
+                  "发布准备",
+                  "准备态",
+                  "尚未生成",
+                  "最近正式版 `6.2.1`",
+                  "当前正式 `6.2.1`",
+                  "尚不存在的 `6.2.2`",
+                  "待发布 `6.2.2`",
+                  "/6.2.1/YKIFLYADLib.podspec",
+              ):
+                  assert stale_marker not in readme, stale_marker
+              for stale_marker in ("待发布", "准备态"):
+                  assert stale_marker not in demo_readme, stale_marker
+              assert "PENDING" not in package
+              assert f"/{pod_version}/YKIFLYADLib.podspec" in readme
+              assert "最新正式版本仍为 `6.2.1`" not in changelog
+              assert "发布准备内容" not in changelog
+              for stale_marker in (
+                  "进入公开仓准备态",
+                  "尚未完成",
+                  "不得作为正式发布证据",
+                  "替换准备态事实",
+              ):
+                  assert stale_marker not in release_state, stale_marker
+              assert f"`{pod_version}` 正式分发资产" in release_state
+              assert "delivery-manifest.json" in release_state
+              assert re.search(
+                  r"^" + re.escape(final_changelog_heading) + r"\s*$",
+                  changelog,
+                  re.M,
+              )
+              assert pending_changelog_heading not in changelog
+              checksum_state = "已回填"
           assert '.library(name: "IFLYADLib", targets: ["IFLYADLib", "IFLYAdResources"])' in package
           assert '.copy("IFLYPlayer.bundle")' in package
           assert Path("spm/IFLYAdResources/IFLYAdResourceAnchor.m").is_file()
@@ -92,8 +166,69 @@ jobs:
           assert "youku-sdk.voiceads.cn" in tracking_domains
           assert "msdk.voiceads.cn" not in tracking_domains
           assert "youku-sdk-grey.voiceads.cn" not in tracking_domains
-          print(f"version={pod_version}, checksum={checksum}")
+          print(f"version={pod_version}, checksum={checksum_state}: {checksum}")
           PY
+
+      - name: 读取 A/B 发布状态
+        id: provenance-state
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          states = re.findall(
+              r"^- `releaseState`：`(PENDING|FORMAL)`$",
+              Path("RELEASING.md").read_text(encoding="utf-8"),
+              re.M,
+          )
+          assert len(states) == 1, states
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"state={states[0]}\\n")
+          PY
+
+      - name: 校验 PENDING A/B provenance
+        if: steps.provenance-state.outputs.state == 'PENDING' && github.ref_type != 'tag' && github.event_name != 'release' && !(github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
+        run: |
+          python3 .github/scripts/verify_private_release_provenance.py \
+            --readme README.md \
+            --changelog CHANGELOG.md \
+            --releasing RELEASING.md \
+            --skip-compare
+
+      - name: 正式 tag/Release 明确拒绝 PENDING A/B
+        if: steps.provenance-state.outputs.state == 'PENDING' && (github.ref_type == 'tag' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != ''))
+        run: |
+          echo '正式 tag/Release 不得保留 PENDING releaseState 或 A/B 占位' >&2
+          exit 1
+
+      - name: 校验 FORMAL A/B provenance 文档
+        if: steps.provenance-state.outputs.state == 'FORMAL' && github.ref_type != 'tag' && github.event_name != 'release' && !(github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
+        run: |
+          python3 .github/scripts/verify_private_release_provenance.py \
+            --readme README.md \
+            --changelog CHANGELOG.md \
+            --releasing RELEASING.md \
+            --skip-compare
+
+      - name: 正式 tag/Release 校验 FORMAL A/B provenance（私有仓 compare）
+        if: steps.provenance-state.outputs.state == 'FORMAL' && (github.ref_type == 'tag' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != ''))
+        env:
+          IFLY_PRIVATE_SOURCE_TOKEN: ${{ secrets.IFLY_PRIVATE_SOURCE_TOKEN }}
+        run: |
+          python3 .github/scripts/verify_private_release_provenance.py \
+            --readme README.md \
+            --changelog CHANGELOG.md \
+            --releasing RELEASING.md
+
+      - name: Tag push 校验 annotated tag 与 checkout 绑定
+        if: github.ref_type == 'tag'
+        run: |
+          test "${GITHUB_REF_NAME}" = '6.2.2'
+          test -z "$(git status --porcelain)"
+          test "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" = 'tag'
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "${GITHUB_REF_NAME}^{commit}")"
+          test "$(git describe --tags --exact-match HEAD)" = "${GITHUB_REF_NAME}"
 
       - name: 校验 Demo 只含三个自渲染示例
         run: |
@@ -108,9 +243,15 @@ jobs:
           test -f IFLYADLibSimple/IFLYADLibSimple/biz/native/presentation/IFLYNativeFeedPresentationDemoViewController.m
           test ! -d IFLYADLibSimple/IFLYADLibSimple/biz/banner
           test ! -d IFLYADLibSimple/IFLYADLibSimple/biz/reward
-          ! grep -R -n -E 'IFLYBanner|IFLYReward' IFLYADLibSimple
-          ! grep -n -E 'DEVELOPMENT_TEAM = [A-Z0-9]+' \
-            IFLYADLibSimple/IFLYADLibSimple.xcodeproj/project.pbxproj
+          if grep -R -n -E --exclude-dir=build 'IFLYBanner|IFLYReward' IFLYADLibSimple; then
+            echo "优酷 Demo 不得包含 Banner 或 Reward 接入" >&2
+            exit 1
+          fi
+          if grep -n -E 'DEVELOPMENT_TEAM = [A-Z0-9]+' \
+            IFLYADLibSimple/IFLYADLibSimple.xcodeproj/project.pbxproj; then
+            echo "Demo 工程不得固化 DEVELOPMENT_TEAM" >&2
+            exit 1
+          fi
           grep -R -n -E 'IFLYDemoPrivacyConsentViewController|exit\(0\)' \
             IFLYADLibSimple/IFLYADLibSimple
           python3 - <<'PY'
@@ -159,12 +300,13 @@ jobs:
               "reportMediaShakeTriggeredWithError:",
               "nativeFeed.demo.reportMediaShake",
               "IFLYNativeFeedDemoItem",
-              "IFLYNativeFeedDisplaySession",
-              "IFLYNativeFeedAdBinding",
-              "beginDisplaySessionWithError:",
               "attachWithViewBinder:",
-              "detachBinding",
-              "endDisplaySession",
+              "detachAdFromContainerView:",
+              "configureWithAd:",
+              "detachFromContainer",
+              "prepareForReuse",
+              "attachedAdCell",
+              "[ad destroy]",
               "didEndDisplayingCell:",
               "representedItemIdentifier",
               "videoCoverVisible",
@@ -176,20 +318,37 @@ jobs:
               "rawAdData",
               ".ecpm",
               "IFLYNativeFeedAdMaterialTypeThreeImages",
+              "IFLYNativeFeedDisplaySession",
+              "IFLYNativeFeedAdBinding",
+              "beginDisplaySessionWithError:",
+              "bindAdWithViewBinder:",
+              "unbindAd",
+              "endDisplaySession",
           ):
               assert forbidden not in demo_sources, forbidden
-          assert "unbindAd" not in native, (
-              "DisplaySession 列表 Cell 不得用广告级 unbindAd 代替 Binding detach"
-          )
-          detach_at = native.index("[attachedCell detachBinding]")
-          end_at = native.index("[item.displaySession endDisplaySession]")
-          destroy_at = native.index("[item.ad destroy]")
-          assert detach_at < end_at < destroy_at, "逻辑条目淘汰顺序错误"
+          cell_implementation = native.index("@implementation IFLYNativeFeedDemoCell")
+          configure_start = native.index("- (BOOL)configureWithAd:", cell_implementation)
+          configure_end = native.index("- (void)detachFromContainer", configure_start)
+          configure = native[configure_start:configure_end]
+          assert configure.index("[self detachFromContainer]") < configure.index(
+              "IFLYNativeFeedAdData *data"
+          ), "Cell 改配必须先反注册旧容器再修改 UI"
+          attach_call = configure.index("attachWithViewBinder:")
+          assert configure.index(
+              "[IFLYNativeFeedAd detachAdFromContainerView:self.cardView]",
+              attach_call,
+          ) > attach_call, "attach 失败必须清理本次容器挂载"
+          prepare_start = native.index("- (void)prepareForReuse")
+          prepare_end = native.index("- (void)setVideoCoverVisible:", prepare_start)
+          assert "[self detachFromContainer]" in native[prepare_start:prepare_end]
+          detach_at = native.index("[attachedCell detachFromContainer]")
+          release_at = native.index("item.ad = nil")
+          assert detach_at < release_at, "逻辑条目必须先按容器 detach，再释放 Ad"
           did_end = native.index("didEndDisplayingCell:")
           continue_after_detach = native.index(
               "continueDisplayingItemAfterCellDetached:", did_end
           )
-          assert native.index("[adCell detachBinding]", did_end) < continue_after_detach
+          assert native.index("[adCell detachFromContainer]", did_end) < continue_after_detach
           attach_success = native.index("if (attached)")
           video_state_restore = native.index(
               "[cell setVideoCoverVisible:item.videoCoverVisible", attach_success
@@ -245,6 +404,7 @@ jobs:
   verify-release:
     name: 校验正式 Release 资产与 Demo 编译
     if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
+    needs: [verify-repository]
     runs-on: macos-15
     permissions:
       contents: read
@@ -255,11 +415,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: 校验 CI Xcode 与 Release tag
         run: |
           xcodebuild -version
-          [[ "${RELEASE_TAG}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "${RELEASE_TAG}" == '6.2.2' ]]
+          test -z "$(git status --porcelain)"
+          test "$(git cat-file -t "refs/tags/${RELEASE_TAG}")" = 'tag'
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "${RELEASE_TAG}^{commit}")"
+          test "$(git describe --tags --exact-match HEAD)" = "${RELEASE_TAG}"
           python3 - <<'PY'
           import re
           import subprocess
@@ -269,14 +435,59 @@ jobs:
           assert match and int(match.group(1)) >= 16, output
           PY
 
-      - name: 下载本次 Release
+      - name: 读取本次 Release 元数据
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p /tmp/youku-release
-          gh release download "${RELEASE_TAG}" \
-            --repo "${{ github.repository }}" \
-            --dir /tmp/youku-release
+          gh api \
+            "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
+            > /tmp/youku-release-metadata.json
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          release = json.loads(
+              Path("/tmp/youku-release-metadata.json").read_text(encoding="utf-8")
+          )
+          tag = os.environ["RELEASE_TAG"]
+          expected = {
+              "IFLYADLib.xcframework.zip",
+              f"YKIFLYADLib-{tag}.zip",
+              "checksums.txt",
+              "delivery-manifest.json",
+          }
+          actual = {asset["name"] for asset in release.get("assets", [])}
+          assert release["tag_name"] == tag
+          assert release["draft"] is False
+          assert release["prerelease"] is False
+          assert actual == expected, f"actual={sorted(actual)}, expected={sorted(expected)}"
+          PY
+
+      - name: 匿名下载本次 Release 的精确资产集
+        run: |
+          rm -rf /tmp/youku-release-anonymous
+          env \
+            -u GH_TOKEN \
+            -u GITHUB_TOKEN \
+            -u GITHUB_AUTH_TOKEN \
+            -u IFLY_PRIVATE_SOURCE_TOKEN \
+            python3 .github/scripts/download_release_anonymously.py \
+              --repository "${GITHUB_REPOSITORY}" \
+              --tag "${RELEASE_TAG}" \
+              --destination /tmp/youku-release-anonymous \
+              --metadata-output /tmp/youku-release-anonymous-metadata.json
+
+      - name: 校验匿名下载的 Release 资产与私有源码 A/B provenance
+        env:
+          IFLY_PRIVATE_SOURCE_TOKEN: ${{ secrets.IFLY_PRIVATE_SOURCE_TOKEN }}
+        run: |
+          python3 .github/scripts/verify_private_release_provenance.py \
+            --readme README.md \
+            --changelog CHANGELOG.md \
+            --releasing RELEASING.md \
+            --manifest /tmp/youku-release-anonymous/delivery-manifest.json \
+            --release-metadata /tmp/youku-release-anonymous-metadata.json
 
       - name: 校验 checksum、双包结构、能力、资源和请求地址
         run: |
@@ -291,7 +502,7 @@ jobs:
           from pathlib import Path
           from urllib.parse import urlsplit
 
-          root = Path("/tmp/youku-release")
+          root = Path("/tmp/youku-release-anonymous")
           manifest = json.loads((root / "delivery-manifest.json").read_text(encoding="utf-8"))
           version = manifest["version"]
           assert version == os.environ["RELEASE_TAG"], "Release tag 与 manifest 版本不一致"
@@ -340,15 +551,45 @@ jobs:
               actual = hashlib.sha256(path.read_bytes()).hexdigest()
               assert actual == metadata["sha256"], name
 
-          checksums = (root / "checksums.txt").read_text(encoding="utf-8")
-          for name, metadata in assets.items():
-              assert name in checksums and metadata["sha256"] in checksums
+          checksum_lines = [
+              line.strip()
+              for line in (root / "checksums.txt").read_text(encoding="utf-8").splitlines()
+              if line.strip()
+          ]
+          assert len(checksum_lines) == 2, checksum_lines
+          spm_match = re.fullmatch(
+              r"SPM  (\S+)  spm_checksum=([0-9a-f]{64})  sha256=([0-9a-f]{64})",
+              checksum_lines[0],
+          )
+          combined_match = re.fullmatch(
+              r"Combined  (\S+)  sha256=([0-9a-f]{64})",
+              checksum_lines[1],
+          )
+          assert spm_match, checksum_lines[0]
+          assert combined_match, checksum_lines[1]
+          assert spm_match.group(1) == "IFLYADLib.xcframework.zip"
+          assert combined_match.group(1) == combined_name
+          assert spm_match.group(2) == assets["IFLYADLib.xcframework.zip"]["swiftPackageChecksum"]
+          assert spm_match.group(3) == assets["IFLYADLib.xcframework.zip"]["sha256"]
+          assert combined_match.group(2) == assets[combined_name]["sha256"]
+
+          computed_spm_checksum = subprocess.check_output(
+              [
+                  "swift",
+                  "package",
+                  "compute-checksum",
+                  str(root / "IFLYADLib.xcframework.zip"),
+              ],
+              text=True,
+          ).strip()
+          assert computed_spm_checksum == spm_match.group(2)
 
           package = Path("Package.swift").read_text(encoding="utf-8")
           podspec = Path("YKIFLYADLib.podspec").read_text(encoding="utf-8")
           declared_checksum = re.search(r'checksum:\s*"([0-9a-f]{64})"', package).group(1)
           assert declared_checksum == assets["IFLYADLib.xcframework.zip"]["swiftPackageChecksum"]
           assert declared_checksum == assets["IFLYADLib.xcframework.zip"]["sha256"]
+          assert declared_checksum == computed_spm_checksum
           assert f"/releases/download/{version}/IFLYADLib.xcframework.zip" in package
           assert f"s.version = '{version}'" in podspec
           assert f"/releases/download/{version}/{combined_name}" in podspec
@@ -415,7 +656,12 @@ jobs:
               "IFLYNativeFeedAd.h",
               "IFLYNativeFeedAdData.h",
           }
-          denied_headers = {"IFLYBannerAd.h", "IFLYRewardVideoAd.h"}
+          denied_headers = {
+              "IFLYBannerAd.h",
+              "IFLYRewardVideoAd.h",
+              "IFLYNativeFeedDisplaySession.h",
+              "IFLYNativeFeedAdBinding.h",
+          }
           previous_urls = {
               "https://msdk.voiceads.cn/sdk/req",
               "https://youku-sdk-grey.voiceads.cn/sdk/req",
@@ -434,18 +680,27 @@ jobs:
                   "reportMediaShakeTriggeredWithError:" in path.read_text(encoding="utf-8")
                   for path in native_feed_headers
               )
-              for reusable_api in (
+              for managed_api in (
+                  "attachWithViewBinder:",
+                  "detachAdFromContainerView:",
+                  "destroy",
+              ):
+                  assert all(
+                      managed_api in path.read_text(encoding="utf-8")
+                      for path in native_feed_headers
+                  ), managed_api
+              for legacy_api in (
                   "IFLYNativeFeedDisplaySession",
                   "IFLYNativeFeedAdBinding",
                   "beginDisplaySessionWithError:",
-                  "attachWithViewBinder:",
+                  "bindAdWithViewBinder:",
+                  "unbindAd",
                   "endDisplaySession",
-                  "detach",
               ):
                   assert all(
-                      reusable_api in path.read_text(encoding="utf-8")
+                      legacy_api not in path.read_text(encoding="utf-8")
                       for path in native_feed_headers
-                  ), reusable_api
+                  ), legacy_api
               for error_code in ("71506", "71512", "71513", "71514", "71515"):
                   assert all(
                       error_code in path.read_text(encoding="utf-8")
@@ -480,9 +735,16 @@ jobs:
                   assert not (previous_urls & lines)
                   assert version in lines
                   assert "reportMediaShakeTriggeredWithError:" in lines
-                  assert "beginDisplaySessionWithError:" in lines
                   assert "attachWithViewBinder:error:" in lines
-                  assert "endDisplaySession" in lines
+                  assert "detachAdFromContainerView:" in lines
+                  assert "destroy" in lines
+                  for legacy_selector in (
+                      "beginDisplaySessionWithError:",
+                      "bindAdWithViewBinder:error:",
+                      "unbindAd",
+                      "endDisplaySession",
+                  ):
+                      assert legacy_selector not in lines, legacy_selector
                   assert "IFLYAdMotionSamplingCoordinator" in lines
                   symbols = subprocess.check_output(
                       ["nm", "-g", str(binary)], text=True, errors="replace"
@@ -490,8 +752,6 @@ jobs:
                   assert "_OBJC_CLASS_$_IFLYBanner" not in symbols
                   assert "_OBJC_CLASS_$_IFLYReward" not in symbols
                   assert "_OBJC_CLASS_$_IFLYAdMotionSamplingCoordinator" in symbols
-                  assert "_OBJC_CLASS_$_IFLYNativeFeedDisplaySession" in symbols
-                  assert "_OBJC_CLASS_$_IFLYNativeFeedAdBinding" in symbols
 
                   architectures = set(
                       subprocess.check_output(["lipo", "-archs", str(binary)], text=True).split()
@@ -515,12 +775,12 @@ jobs:
 
       - name: 使用本次 Release 产物编译 Demo
         run: |
-          cp YKIFLYADLib.podspec /tmp/youku-release/combined/YKIFLYADLib.podspec
+          cp YKIFLYADLib.podspec /tmp/youku-release-anonymous/combined/YKIFLYADLib.podspec
           cat > IFLYADLibSimple/Podfile <<'EOF'
           platform :ios, '11.0'
           target 'IFLYADLibSimple' do
             use_frameworks!
-            pod 'YKIFLYADLib', :path => '/tmp/youku-release/combined'
+            pod 'YKIFLYADLib', :path => '/tmp/youku-release-anonymous/combined'
           end
           EOF
           pod install --project-directory=IFLYADLibSimple
@@ -562,7 +822,7 @@ jobs:
           rm -rf /tmp/youku-spm-package /tmp/youku-spm-derived
           mkdir -p /tmp/youku-spm-package/spm
           cp .github/fixtures/swiftpm-local/Package.swift /tmp/youku-spm-package/Package.swift
-          cp -R /tmp/youku-release/spm/IFLYADLib.xcframework \
+          cp -R /tmp/youku-release-anonymous/spm/IFLYADLib.xcframework \
             /tmp/youku-spm-package/IFLYADLib.xcframework
           cp -R spm/IFLYAdResources /tmp/youku-spm-package/spm/IFLYAdResources
 

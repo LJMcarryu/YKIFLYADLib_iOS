@@ -1,5 +1,21 @@
 # 版本记录
 
+## 6.2.2
+
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`a8ec925d3731d7d11734647aa02ca7d91d674965`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`eff78263c2d3f65b029f4114de1a9ed00f3827f3`
+
+- 正式资产已在内部冻结：SwiftPM zip SHA-256 为 `1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb`，合并 zip SHA-256 为 `0ba19a49cc09f4dba8b62224ba84a2f8c3447ca7ad959ae7edf06286fd89f0bc`。公开 Release、匿名下载、远程消费和 CI 仍以各自实际结果为准。
+- 按已确认范围保留 `SRC-004`、`SRC-008`、`SRC-009`、`SRC-011`、`NET-001`、`RRA-003`、`TRACK-001`、`TRACK-002`、`ADS-011`、`EXPORT-001` 启发式残余风险，以 `failOn=high`、`failOnWarning=false`、`strict=false`、`requireManual=false` 执行；不据此宣称最终宿主合规或 Apple 审核通过。
+
+- NativeFeed 改为 SDK 托管挂载：媒体数据层只需持有 `IFLYNativeFeedAd`，Cell 不再维护 DisplaySession、Binding 或首次/复用状态。
+- Cell 配置时调用 Ad 级 `attachWithViewBinder:error:`；离屏、复用或切换普通内容时调用容器级 `detachAdFromContainerView:`。同一广告可在 Cell 间串行迁移，同一容器可由新广告原子接管。
+- detach 只解除当前视图宿主，数据层继续持有同一 Ad 时回屏可再次 attach；释放最后一个 Ad 强引用会自动完成终态清理，`destroy` 仅用于仍持有 Ad 时主动提前终止。
+- 移除公开的 `IFLYNativeFeedDisplaySession`、`IFLYNativeFeedAdBinding`、`beginDisplaySessionWithError:`、`bindAdWithViewBinder:error:`、`unbindAd` 和 `endDisplaySession`；从 `6.2.1` 升级必须同步修改接入代码。
+- 保持曝光、点击和视频节点按逻辑广告内容去重，视频进度与播放意图跨 Cell 恢复；曝光前换 Cell 会重新累计连续可见 `500ms`。
+- 保持优酷专属请求地址 `https://youku-sdk.voiceads.cn/ad/request`、媒体摇一摇上报、Splash/Interstitial/NativeFeed 三种能力、iOS 11.0 最低系统及 4 个 Release 资产契约不变。
+
 ## 6.2.1
 
 - NativeFeed 新增 `IFLYNativeFeedDisplaySession` 和 `IFLYNativeFeedAdBinding`，支持同一稳定逻辑广告条目在 `UITableView` / `UICollectionView` 复用 Cell 之间串行恢复；固定卡片的 `bindAdWithViewBinder:error:` / `unbindAd` 仍保持一次性语义。

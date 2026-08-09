@@ -10,11 +10,10 @@ static NSString *const IFLYNativeFeedDemoContentCellIdentifier = @"youku-native-
 static NSString *const IFLYNativeFeedDemoAdCellIdentifier = @"youku-native-ad";
 static NSString *const IFLYNativeFeedDemoAdItemIdentifier = @"youku-native-stable-ad-item";
 
-/// 数据层对象与稳定 itemIdentifier 同生命周期；Cell 复用不会替换这里的 Ad 或 DisplaySession。
+/// 数据层对象与稳定 itemIdentifier 同生命周期；SDK 托管视图会话，媒体数据层只持有 Ad。
 @interface IFLYNativeFeedDemoItem : NSObject
 @property (nonatomic, copy) NSString *itemIdentifier;
 @property (nonatomic, strong) IFLYNativeFeedAd *ad;
-@property (nonatomic, strong, nullable) IFLYNativeFeedDisplaySession *displaySession;
 @property (nonatomic, assign) NSUInteger loadGeneration;
 @property (nonatomic, assign) BOOL videoCoverVisible;
 @property (nonatomic, copy, nullable) NSString *videoStatusText;
@@ -23,15 +22,13 @@ static NSString *const IFLYNativeFeedDemoAdItemIdentifier = @"youku-native-stabl
 @implementation IFLYNativeFeedDemoItem
 @end
 
-/// Cell 只拥有当前一次挂载返回的 Binding，绝不拥有或销毁逻辑广告条目。
+/// Cell 只维护媒体 UI，不保存 Session、Binding、Ad 或首次/复用状态。
 @interface IFLYNativeFeedDemoCell : UITableViewCell
-@property (nonatomic, strong, readonly, nullable) IFLYNativeFeedAdBinding *binding;
-@property (nonatomic, strong, readonly, nullable) IFLYNativeFeedAd *boundAd;
 @property (nonatomic, copy, readonly, nullable) NSString *representedItemIdentifier;
-- (BOOL)attachDisplaySession:(IFLYNativeFeedDisplaySession *)displaySession
-              itemIdentifier:(NSString *)itemIdentifier
-                       error:(IFLYAdError *_Nullable *_Nullable)error;
-- (void)detachBinding;
+- (BOOL)configureWithAd:(IFLYNativeFeedAd *)ad
+         itemIdentifier:(NSString *)itemIdentifier
+                  error:(IFLYAdError *_Nullable *_Nullable)error;
+- (void)detachFromContainer;
 - (void)setVideoCoverVisible:(BOOL)visible text:(nullable NSString *)text;
 @end
 
@@ -46,7 +43,6 @@ static NSString *const IFLYNativeFeedDemoAdItemIdentifier = @"youku-native-stabl
 @property (nonatomic, strong) UIButton *closeButton;
 @property (nonatomic, strong) IFLYNativeFeedDemoImageLoader *imageLoader;
 @property (nonatomic, strong, nullable) id<IFLYNativeFeedDemoImageRequest> imageRequest;
-@property (nonatomic, strong, readwrite, nullable) IFLYNativeFeedAdBinding *binding;
 @property (nonatomic, copy, readwrite, nullable) NSString *representedItemIdentifier;
 @property (nonatomic, assign) NSUInteger renderGeneration;
 @property (nonatomic, assign) BOOL videoCoverVisible;
@@ -132,23 +128,13 @@ static NSString *const IFLYNativeFeedDemoAdItemIdentifier = @"youku-native-stabl
     self.descLabel.frame = CGRectMake(12.0, 238.0, innerWidth, 42.0);
 }
 
-- (IFLYNativeFeedAd *)boundAd {
-    return self.binding.displaySession.ad;
-}
+- (BOOL)configureWithAd:(IFLYNativeFeedAd *)ad
+         itemIdentifier:(NSString *)itemIdentifier
+                  error:(IFLYAdError **)error {
+    // Cell 可能在未触发 prepareForReuse 的情况下被直接改配。先按容器反注册旧视图，
+    // 再修改媒体 UI；SDK 内部会隔离旧 generation，不需要媒体保存 Binding。
+    [self detachFromContainer];
 
-- (BOOL)attachDisplaySession:(IFLYNativeFeedDisplaySession *)displaySession
-              itemIdentifier:(NSString *)itemIdentifier
-                       error:(IFLYAdError **)error {
-    if (self.binding.isActive && self.binding.displaySession == displaySession &&
-        [self.representedItemIdentifier isEqualToString:itemIdentifier]) {
-        if (error) {
-            *error = nil;
-        }
-        return YES;
-    }
-    [self detachBinding];
-
-    IFLYNativeFeedAd *ad = displaySession.ad;
     IFLYNativeFeedAdData *data = ad.adData;
     if (!ad || !data || !data.isMaterialComplete ||
         data.materialType == IFLYNativeFeedAdMaterialTypeUnknown) {
@@ -215,29 +201,26 @@ static NSString *const IFLYNativeFeedDemoAdItemIdentifier = @"youku-native-stabl
     binder.descView = self.descLabel;
     binder.adSourceView = self.adBadgeLabel;
 
-    IFLYNativeFeedAdBinding *binding = [displaySession attachWithViewBinder:binder error:error];
-    if (!binding) {
+    if (![ad attachWithViewBinder:binder error:error]) {
+        [IFLYNativeFeedAd detachAdFromContainerView:self.cardView];
         [self resetAfterFailedAttach];
         return NO;
     }
-    self.binding = binding;
     return YES;
 }
 
-- (void)detachBinding {
-    IFLYNativeFeedAdBinding *binding = self.binding;
-    self.binding = nil;
+- (void)detachFromContainer {
+    [IFLYNativeFeedAd detachAdFromContainerView:self.cardView];
     self.renderGeneration += 1;
     [self.imageRequest cancel];
     self.imageRequest = nil;
-    [binding detach];
     self.representedItemIdentifier = nil;
     [self resetVisuals];
 }
 
 - (void)prepareForReuse {
     [super prepareForReuse];
-    [self detachBinding];
+    [self detachFromContainer];
 }
 
 - (void)setVideoCoverVisible:(BOOL)visible text:(NSString *)text {
@@ -330,7 +313,7 @@ static NSString *const IFLYNativeFeedDemoAdItemIdentifier = @"youku-native-stabl
     hint.numberOfLines = 2;
     hint.font = [UIFont systemFontOfSize:13.0];
     hint.textColor = [UIColor colorWithWhite:0.35 alpha:1.0];
-    hint.text = @"上下滚动让广告 Cell 离屏再回屏：数据层保留原 Ad + DisplaySession，Cell 仅 detach/attach Binding。";
+    hint.text = @"上下滚动让广告 Cell 离屏再回屏：数据层只保留原 Ad，Cell 仅按容器 detach、按 Ad attach。";
     [header addSubview:hint];
 
     self.slotControl = [[UISegmentedControl alloc] initWithItems:@[ @"图文", @"视频" ]];
@@ -390,24 +373,24 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
     self.visibleAdCell = adCell;
     self.visibleAdItemIdentifier = IFLYNativeFeedDemoAdItemIdentifier;
 
-    IFLYNativeFeedDisplaySession *session = self.adItem.displaySession;
-    if (session) {
-        if (session.isValid) {
-            [self attachCurrentSessionToCell:adCell];
+    IFLYNativeFeedAd *ad = self.adItem.ad;
+    if (ad) {
+        if (!ad.adData) {
             return;
         }
 
-        // TTL/视频截止时间只禁止下一次 attach；当前活动 Binding 不在 willDisplay 中强拆。
-        BOOL cellKeepsCurrentBinding =
-            adCell.binding.isActive && adCell.binding.displaySession == session;
-        if (cellKeepsCurrentBinding || session.isAttached) {
+        if ([self attachCurrentAdToCell:adCell]) {
+            return;
+        }
+
+        // TTL/视频截止时间只禁止迁移或恢复。旧 Cell 仍活动时先等其离屏 detach，
+        // 不用媒体查询或维护 SDK 内部会话状态。
+        if (self.attachedAdCell && self.attachedAdCell != adCell) {
             return;
         }
         [self clearCurrentItem];
         self.visibleAdCell = adCell;
         self.visibleAdItemIdentifier = IFLYNativeFeedDemoAdItemIdentifier;
-    } else if (self.adItem.ad) {
-        return;
     }
     [self startLoadingCurrentItem];
 }
@@ -421,7 +404,7 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
 
     IFLYNativeFeedDemoCell *adCell = (IFLYNativeFeedDemoCell *)cell;
     NSString *itemIdentifier = adCell.representedItemIdentifier ?: IFLYNativeFeedDemoAdItemIdentifier;
-    [adCell detachBinding];
+    [adCell detachFromContainer];
     if (self.attachedAdCell == adCell) {
         self.attachedAdCell = nil;
     }
@@ -430,7 +413,7 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
         self.visibleAdItemIdentifier = nil;
     }
 
-    // 数据源变化后 indexPath 可能已过期。这里只 detach 回调 Cell 自己持有的 Binding，
+    // 数据源变化后 indexPath 可能已过期。这里只按回调 Cell 的容器 detach，
     // 再用稳定 itemIdentifier 处理 willDisplay(new) 先于 didEndDisplaying(old) 的乱序。
     [self continueDisplayingItemAfterCellDetached:itemIdentifier];
 }
@@ -465,63 +448,62 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
     [item.ad loadAdWithRequestConfig:[IFLYADUtil mediaSampleRequestConfig]];
 }
 
-- (BOOL)attachCurrentSessionToCell:(IFLYNativeFeedDemoCell *)cell {
+- (BOOL)attachCurrentAdToCell:(IFLYNativeFeedDemoCell *)cell {
     IFLYNativeFeedDemoItem *item = self.adItem;
-    IFLYNativeFeedDisplaySession *session = item.displaySession;
-    if (!cell || !session || !session.isValid || session.ad != item.ad) {
+    IFLYNativeFeedAd *ad = item.ad;
+    if (!cell || !ad || !ad.adData) {
         return NO;
     }
-    if (cell.binding.isActive && cell.binding.displaySession == session) {
+
+    // 重复的 willDisplay/didLoad 不需要媒体判断“首次还是复用”。当前容器的 UI 已配置时
+    // 保持不变；SDK 对同一 Ad + 容器的重复 attach 也具备幂等语义。
+    if (self.attachedAdCell == cell &&
+        [cell.representedItemIdentifier isEqualToString:item.itemIdentifier]) {
         self.attachedAdCell = cell;
         return YES;
     }
 
     IFLYAdError *error = nil;
-    BOOL attached = [cell attachDisplaySession:session
-                                itemIdentifier:item.itemIdentifier
-                                         error:&error];
+    BOOL attached = [cell configureWithAd:ad
+                           itemIdentifier:item.itemIdentifier
+                                    error:&error];
     if (attached) {
         self.attachedAdCell = cell;
-        if (item.ad.adData.materialType == IFLYNativeFeedAdMaterialTypeVideo) {
-            // attach 内可能同步恢复播放并先触发 delegate；稳定条目保存该状态，待 Binding
-            // 写入 Cell 后再回填，避免封面继续遮住已经恢复的播放器。
+        if (ad.adData.materialType == IFLYNativeFeedAdMaterialTypeVideo) {
+            // attach 内可能同步恢复播放并先触发 delegate；稳定条目保存媒体封面状态，
+            // attach 返回后再回填，避免封面继续遮住已经恢复的播放器。
             [cell setVideoCoverVisible:item.videoCoverVisible text:item.videoStatusText];
         }
-        NSString *state = session.hasExposed ? @"已恢复原广告（不重复曝光）"
-                                             : @"已挂载原广告（重新累计连续可见时长）";
-        [self updateStatus:state color:[IFLYADUtil demoTealColor]];
-    } else if (!session.isAttached) {
+        [self updateStatus:@"原广告已挂载；曝光与视频状态由 SDK 按逻辑条目恢复"
+                      color:[IFLYADUtil demoTealColor]];
+    } else {
+        if (self.attachedAdCell == cell) {
+            self.attachedAdCell = nil;
+        }
         [self updateStatus:[NSString stringWithFormat:@"挂载失败：%@",
                                                       [IFLYADUtil summaryForError:error]]
                       color:UIColor.redColor];
-        // valid 在前置检查与实际 attach 之间可能因 TTL/视频截止时间到达而变为 NO。
-        // 当前已无活动 Binding，直接淘汰旧会话并为仍可见的稳定条目请求新广告。
-        if (!session.isValid && self.visibleAdCell == cell &&
-            [self.visibleAdItemIdentifier isEqualToString:item.itemIdentifier]) {
-            [self clearCurrentItem];
-            [self startLoadingCurrentItem];
-        }
     }
     return attached;
 }
 
 - (void)continueDisplayingItemAfterCellDetached:(NSString *)itemIdentifier {
     IFLYNativeFeedDemoCell *visibleCell = self.visibleAdCell;
-    if (!visibleCell || visibleCell.binding ||
+    if (!visibleCell || self.attachedAdCell == visibleCell ||
         ![self.visibleAdItemIdentifier isEqualToString:itemIdentifier]) {
         return;
     }
 
-    IFLYNativeFeedDisplaySession *session = self.adItem.displaySession;
-    if (!session || session.isAttached) {
+    IFLYNativeFeedAd *ad = self.adItem.ad;
+    if (!ad || !ad.adData) {
         return;
     }
-    if (session.isValid) {
-        [self attachCurrentSessionToCell:visibleCell];
+    if ([self attachCurrentAdToCell:visibleCell] ||
+        (self.attachedAdCell && self.attachedAdCell != visibleCell)) {
         return;
     }
 
-    // 到期发生在活动 Binding 期间时，等待该 Binding 正常 detach 后才淘汰旧条目。
+    // 到期发生在活动挂载期间时，等待旧容器正常 detach 后才淘汰旧条目。
     [self clearCurrentItem];
     if (self.visibleAdCell == visibleCell &&
         [self.visibleAdItemIdentifier isEqualToString:itemIdentifier]) {
@@ -539,27 +521,26 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
 
     IFLYNativeFeedDemoCell *attachedCell = self.attachedAdCell;
     self.attachedAdCell = nil;
-    if ((item.displaySession && attachedCell.binding.displaySession == item.displaySession) ||
-        (item.ad && attachedCell.boundAd == item.ad)) {
-        [attachedCell detachBinding];
+    if ([attachedCell.representedItemIdentifier isEqualToString:item.itemIdentifier]) {
+        [attachedCell detachFromContainer];
     }
     IFLYNativeFeedDemoCell *visibleCell = self.visibleAdCell;
     if (visibleCell != attachedCell &&
-        ((item.displaySession && visibleCell.binding.displaySession == item.displaySession) ||
-         (item.ad && visibleCell.boundAd == item.ad))) {
-        [visibleCell detachBinding];
+        [visibleCell.representedItemIdentifier isEqualToString:item.itemIdentifier]) {
+        [visibleCell detachFromContainer];
     }
-    // 逻辑条目淘汰的固定顺序：Cell detach -> Session end -> Ad destroy。
-    [item.displaySession endDisplaySession];
     item.ad.delegate = nil;
-    [item.ad destroy];
+    item.ad.currentViewController = nil;
+    // 正常列表只需释放数据层的最后一个 Ad 强引用；SDK 自动收口请求、容器、
+    // 手势、曝光、传感器和播放器。destroy 只用于仍持有 Ad 时主动提前终止。
+    item.ad = nil;
 }
 
 #pragma mark - Actions
 
 - (void)slotSelectionChanged:(UISegmentedControl *)sender {
     [self clearCurrentItem];
-    [self updateStatus:@"已切换广告位，原逻辑条目已淘汰" color:[IFLYADUtil demoIndigoColor]];
+    [self updateStatus:@"已切换广告位，原逻辑条目已释放" color:[IFLYADUtil demoIndigoColor]];
     if (self.visibleAdCell) {
         [self startLoadingCurrentItem];
     }
@@ -567,8 +548,10 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
 
 - (void)reportMediaShakeTriggered {
     IFLYNativeFeedAd *ad = self.adItem.ad;
-    if (!ad || self.visibleAdCell.boundAd != ad || !self.visibleAdCell.binding.isActive) {
-        [self updateStatus:@"媒体摇一摇忽略：当前没有活动 Binding" color:UIColor.grayColor];
+    if (!ad || !self.visibleAdCell || self.attachedAdCell != self.visibleAdCell ||
+        ![self.visibleAdCell.representedItemIdentifier
+            isEqualToString:self.adItem.itemIdentifier]) {
+        [self updateStatus:@"媒体摇一摇忽略：当前没有活动挂载" color:UIColor.grayColor];
         return;
     }
 
@@ -599,13 +582,11 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
     item.videoCoverVisible = visible;
     item.videoStatusText = text;
 
-    // attach 内同步回调时 Cell 尚未保存新 Binding；先更新数据层，attach 返回后会回填。
-    // 其他时刻只更新真实 Binding owner，旧 Cell 的迟到事件不会污染新 Cell。
+    // attach 内同步回调时先更新数据层，attach 返回后再回填当前 Cell。
+    // 其他时刻只更新 Controller 记录的当前容器；旧容器迟到事件由 SDK generation 隔离。
     IFLYNativeFeedDemoCell *cell = self.attachedAdCell;
-    if (cell.boundAd != ad) {
-        cell = self.visibleAdCell;
-    }
-    if (cell.boundAd == ad) {
+    if (cell && cell == self.visibleAdCell &&
+        [cell.representedItemIdentifier isEqualToString:item.itemIdentifier]) {
         [cell setVideoCoverVisible:visible text:text];
     }
 }
@@ -618,19 +599,10 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
         return;
     }
 
-    IFLYAdError *error = nil;
-    IFLYNativeFeedDisplaySession *session = [ad beginDisplaySessionWithError:&error];
-    if (!session) {
-        [self updateStatus:[NSString stringWithFormat:@"创建 DisplaySession 失败：%@",
-                                                      [IFLYADUtil summaryForError:error]]
-                      color:UIColor.redColor];
-        [self clearCurrentItem];
-        return;
-    }
-    item.displaySession = session;
-    [self updateStatus:@"数据层已保存 Ad + DisplaySession" color:[IFLYADUtil demoIndigoColor]];
-    if (self.visibleAdCell && !self.visibleAdCell.binding) {
-        [self attachCurrentSessionToCell:self.visibleAdCell];
+    [self updateStatus:@"数据层只保存 Ad；会话与 Binding 由 SDK 托管"
+                  color:[IFLYADUtil demoIndigoColor]];
+    if (self.visibleAdCell && self.attachedAdCell != self.visibleAdCell) {
+        [self attachCurrentAdToCell:self.visibleAdCell];
     }
 }
 
@@ -645,8 +617,8 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
 }
 
 - (void)nativeFeedAdDidRender:(IFLYNativeFeedAd *)ad {
-    if (ad == self.adItem.ad && self.visibleAdCell.boundAd == ad) {
-        [self updateStatus:@"当前 Cell Binding 已生效" color:[IFLYADUtil demoTealColor]];
+    if (ad == self.adItem.ad && self.visibleAdCell == self.attachedAdCell) {
+        [self updateStatus:@"当前 Cell 挂载已生效" color:[IFLYADUtil demoTealColor]];
     }
 }
 

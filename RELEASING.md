@@ -2,13 +2,21 @@
 
 优酷 SDK 由私有源码仓 `LJMcarryu/IFLYADLibDemo` 的 `main` 单一源码生成。本仓不接收 SDK 私有源码和手工替换的二进制。
 
+## 6.2.2 发布状态
+
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`a8ec925d3731d7d11734647aa02ca7d91d674965`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`eff78263c2d3f65b029f4114de1a9ed00f3827f3`
+
+正式态使用两提交模型：两个 zip 及 SwiftPM 资源均从提交 A 构建；提交 B 必须是 A 的后代，且 A→B 只能修改 `Package.swift`、`README.md`、`CONTEXT.md` 和 `docs/**`。正式 CI 通过 `IFLY_PRIVATE_SOURCE_TOKEN` 调用私有源码仓 compare API 验证，令牌不用于公开 Release 资产下载。
+
 ## 1. 在私有源码仓构建
 
 ```bash
 IFLY_NEW_VERSION_RELEASE=1 \
 IFLY_SDK_CODESIGN_IDENTITY='正式 SDK 签名身份' \
 scripts/package-youku-release.sh \
-  --version 6.2.1 \
+  --version 6.2.2 \
   --ad-request-url 'https://youku-sdk.voiceads.cn/ad/request'
 ```
 
@@ -17,7 +25,7 @@ scripts/package-youku-release.sh \
 ```text
 build/youku/release/
 ├── IFLYADLib.xcframework.zip
-├── YKIFLYADLib-6.2.1.zip
+├── YKIFLYADLib-6.2.2.zip
 ├── checksums.txt
 └── delivery-manifest.json
 ```
@@ -38,10 +46,30 @@ build/youku/release/
 - iOS 14 及以上只有 ATT `authorized` 状态可读取或接受 IDFA；撤权清缓存，普通请求与 S2S 请求使用同一门控。
 - 二进制与 Demo 均不得调用 `canOpenURL:`；DeepLink 使用系统打开完成回调判定结果，失败时保留 landing 回退，`jumpDirectly` 保持兼容 no-op。
 - CocoaPods 消费侧显式链接 `AdSupport`、弱链接 `AppTrackingTransparency`，并通过 iOS 11 消费 Demo 的启动与依赖门禁。
-- NativeFeed 公开头、符号和 Demo 必须同时包含 `IFLYNativeFeedDisplaySession`、`IFLYNativeFeedAdBinding`、`beginDisplaySessionWithError:`、`attachWithViewBinder:error:`、`detach` 和 `endDisplaySession`；列表按稳定 ID 持有 Ad + Session，Cell 只持有 Binding。
-- 曝光前后重挂载、迟到 detach、视频进度/播放意图恢复、活动 Binding 跨 TTL/视频截止时间不强拆及 detach 后失效必须通过专项测试。
+- NativeFeed 公开头、符号和 Demo 必须包含 Ad 级 `attachWithViewBinder:error:`、容器级 `detachAdFromContainerView:` 和可选 `destroy`；列表数据层只持有 Ad，Cell 不持有 Session、Binding 或首次/复用状态。
+- NativeFeed 公开头、伞头、二进制 selector、Demo 和接入文档不得再暴露 `IFLYNativeFeedDisplaySession`、`IFLYNativeFeedAdBinding`、`beginDisplaySessionWithError:`、`bindAdWithViewBinder:error:`、`unbindAd` 或 `endDisplaySession`。
+- 同一 Ad 跨 Cell 串行迁移、同容器原子接管、失败预检不破坏旧挂载、曝光前后重挂载、迟到容器 detach、视频进度/播放意图恢复、活动容器跨 TTL/视频截止时间不强拆及 detach 后失效必须通过专项测试。
 
 ### 当前联调状态
+
+2026 年 8 月 10 日，优酷 `6.2.2` 正式分发资产由私有源码提交
+`a8ec925d3731d7d11734647aa02ca7d91d674965` 构建，发布元数据提交
+`eff78263c2d3f65b029f4114de1a9ed00f3827f3` 仅回填 checksum、扫描汇总和发布验收事实。
+`delivery-manifest.json` 的 `sourceCommit` 与 `sourceBuild.sourceCommit` 均为前者。
+`IFLYADLib.xcframework.zip` 的 SHA-256 为
+`1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb`，
+`YKIFLYADLib-6.2.2.zip` 的 SHA-256 为
+`0ba19a49cc09f4dba8b62224ba84a2f8c3447ca7ad959ae7edf06286fd89f0bc`。
+产物使用 Xcode 26.2（Build `17C52`）；两个 framework 切片均为非 ad-hoc 开发签名，
+证书 SHA-1 为 `767B1F38300A6AACAF2B7AC3A4EA052201D981BB`，`TeamIdentifier` 均为
+`FM295M5CZ5`。4 个交付文件已在内部冻结；GitHub Release、匿名下载、远程消费和公开仓
+CI 属于独立后续验证，是否通过以实际结果为准。
+
+本轮发布决策仅限通用版/模型 A、YS、优酷 `6.2.2`：接受 `SRC-004`、`SRC-008`、
+`SRC-009`、`SRC-011`、`NET-001`、`RRA-003`、`TRACK-001`、`TRACK-002`、
+`ADS-011`、`EXPORT-001` 启发式残余风险并允许原样归档，以 `failOn=high`、
+`failOnWarning=false`、`strict=false`、`requireManual=false` 继续正式发布。
+该确认不代表最终宿主合规或 Apple 审核通过。
 
 2026 年 7 月 30 日已使用模拟器产物，在 iOS 26.2 上完成 Demo 构建、启动和三个自渲染示例入口点验。六个优酷定制广告位均已从对应页面发起请求：自渲染开屏图片/视频、自渲染插屏图片/视频和自渲染信息流图片/视频；插屏横竖版已确认共用对应的图片广告位 `A830C77F232A5DE10AF0E4B92E0426C9` 或视频广告位 `784C8D7CF6CFC970473E3CB1DE893B61`。
 
@@ -79,17 +107,17 @@ Demo 列表专项 `16/16` 和 Youku 分发测试 `31/31` 通过。源码扫描
 
 ## 2. 更新分发清单
 
-- 将 `Package.swift` 中的 URL、版本和 checksum 替换为 `checksums.txt` 的结果。
+- 将 `Package.swift` 中的 URL、版本和 checksum 与 `checksums.txt` 的真实结果保持一致；本次 `6.2.2` SwiftPM checksum 为 `1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb`。
 - 用源码仓 `build/youku/swiftpm-resources/IFLYPlayer.bundle` 同步覆盖本仓 `spm/IFLYAdResources/IFLYPlayer.bundle`。
 - 将 `YKIFLYADLib.podspec`、Demo `Podfile`、README、CHANGELOG 中的版本同步更新。
 - 确认 podspec 显式链接 `AdSupport`、弱链接 `AppTrackingTransparency`，并核对最终二进制没有对 `AppTrackingTransparency` 的强依赖。
-- `swift package dump-package` 和 `pod ipc spec YKIFLYADLib.podspec` 必须通过；Release 可下载后再执行完整 pod lint。
+- `swift package dump-package` 和 `pod ipc spec YKIFLYADLib.podspec` 必须通过；创建 tag/Release 前必须确认 checksum 是与冻结 zip 一致的 64 位小写十六进制值，Release 可下载后再执行完整 pod lint。
 - Release CI 固定使用获准的正式完整 URL `https://youku-sdk.voiceads.cn/ad/request`，并与 manifest 和二进制逐项比对；变更地址必须同步修改构建脚本、隐私清单和本门禁。
 
 ## 3. 提交和发布
 
 1. 提交本仓清单、Demo 与文档。
-2. 创建与 SDK 版本一致且不带 `v` 前缀的 tag。
+2. 创建与 SDK 版本一致、不带 `v` 前缀且指向当前发布提交的 annotated tag；CI 会拒绝轻量 tag、错误 checkout 和非正式 checksum。
 3. 创建 GitHub Release，上传两个 zip 以及 `checksums.txt`、`delivery-manifest.json`。
 4. Release CI 验证精确资产白名单、两个 zip 的同源 XCFramework、URL、架构、隐私清单、SwiftPM 产品/资源和 CocoaPods Demo 编译。
 
