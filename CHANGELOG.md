@@ -6,7 +6,7 @@
 - `binarySourceCommit`（SDK 二进制源码提交）：`a8ec925d3731d7d11734647aa02ca7d91d674965`
 - `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`eff78263c2d3f65b029f4114de1a9ed00f3827f3`
 
-- 正式资产已在内部冻结：SwiftPM zip SHA-256 为 `1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb`，合并 zip SHA-256 为 `0ba19a49cc09f4dba8b62224ba84a2f8c3447ca7ad959ae7edf06286fd89f0bc`。公开 Release、匿名下载、远程消费和 CI 仍以各自实际结果为准。
+- 正式资产已在内部冻结：SwiftPM zip SHA-256 为 `1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb`，合并 zip SHA-256 为 `0ba19a49cc09f4dba8b62224ba84a2f8c3447ca7ad959ae7edf06286fd89f0bc`。[GitHub Release 6.2.2](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.2) 已正式公开，annotated tag 解引用后的提交为 `498f148b24bfc8866fff0a0e8575b34d2e2bc542`，资产库存严格为 4 项；[published CI](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/31347053230) 成功完成无凭据匿名下载、资产与 A/B provenance 校验，以及 Demo、SwiftPM 产品的实际消费构建。该分发验收不代表最终宿主合规、`Validate App` 或 Apple 审核通过。
 - 按已确认范围保留 `SRC-004`、`SRC-008`、`SRC-009`、`SRC-011`、`NET-001`、`RRA-003`、`TRACK-001`、`TRACK-002`、`ADS-011`、`EXPORT-001` 启发式残余风险，以 `failOn=high`、`failOnWarning=false`、`strict=false`、`requireManual=false` 执行；不据此宣称最终宿主合规或 Apple 审核通过。
 
 - NativeFeed 改为 SDK 托管挂载：媒体数据层只需持有 `IFLYNativeFeedAd`，Cell 不再维护 DisplaySession、Binding 或首次/复用状态。

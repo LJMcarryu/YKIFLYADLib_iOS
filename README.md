@@ -23,6 +23,7 @@
 - `releaseState`：`FORMAL`
 - `binarySourceCommit`（SDK 二进制源码提交）：`a8ec925d3731d7d11734647aa02ca7d91d674965`
 - `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`eff78263c2d3f65b029f4114de1a9ed00f3827f3`
+- 公开分发 tag 提交（annotated tag peeled commit）：`498f148b24bfc8866fff0a0e8575b34d2e2bc542`
 
 `6.2.2` 正式分发资产由私有源码提交
 `a8ec925d3731d7d11734647aa02ca7d91d674965` 生成；`delivery-manifest.json` 的
@@ -31,8 +32,10 @@
 SHA-256 为 `0ba19a49cc09f4dba8b62224ba84a2f8c3447ca7ad959ae7edf06286fd89f0bc`。
 产物使用 Xcode 26.2（Build `17C52`）；两个 framework 切片均为非 ad-hoc 开发签名，
 证书 SHA-1 为 `767B1F38300A6AACAF2B7AC3A4EA052201D981BB`，`TeamIdentifier` 均为
-`FM295M5CZ5`。对应 GitHub Release、匿名下载、远程消费和公开仓 CI 是后续独立验收项，
-是否通过以实际结果为准；上述事实也不代表最终宿主合规或 Apple 审核通过。
+`FM295M5CZ5`。[GitHub Release 6.2.2](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.2)
+已正式公开，资产库存严格为 4 项；[published CI](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/31347053230)
+已成功完成无凭据匿名下载、资产与 A/B provenance 校验，并实际构建 Demo 和 SwiftPM 产品。
+该分发验收不代表最终宿主合规、`Validate App` 或 Apple 审核通过。
 
 ## 仓库内容
 
@@ -44,8 +47,8 @@ IFLYADLibSimple/          三个 NativeFeed 自渲染场景的 Demo 工程
 
 SDK 私有源码、构建脚本和测试代码不在本分发仓。二进制只通过同版本 GitHub Release 交付。
 
-`6.2.2` 分发清单已固定至上述正式资产元数据。远程接入仍依赖同版本 tag 和 GitHub
-Release 资产实际可访问；仓库 Public 状态、匿名下载及消费构建须在发布后分别验证。
+`6.2.2` 分发清单已固定至上述正式资产元数据；同版本 tag、GitHub Release 资产和 podspec
+均已公开，仓库 Public 状态、匿名下载及消费构建已由上述 published CI 验证。
 
 ## Release 资产
 
@@ -88,8 +91,8 @@ Pod 名是 `YKIFLYADLib`，但 SDK 模块名仍是 `IFLYADLib`。不要同时集
 
 ## Swift Package Manager 接入
 
-以下远程方式使用公开仓库和同版本 GitHub Release 资产。选择精确版本 `6.2.2`，
-并在解析前确认对应 tag 与 Release 资产可访问；不要依赖 `main` 分支获取二进制。
+以下远程方式使用公开仓库和同版本 GitHub Release 资产。选择已公开的精确版本 `6.2.2`；
+不要依赖 `main` 分支获取二进制。
 
 在 Xcode 的 “Add Package Dependencies” 中添加：
 

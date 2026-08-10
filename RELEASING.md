@@ -7,6 +7,7 @@
 - `releaseState`：`FORMAL`
 - `binarySourceCommit`（SDK 二进制源码提交）：`a8ec925d3731d7d11734647aa02ca7d91d674965`
 - `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`eff78263c2d3f65b029f4114de1a9ed00f3827f3`
+- 公开分发 tag 提交（annotated tag peeled commit）：`498f148b24bfc8866fff0a0e8575b34d2e2bc542`
 
 正式态使用两提交模型：两个 zip 及 SwiftPM 资源均从提交 A 构建；提交 B 必须是 A 的后代，且 A→B 只能修改 `Package.swift`、`README.md`、`CONTEXT.md` 和 `docs/**`。正式 CI 通过 `IFLY_PRIVATE_SOURCE_TOKEN` 调用私有源码仓 compare API 验证，令牌不用于公开 Release 资产下载。
 
@@ -62,8 +63,15 @@ build/youku/release/
 `0ba19a49cc09f4dba8b62224ba84a2f8c3447ca7ad959ae7edf06286fd89f0bc`。
 产物使用 Xcode 26.2（Build `17C52`）；两个 framework 切片均为非 ad-hoc 开发签名，
 证书 SHA-1 为 `767B1F38300A6AACAF2B7AC3A4EA052201D981BB`，`TeamIdentifier` 均为
-`FM295M5CZ5`。4 个交付文件已在内部冻结；GitHub Release、匿名下载、远程消费和公开仓
-CI 属于独立后续验证，是否通过以实际结果为准。
+`FM295M5CZ5`。4 个交付文件已在内部冻结，并已通过
+<https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.2> 正式公开；Release 非草稿、
+非预发布，资产库存严格为 4 项。annotated tag 解引用后的提交为
+`498f148b24bfc8866fff0a0e8575b34d2e2bc542`。
+[published CI 31347053230](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/31347053230)
+结论为 `success`：使用不带 GitHub 凭据的公开 URL 匿名下载精确资产集，校验资产与 A/B
+provenance、checksum、双包同源、能力、资源和请求地址，并实际构建 Demo 与 SwiftPM 产品，
+同时复核 CocoaPods/SwiftPM 最终链接依赖。该分发验收不代表最终宿主合规、`Validate App`
+或 Apple 审核通过。
 
 本轮发布决策仅限通用版/模型 A、YS、优酷 `6.2.2`：接受 `SRC-004`、`SRC-008`、
 `SRC-009`、`SRC-011`、`NET-001`、`RRA-003`、`TRACK-001`、`TRACK-002`、
