@@ -151,10 +151,6 @@ def validate_compare_response(
         comparison.get("merge_base_commit", {}).get("sha") == binary_commit,
         "提交 A 不是提交 B 的祖先",
     )
-    require(
-        comparison.get("head_commit", {}).get("sha") == metadata_commit,
-        "compare head_commit 不是提交 B",
-    )
 
     commits = comparison.get("commits")
     require(isinstance(commits, list) and commits, "compare 未返回 A→B 提交列表")

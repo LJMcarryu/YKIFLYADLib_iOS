@@ -184,7 +184,7 @@ jobs:
           )
           assert len(states) == 1, states
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"state={states[0]}\\n")
+              output.write(f"state={states[0]}\n")
           PY
 
       - name: 校验 PENDING A/B provenance
