@@ -59,21 +59,21 @@ def expected_asset_names(tag: str) -> set[str]:
     }
 
 
-def validate_release_metadata(
-    release: Dict[str, Any], repository: str, tag: str
+def validate_asset_inventory(
+    release: Dict[str, Any], tag: str
 ) -> Dict[str, Dict[str, Any]]:
-    require(release.get("tag_name") == tag, "Release tag 与目标 tag 不一致")
-    require(release.get("draft") is False, "Release 不得为 draft")
-    require(release.get("prerelease") is False, "Release 不得为 prerelease")
-    require(bool(release.get("published_at")), "Release 缺少 published_at")
-    require(isinstance(release.get("body"), str), "Release body 缺失")
-
     assets = release.get("assets")
     require(isinstance(assets, list), "Release assets 不是数组")
     expected = expected_asset_names(tag)
-    names = [asset.get("name") for asset in assets if isinstance(asset, dict)]
+    require(
+        all(
+            isinstance(asset, dict) and isinstance(asset.get("name"), str)
+            for asset in assets
+        ),
+        "Release asset 元数据格式错误",
+    )
+    names = [asset["name"] for asset in assets]
     require(len(assets) == len(expected), f"Release 必须精确包含 4 个资产: {names}")
-    require(len(names) == len(assets), "Release asset 元数据格式错误")
     require(len(set(names)) == len(names), f"Release 资产名重复: {names}")
     require(set(names) == expected, f"实际资产 {sorted(names)}，期望 {sorted(expected)}")
 
@@ -90,6 +90,22 @@ def validate_release_metadata(
             isinstance(asset.get("size"), int) and asset["size"] >= 0,
             f"{name} 缺少合法 size",
         )
+        by_name[name] = asset
+    return by_name
+
+
+def validate_release_metadata(
+    release: Dict[str, Any], repository: str, tag: str
+) -> Dict[str, Dict[str, Any]]:
+    require(release.get("tag_name") == tag, "Release tag 与目标 tag 不一致")
+    require(release.get("draft") is False, "Release 不得为 draft")
+    require(release.get("prerelease") is False, "Release 不得为 prerelease")
+    require(bool(release.get("published_at")), "Release 缺少 published_at")
+    require(isinstance(release.get("body"), str), "Release body 缺失")
+
+    by_name = validate_asset_inventory(release, tag)
+    for asset in by_name.values():
+        name = asset["name"]
         expected_url = (
             f"https://github.com/{repository}/releases/download/"
             f"{quote(tag, safe='')}/{quote(name, safe='')}"
@@ -98,7 +114,6 @@ def validate_release_metadata(
             asset.get("browser_download_url") == expected_url,
             f"{name} browser_download_url 非预期: {asset.get('browser_download_url')!r}",
         )
-        by_name[name] = asset
     return by_name
 
 

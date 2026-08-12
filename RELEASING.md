@@ -2,6 +2,19 @@
 
 优酷 SDK 由私有源码仓 `LJMcarryu/IFLYADLibDemo` 的 `main` 单一源码生成。本仓不接收 SDK 私有源码和手工替换的二进制。
 
+## 正式发布唯一入口
+
+新版本正式发布只能从内部私有源码仓根目录的 `scripts/release-orchestrator.py` 发起，并按
+`prepare → preflight → publish → verify → closeout` 顺序完成。先用默认只读计划确认候选身份，
+只有在版本、Xcode、签名和冻结条件满足时才可为对应阶段显式传入 `--execute`。不得从本公开仓
+手工创建或移动 tag、发布 Release，也不得直接派发 candidate 工作流来替代编排器 receipt。
+
+本文后续的打包命令、`.github/scripts/**`、公开仓校验命令和 GitHub Actions
+`workflow_dispatch` 都是底层门禁或故障诊断入口，可用于定位和复验单项问题，但不是正式发布
+入口。CI 对同一候选的复验顺序排队且不取消既有 run；候选与正式 Release 使用不同并发组。
+重型验证 job 最长运行 55 分钟，结束后由无 Token、只读的 summary job 汇总 Candidate、Release、
+checkout commit、四资产库存身份和全部 job 结论；summary 对上游失败继续失败关闭。
+
 ## 6.2.2 发布状态
 
 - `releaseState`：`FORMAL`
@@ -11,7 +24,9 @@
 
 正式态使用两提交模型：两个 zip 及 SwiftPM 资源均从提交 A 构建；提交 B 必须是 A 的后代，且 A→B 只能修改 `Package.swift`、`README.md`、`CONTEXT.md` 和 `docs/**`。正式 CI 通过 `IFLY_PRIVATE_SOURCE_TOKEN` 调用私有源码仓 compare API 验证，令牌不用于公开 Release 资产下载。
 
-## 1. 在私有源码仓构建
+## 1. 私有源码仓底层产物诊断
+
+本节命令由编排器调用或供失败定位使用，不得脱离上述唯一入口独立执行为正式发布。
 
 ```bash
 IFLY_NEW_VERSION_RELEASE=1 \
@@ -113,7 +128,9 @@ Demo 列表专项 `16/16` 和 Youku 分发测试 `31/31` 通过。源码扫描
 合规、App Privacy、真机、监测入库、功耗、`Validate App` 或 Apple 人工审核已闭环。
 匿名下载和公开仓 CI 是 Release 发布后的独立验收项，不由本节的正式产包事实推定为已通过。
 
-## 2. 更新分发清单
+## 2. 编排器分发清单核对
+
+以下清单由编排器生成、冻结和提交；维护者只在失败诊断时逐项复核，不得手工改写后直接发布。
 
 - 将 `Package.swift` 中的 URL、版本和 checksum 与 `checksums.txt` 的真实结果保持一致；本次 `6.2.2` SwiftPM checksum 为 `1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb`。
 - 用源码仓 `build/youku/swiftpm-resources/IFLYPlayer.bundle` 同步覆盖本仓 `spm/IFLYAdResources/IFLYPlayer.bundle`。
@@ -122,12 +139,28 @@ Demo 列表专项 `16/16` 和 Youku 分发测试 `31/31` 通过。源码扫描
 - `swift package dump-package` 和 `pod ipc spec YKIFLYADLib.podspec` 必须通过；创建 tag/Release 前必须确认 checksum 是与冻结 zip 一致的 64 位小写十六进制值，Release 可下载后再执行完整 pod lint。
 - Release CI 固定使用获准的正式完整 URL `https://youku-sdk.voiceads.cn/ad/request`，并与 manifest 和二进制逐项比对；变更地址必须同步修改构建脚本、隐私清单和本门禁。
 
-## 3. 提交和发布
+### Draft 候选消费控制面
 
-1. 提交本仓清单、Demo 与文档。
-2. 创建与 SDK 版本一致、不带 `v` 前缀且指向当前发布提交的 annotated tag；CI 会拒绝轻量 tag、错误 checkout 和非正式 checksum。
-3. 创建 GitHub Release，上传两个 zip 以及 `checksums.txt`、`delivery-manifest.json`。
-4. Release CI 验证精确资产白名单、两个 zip 的同源 XCFramework、URL、架构、隐私清单、SwiftPM 产品/资源和 CocoaPods Demo 编译。
+每个候选使用不可覆盖的 `release-candidate/<version>-<candidateId>` 分支。Draft Release 的
+`target_commitish` 只能是该候选分支或触发时的精确提交；`workflow_dispatch` 必须从该分支触发，
+并同时提供版本 `candidate_tag`、64 位小写 `candidate_id`、正整数 `candidate_release_id` 和
+32 位小写 `dispatch_nonce`。工作流将 checkout 严格绑定到触发 `github.sha`，并把 run name
+固定为 `draft-candidate:<candidateId>:<releaseId>:<dispatchNonce>`。候选提交必须已经包含最终
+真实 checksum、`releaseState=FORMAL`、两个不同的真实 A/B 提交及最终分发清单；Draft Release
+本身仍保持 `draft=true`、`published_at=null`。后续 publish 只改变 `main`、tag 与 Release
+可见性，直接使用同一不可变候选提交，不再回填清单或切换提交。候选分支发布后暂不删除，用于
+失败恢复和证据复验。
+
+首次启用前，必须先把只包含 workflow、控制脚本和测试的 bootstrap 提交独立合入远端 `main`，
+且不得在该提交中修改版本、`Package.swift` 或 `YKIFLYADLib.podspec`。默认分支先识别新 inputs
+和 run-name 后，编排器才能可靠派发候选工作流；每版的版本内容门禁仍随候选提交更新。
+
+## 3. 编排器执行结果核对
+
+1. 核对编排器已提交本仓清单、Demo 与文档，并且候选提交与 receipt 记录一致。
+2. 核对编排器创建的 annotated tag 与 SDK 版本一致、无 `v` 前缀且指向冻结提交；CI 会拒绝轻量 tag、错误 checkout 和非正式 checksum。
+3. 核对编排器发布的 GitHub Release 精确包含两个 zip、`checksums.txt` 和 `delivery-manifest.json`。
+4. 核对 Release CI 已验证精确资产白名单、两个 zip 的同源 XCFramework、URL、架构、隐私清单、SwiftPM 产品/资源和 CocoaPods Demo 编译。
 
 分发仓及 Release 必须保持 Public，确保 CocoaPods raw URL、SwiftPM 仓库和二进制资产均可匿名访问。每次发布后都要在不携带 GitHub 凭据的环境中验证仓库、podspec 和两个 Release 资产可下载。
 
