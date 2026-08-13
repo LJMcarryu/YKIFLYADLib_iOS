@@ -21,9 +21,9 @@ checkout commit、四资产库存身份和全部 job 结论；summary 对上游�
 - `binarySourceCommit`（SDK 二进制源码提交）：`11bd2827041cd245329d12e959310f77d76b7ddd`
 - `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`6b2b21020589d3b96534167e9cb94b5a9fb76fa1`
 
-正式签名资产、checksum 和 A/B 已完成本地冻结校验；公开可用性以同版本 GitHub Release 和发布后 CI 为准，发布后事实由编排器验证。
+公开可用性以同版本 GitHub Release 和发布后 CI 为准，发布后事实由编排器验证。正式签名资产、checksum 和 A/B 已完成本地冻结校验。
 
-`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；公开可用性以同版本 GitHub Release 和发布后 CI 为准。
+`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。
 
 `6.2.3` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
 
@@ -72,7 +72,7 @@ build/youku/release/
 
 ### 当前联调状态
 
-`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；公开可用性以同版本 GitHub Release 和发布后 CI 为准。
+公开可用性以同版本 GitHub Release 和发布后 CI 为准。`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。
 `6.2.3` 正式分发资产已冻结；以下均为历史版本事实。
 
 2026 年 8 月 10 日，优酷 `6.2.2` 正式分发资产由私有源码提交
