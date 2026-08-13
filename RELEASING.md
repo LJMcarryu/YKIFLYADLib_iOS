@@ -17,11 +17,11 @@ checkout commit、四资产库存身份和全部 job 结论；summary 对上游�
 
 ## 6.2.3 发布状态
 
-- `releaseState`：`PENDING`
-- `binarySourceCommit`（SDK 二进制源码提交）：`__IFLYADLIB_YOUKU_6_2_3_BINARY_SOURCE_COMMIT_PENDING__`
-- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`__IFLYADLIB_YOUKU_6_2_3_RELEASE_METADATA_COMMIT_PENDING__`
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`11bd2827041cd245329d12e959310f77d76b7ddd`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`6b2b21020589d3b96534167e9cb94b5a9fb76fa1`
 
-当前进入公开仓准备态；正式签名资产、checksum、A/B、tag、Release 和匿名消费验证尚未完成，不得作为正式发布证据。
+正式签名资产、checksum 和 A/B 已完成本地冻结校验；公开 tag、Release 和匿名消费验证仍须由编排器完成，当前不得作为正式发布证据。
 
 `6.2.3` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
 
