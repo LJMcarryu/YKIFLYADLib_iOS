@@ -28,7 +28,7 @@
 
 `6.2.3` 的正式签名资产和 checksum 已冻结并完成本地校验；公开可用性以同版本 GitHub Release 和发布后 CI 为准。
 
-`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；公开可用性以同版本 GitHub Release 和发布后 CI 为准。本提交是 `6.2.3` 的不可变发布目标。
+`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；公开可用性以同版本 GitHub Release 和发布后 CI 为准。本提交是 `6.2.3` 的不可变发布目标。正式发布文档不预先宣称 tag 或 Release 已公开。
 
 `6.2.3` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
 
