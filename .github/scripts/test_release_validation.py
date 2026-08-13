@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import importlib.util
 import json
 import os
 import subprocess
@@ -20,7 +21,7 @@ import release_asset_identity as identity
 
 ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY = "LJMcarryu/YKIFLYADLib_iOS"
-TAG = "6.2.2"
+TAG = "6.2.3"
 CANDIDATE_ID = "a" * 64
 DISPATCH_NONCE = "d" * 32
 RELEASE_ID = 99
@@ -28,6 +29,34 @@ EXPECTED_COMMIT = "b" * 40
 BINARY_COMMIT = "1" * 40
 METADATA_COMMIT = "2" * 40
 CANDIDATE_BRANCH = f"release-candidate/{TAG}-{CANDIDATE_ID}"
+
+
+def load_private_provenance_module() -> object:
+    path = ROOT / ".github/scripts/verify_private_release_provenance.py"
+    spec = importlib.util.spec_from_file_location("private_provenance", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"无法加载 {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+private_provenance = load_private_provenance_module()
+
+
+def provenance_section(
+    heading: str,
+    state: str,
+    binary: str,
+    metadata: str,
+) -> str:
+    return (
+        f"## {heading}\n\n"
+        f"- `releaseState`：`{state}`\n"
+        f"- `binarySourceCommit`（SDK 二进制源码提交）：`{binary}`\n"
+        "- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，"
+        f"不是 SDK 二进制源码提交）：`{metadata}`\n"
+    )
 
 
 def release_assets(tag: str = TAG) -> list[dict[str, object]]:
@@ -276,7 +305,7 @@ class ReleaseMetadataTests(unittest.TestCase):
 class RequestBoundaryTests(unittest.TestCase):
     def test_anonymous_request_never_has_authorization(self) -> None:
         request = anonymous.build_anonymous_request(
-            "https://api.github.com/repos/owner/repo/releases/tags/6.2.2",
+            "https://api.github.com/repos/owner/repo/releases/tags/6.2.3",
             "application/vnd.github+json",
         )
         self.assertNotIn(
@@ -415,6 +444,86 @@ class AssetIdentityTests(unittest.TestCase):
             (root / "extra").write_text("extra", encoding="utf-8")
             with self.assertRaises(anonymous.VerificationError):
                 identity.asset_identity(root, TAG)
+
+
+class PrivateProvenanceDocumentTests(unittest.TestCase):
+    def test_pending_current_section_ignores_historical_formal_section(self) -> None:
+        document = provenance_section(
+            "6.2.3（待发布）",
+            "PENDING",
+            private_provenance.PENDING_BINARY,
+            private_provenance.PENDING_METADATA,
+        ) + provenance_section("6.2.2", "FORMAL", "a" * 40, "b" * 40)
+        self.assertEqual(
+            private_provenance.parse_document(document, "测试文档"),
+            (
+                "PENDING",
+                private_provenance.PENDING_BINARY,
+                private_provenance.PENDING_METADATA,
+            ),
+        )
+
+    def test_formal_current_section_ignores_historical_formal_section(self) -> None:
+        document = provenance_section(
+            "6.2.3 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
+        ) + provenance_section("6.2.2", "FORMAL", "a" * 40, "b" * 40)
+        self.assertEqual(
+            private_provenance.parse_document(document, "测试文档"),
+            ("FORMAL", BINARY_COMMIT, METADATA_COMMIT),
+        )
+
+    def test_duplicate_or_missing_current_section_fails_closed(self) -> None:
+        current = provenance_section(
+            "6.2.3 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
+        )
+        historical = provenance_section("6.2.2", "FORMAL", "a" * 40, "b" * 40)
+        for document in (current + current, historical):
+            with self.subTest(document=document):
+                with self.assertRaises(private_provenance.VerificationError):
+                    private_provenance.parse_document(document, "测试文档")
+
+    def test_duplicate_contract_inside_current_section_fails_closed(self) -> None:
+        current = provenance_section(
+            "6.2.3 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
+        )
+        duplicate = current + (
+            f"- `releaseState`：`FORMAL`\n"
+            f"- `binarySourceCommit`（SDK 二进制源码提交）：`{BINARY_COMMIT}`\n"
+            "- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，"
+            f"不是 SDK 二进制源码提交）：`{METADATA_COMMIT}`\n"
+        )
+        with self.assertRaises(private_provenance.VerificationError):
+            private_provenance.parse_document(duplicate, "测试文档")
+
+    def test_release_body_requires_canonical_independent_ab_lines(self) -> None:
+        canonical = (
+            f"- `binarySourceCommit`（SDK 二进制源码提交）：`{BINARY_COMMIT}`\n"
+            "- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，"
+            f"不是 SDK 二进制源码提交）：`{METADATA_COMMIT}`\n"
+            f"delivery-manifest.sourceCommit / sourceBuild.sourceCommit：`{BINARY_COMMIT}`\n"
+            "B 仅用于 checksum、扫描汇总和验收事实，不是 SDK 二进制源码提交。\n"
+        )
+        private_provenance.validate_release_body(
+            canonical, BINARY_COMMIT, METADATA_COMMIT
+        )
+
+        canonical_b = canonical.splitlines()[1]
+        invalid_b_lines = (
+            f"- `releaseMetadataCommit`（仅回填 checksum 和发布验收事实，不是 SDK 二进制源码提交）：`{METADATA_COMMIT}`",
+            f"发布元数据提交（releaseMetadataCommit B）：`{METADATA_COMMIT}`",
+            f"说明：- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`{METADATA_COMMIT}`",
+            canonical_b
+            + "\n- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，"
+            + f"不是 SDK 二进制源码提交）：`{'3' * 40}`",
+        )
+        for invalid_b in invalid_b_lines:
+            with self.subTest(invalid_b=invalid_b):
+                with self.assertRaises(private_provenance.VerificationError):
+                    private_provenance.validate_release_body(
+                        canonical.replace(canonical_b, invalid_b),
+                        BINARY_COMMIT,
+                        METADATA_COMMIT,
+                    )
 
 
 class WorkflowStructureTests(unittest.TestCase):
@@ -619,7 +728,10 @@ class WorkflowStructureTests(unittest.TestCase):
             if step.get("name") == "固定 draft candidate 本地分发清单"
         )
         self.assertIn('re.fullmatch(r"[0-9a-f]{64}", checksum)', manifest["run"])
-        self.assertIn('`releaseState`：`FORMAL`', manifest["run"])
+        self.assertIn(
+            'verifier.validate_documents(document_paths)[0] == "FORMAL"',
+            manifest["run"],
+        )
         self.assertNotIn("CHECKSUM_PENDING", manifest["run"])
 
         asset_provenance = next(
@@ -628,6 +740,49 @@ class WorkflowStructureTests(unittest.TestCase):
             if step.get("name") == "校验下载资产与私有源码 A/B provenance"
         )
         self.assertNotIn("if", asset_provenance)
+
+    def test_workflow_scopes_current_provenance_and_strict_scan_policy(self) -> None:
+        repository_steps = self.workflow["jobs"]["verify-repository"]["steps"]
+        version_gate = next(
+            step
+            for step in repository_steps
+            if step.get("name") == "校验版本、清单与 SwiftPM 资源"
+        )["run"]
+        for marker in (
+            "current_release_sections",
+            "缺少 {pod_version} 当前发布状态节",
+            "重声明 {pod_version} 当前发布状态节",
+            "`6.2.3` 不沿用历史风险授权",
+            "`failOnWarning=true`",
+            "`strict=true`",
+            "`requireManual=true`",
+            "`acceptedWarningRuleIds=[]`",
+        ):
+            if marker == "重声明 {pod_version} 当前发布状态节":
+                marker = "重复声明 {pod_version} 当前发布状态节"
+            self.assertIn(marker, version_gate)
+
+        release_gate = next(
+            step
+            for step in self.workflow["jobs"]["verify-release-assets"]["steps"]
+            if step.get("name") == "校验 checksum、双包结构、能力、资源和请求地址"
+        )["run"]
+        for marker in (
+            "allowsExternalClickViews",
+            "nativeFeedAd:didRejectClickWithError:",
+            "detachFromCurrentContainer",
+            "IFLYAdErrorCodeNativeFeedClickViewsInvalid",
+            "71503",
+        ):
+            self.assertIn(marker, release_gate)
+
+        state_reader = next(
+            step
+            for step in repository_steps
+            if step.get("name") == "读取 A/B 发布状态"
+        )["run"]
+        self.assertIn("module.parse_document", state_reader)
+        self.assertNotIn("re.findall", state_reader)
 
     def test_no_cache_or_plaintext_artifact_transfer(self) -> None:
         text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

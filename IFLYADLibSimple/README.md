@@ -18,7 +18,7 @@ open IFLYADLibSimple.xcworkspace
 
 最低支持 iOS 11.0，支持 iPhone 和 iPad。真机运行前，请在 Xcode 的 Signing & Capabilities 中选择自己的开发者 Team。
 
-Demo 已固定引用 tag `6.2.2` 的 `YKIFLYADLib.podspec`。[Release 6.2.2](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.2)、podspec 和 4 项资产均已公开；[published CI](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/31347053230) 已通过匿名下载及 Demo、SwiftPM 产品的远程消费验证。升级 SDK 时，需要同步修改 `Podfile` 中的 tag。
+Demo 已切换到待发布 tag `6.2.3` 的 `YKIFLYADLib.podspec`；正式资产、tag 和 Release 尚不存在，当前 `pod install` 失败是预期结果。生产项目继续使用已发布的 `6.2.2`。
 Demo 首页只有上述三个自渲染示例入口，不调用 `IFLYSplashAd` 或 `IFLYInterstitialAd` 的 SDK 内置模板渲染接口，也不包含 Banner、激励视频及其他进阶功能。三个示例均使用优酷定制联调广告位；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。
 
 `6.2.2` 保留 `6.1.2` 的全渠道共享修复：iOS 14 及以上只有 ATT `authorized` 时 SDK
@@ -45,6 +45,8 @@ Demo 的隐私政策链接也只允许 HTTP/HTTPS，并直接交给系统打开�
 `interactType`，只读取公开白名单字段；CTA 读取 `ctaText`，竞价信息读取
 `bidInfo`。仅 `Redirect/Download` 传入实际 `clickViews`，
 `Exposure/Unknown` 显式传 `@[]`。固定卡片和复用列表统一使用 Ad 级 attach 与容器级 detach。
+
+`6.2.3` 默认仍要求点击视图位于广告容器内。确需容器外 CTA 时显式开启 `allowsExternalClickViews` 并处理 `nativeFeedAd:didRejectClickWithError:`；共享、悬浮、离屏仍可点击或归属不明会以 71503 失败关闭。固定单容器页面可按需使用 `detachFromCurrentContainer`。
 
 曝光前滚出再回来会重新累计连续可见 `500ms`；已曝光条目恢复时不重复曝光。TTL 或视频投放截止时间不强拆当前活动容器，但会拒绝迁移到其他容器；当前容器正常 detach 后旧 Ad 不可再恢复。
 

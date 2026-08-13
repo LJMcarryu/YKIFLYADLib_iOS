@@ -213,13 +213,43 @@ jobs:
           assert pod_version == package_version == pod_url_version == demo_pod_version
           pending_changelog_heading = f"## {pod_version}（待发布）"
           final_changelog_heading = f"## {pod_version}"
+          current_release_sections = {}
+          for label, document in (
+              ("README.md", readme),
+              ("CHANGELOG.md", changelog),
+              ("RELEASING.md", releasing),
+          ):
+              match = re.search(
+                  rf"^##\s+(?:\[{re.escape(pod_version)}\]|{re.escape(pod_version)})"
+                  rf"(?=$|[ \t（(]).*?(?=^##\s|\Z)",
+                  document,
+                  re.M | re.S,
+              )
+              assert match, f"{label} 缺少 {pod_version} 当前发布状态节"
+              assert not re.search(
+                  rf"^##\s+(?:\[{re.escape(pod_version)}\]|{re.escape(pod_version)})"
+                  rf"(?=$|[ \t（(])",
+                  document[match.end():],
+                  re.M,
+              ), f"{label} 重复声明 {pod_version} 当前发布状态节"
+              current_release_sections[label] = match.group(0)
           release_state_match = re.search(
               r"### 当前联调状态\s+(.*?)(?=\n2026 年 7 月 30 日)",
               releasing,
               re.S,
           )
-          assert release_state_match, "RELEASING.md 缺少 6.2.2 当前状态段"
+          assert release_state_match, "RELEASING.md 缺少 6.2.3 当前状态段"
           release_state = release_state_match.group(1)
+          for label, section in current_release_sections.items():
+              for policy in (
+                  "`6.2.3` 不沿用历史风险授权",
+                  "`failOn=high`",
+                  "`failOnWarning=true`",
+                  "`strict=true`",
+                  "`requireManual=true`",
+                  "`acceptedWarningRuleIds=[]`",
+              ):
+                  assert policy in section, f"{label} 缺少 6.2.3 严格扫描边界: {policy}"
           for lifecycle_token in (
               "playRequested",
               "pausePlay",
@@ -229,6 +259,13 @@ jobs:
           ):
               assert lifecycle_token in readme, lifecycle_token
               assert lifecycle_token in demo_readme, lifecycle_token
+          for api_token in (
+              "allowsExternalClickViews",
+              "nativeFeedAd:didRejectClickWithError:",
+              "IFLYAdErrorCodeNativeFeedClickViewsInvalid",
+              "detachFromCurrentContainer",
+          ):
+              assert api_token in readme, api_token
           assert "AdSupport" in podspec_json.get("frameworks", []), (
               "podspec 缺少 AdSupport 强链接声明"
           )
@@ -243,7 +280,7 @@ jobs:
           ).split(), "aggregate/user target 未声明 -ObjC"
 
           checksum = re.search(r'checksum:\s*"([^"]+)"', package).group(1)
-          pending_checksum = "__IFLYADLIB_YOUKU_6_2_2_CHECKSUM_PENDING__"
+          pending_checksum = "__IFLYADLIB_YOUKU_6_2_3_CHECKSUM_PENDING__"
           is_tag_push = os.environ.get("GITHUB_REF_TYPE") == "tag"
           if is_tag_push:
               assert os.environ.get("GITHUB_REF_NAME") == pod_version, (
@@ -251,11 +288,11 @@ jobs:
               )
           if checksum == pending_checksum:
               assert not is_tag_push, "tag push 不得携带 PENDING checksum"
-              assert pod_version == "6.2.2"
+              assert pod_version == "6.2.3"
               assert f"当前清单目标版本：`{pod_version}`" in readme
               assert "发布准备" in readme
               assert "正式签名资产、checksum、tag 和 Release 尚未生成" in readme
-              assert "待发布 tag `6.2.2`" in demo_readme
+              assert "待发布 tag `6.2.3`" in demo_readme
               assert "进入公开仓准备态" in release_state
               assert "尚未完成" in release_state
               assert re.search(
@@ -267,9 +304,10 @@ jobs:
           else:
               assert re.fullmatch(r"[0-9a-f]{64}", checksum)
               assert checksum != "0" * 64
-              assert checksum != "a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f", (
-                  "6.2.2 不得沿用 6.2.1 checksum"
-              )
+              assert checksum not in {
+                  "a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f",
+                  "1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb",
+              }, "6.2.3 不得沿用历史 checksum"
               assert f"当前版本：`{pod_version}`" in readme
               for stale_marker in (
                   "发布准备",
@@ -277,9 +315,8 @@ jobs:
                   "尚未生成",
                   "最近正式版 `6.2.1`",
                   "当前正式 `6.2.1`",
-                  "尚不存在的 `6.2.2`",
-                  "待发布 `6.2.2`",
-                  "/6.2.1/YKIFLYADLib.podspec",
+                  "尚不存在的 `6.2.3`",
+                  "待发布 `6.2.3`",
               ):
                   assert stale_marker not in readme, stale_marker
               for stale_marker in ("待发布", "准备态"):
@@ -330,17 +367,20 @@ jobs:
         run: |
           python3 - <<'PY'
           import os
-          import re
+          import importlib.util
           from pathlib import Path
 
-          states = re.findall(
-              r"^- `releaseState`：`(PENDING|FORMAL)`$",
+          path = Path(".github/scripts/verify_private_release_provenance.py")
+          spec = importlib.util.spec_from_file_location("private_provenance", path)
+          assert spec is not None and spec.loader is not None
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          state, _, _ = module.parse_document(
               Path("RELEASING.md").read_text(encoding="utf-8"),
-              re.M,
+              "RELEASING.md",
           )
-          assert len(states) == 1, states
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"state={states[0]}\n")
+              output.write(f"state={state}\n")
           PY
 
       - name: 普通分支校验 PENDING A/B provenance
@@ -397,6 +437,7 @@ jobs:
           pod ipc spec YKIFLYADLib.podspec > "${RUNNER_TEMP}/youku-candidate-podspec.json"
           python3 - <<'PY'
           import json
+          import importlib.util
           import os
           import re
           from pathlib import Path
@@ -404,9 +445,11 @@ jobs:
           version = os.environ["CANDIDATE_TAG"]
           package = Path("Package.swift").read_text(encoding="utf-8")
           podspec = Path("YKIFLYADLib.podspec").read_text(encoding="utf-8")
+          document_paths = tuple(
+              Path(name) for name in ("README.md", "CHANGELOG.md", "RELEASING.md")
+          )
           documents = "\n".join(
-              Path(name).read_text(encoding="utf-8")
-              for name in ("README.md", "CHANGELOG.md", "RELEASING.md")
+              path.read_text(encoding="utf-8") for path in document_paths
           )
           podspec_json = json.loads(
               Path(os.environ["RUNNER_TEMP"], "youku-candidate-podspec.json").read_text(
@@ -424,7 +467,14 @@ jobs:
           for capability in ("Splash", "Interstitial", "NativeFeed"):
               assert capability in documents, capability
           assert "https://youku-sdk.voiceads.cn/ad/request" in documents
-          assert len(re.findall(r"`releaseState`：`FORMAL`", documents)) == 3
+          verifier_path = Path(".github/scripts/verify_private_release_provenance.py")
+          verifier_spec = importlib.util.spec_from_file_location(
+              "private_provenance", verifier_path
+          )
+          assert verifier_spec is not None and verifier_spec.loader is not None
+          verifier = importlib.util.module_from_spec(verifier_spec)
+          verifier_spec.loader.exec_module(verifier)
+          assert verifier.validate_documents(document_paths)[0] == "FORMAL"
           PY
           test -z "$(git status --porcelain)"
 
@@ -450,7 +500,7 @@ jobs:
       - name: Tag push 校验 annotated tag 与 checkout 绑定
         if: github.ref_type == 'tag'
         run: |
-          test "${GITHUB_REF_NAME}" = '6.2.2'
+          test "${GITHUB_REF_NAME}" = '6.2.3'
           test -z "$(git status --porcelain)"
           test "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" = 'tag'
           test "$(git rev-parse HEAD)" = "$(git rev-parse "${GITHUB_REF_NAME}^{commit}")"
@@ -674,7 +724,7 @@ jobs:
       - name: 校验 CI Xcode 与 Release 身份
         run: |
           xcodebuild -version
-          test "${RELEASE_TAG}" = '6.2.2'
+          test "${RELEASE_TAG}" = '6.2.3'
           test "${RELEASE_TAG}" = "${REPOSITORY_VERSION}"
           test -z "$(git status --porcelain)"
           if [[ "${RELEASE_KIND}" == 'draft' ]]; then
@@ -935,6 +985,9 @@ jobs:
               for managed_api in (
                   "attachWithViewBinder:",
                   "detachAdFromContainerView:",
+                  "detachFromCurrentContainer",
+                  "allowsExternalClickViews",
+                  "nativeFeedAd:didRejectClickWithError:",
                   "destroy",
               ):
                   assert all(
@@ -953,7 +1006,15 @@ jobs:
                       legacy_api not in path.read_text(encoding="utf-8")
                       for path in native_feed_headers
                   ), legacy_api
-              for error_code in ("71506", "71512", "71513", "71514", "71515"):
+              for error_code in (
+                  "IFLYAdErrorCodeNativeFeedClickViewsInvalid",
+                  "71503",
+                  "71506",
+                  "71512",
+                  "71513",
+                  "71514",
+                  "71515",
+              ):
                   assert all(
                       error_code in path.read_text(encoding="utf-8")
                       for path in error_headers
@@ -989,6 +1050,9 @@ jobs:
                   assert "reportMediaShakeTriggeredWithError:" in lines
                   assert "attachWithViewBinder:error:" in lines
                   assert "detachAdFromContainerView:" in lines
+                  assert "detachFromCurrentContainer" in lines
+                  assert "allowsExternalClickViews" in lines
+                  assert "nativeFeedAd:didRejectClickWithError:" in lines
                   assert "destroy" in lines
                   for legacy_selector in (
                       "beginDisplaySessionWithError:",

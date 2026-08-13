@@ -17,8 +17,9 @@ from urllib.request import Request, urlopen
 PRIVATE_SOURCE_REPOSITORY = "LJMcarryu/IFLYADLibDemo"
 USER_AGENT = "YKIFLYADLib-private-provenance-verifier"
 ALLOWED_METADATA_FILES = {"Package.swift", "README.md", "CONTEXT.md"}
-PENDING_BINARY = "__IFLYADLIB_YOUKU_6_2_2_BINARY_SOURCE_COMMIT_PENDING__"
-PENDING_METADATA = "__IFLYADLIB_YOUKU_6_2_2_RELEASE_METADATA_COMMIT_PENDING__"
+CURRENT_RELEASE_VERSION = "6.2.3"
+PENDING_BINARY = "__IFLYADLIB_YOUKU_6_2_3_BINARY_SOURCE_COMMIT_PENDING__"
+PENDING_METADATA = "__IFLYADLIB_YOUKU_6_2_3_RELEASE_METADATA_COMMIT_PENDING__"
 
 
 class VerificationError(RuntimeError):
@@ -30,7 +31,36 @@ def require(condition: bool, message: str) -> None:
         raise VerificationError(message)
 
 
+def current_release_section(document: str, label: str) -> str:
+    """Return the unique current-version Markdown section, excluding history."""
+
+    heading = re.compile(
+        rf"^(?P<marks>\#{{1,6}})[ \t]+(?:\[{re.escape(CURRENT_RELEASE_VERSION)}\]|"
+        rf"{re.escape(CURRENT_RELEASE_VERSION)})(?=$|[ \t（(])",
+    )
+    generic_heading = re.compile(r"^(?P<marks>\#{1,6})[ \t]+")
+    lines = document.splitlines(keepends=True)
+    matches = [
+        (index, len(match.group("marks")))
+        for index, line in enumerate(lines)
+        if (match := heading.match(line)) is not None
+    ]
+    require(
+        len(matches) == 1,
+        f"{label} 必须唯一包含 {CURRENT_RELEASE_VERSION} 当前发布状态节",
+    )
+    start, level = matches[0]
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        match = generic_heading.match(lines[index])
+        if match is not None and len(match.group("marks")) <= level:
+            end = index
+            break
+    return "".join(lines[start:end])
+
+
 def parse_document(document: str, label: str) -> Tuple[str, str, str]:
+    section = current_release_section(document, label)
     binary_patterns = (
         r"^\s*-\s*`binarySourceCommit`（SDK 二进制源码提交）：`([^`]+)`\s*$",
         r"^\s*binarySourceCommit（提交 A）：`([^`]+)`\s*$",
@@ -41,21 +71,19 @@ def parse_document(document: str, label: str) -> Tuple[str, str, str]:
         r"^\s*releaseMetadataCommit（提交 B）：`([^`]+)`\s*$",
     )
     binary_matches = [
-        value for pattern in binary_patterns for value in re.findall(pattern, document, re.M)
+        value for pattern in binary_patterns for value in re.findall(pattern, section, re.M)
     ]
     metadata_matches = [
-        value for pattern in metadata_patterns for value in re.findall(pattern, document, re.M)
+        value for pattern in metadata_patterns for value in re.findall(pattern, section, re.M)
     ]
     states = re.findall(
-        r"^\s*-\s*`releaseState`：`(PENDING|FORMAL)`\s*$", document, re.M
+        r"^\s*-\s*`releaseState`：`(PENDING|FORMAL)`\s*$", section, re.M
     )
     require(
         len(binary_matches) == len(metadata_matches) == len(states) == 1,
-        f"{label} 必须唯一声明 releaseState/A/B",
+        f"{label} 的 {CURRENT_RELEASE_VERSION} 当前节必须唯一声明 releaseState/A/B",
     )
-    binary_commit = binary_matches[0]
-    metadata_commit = metadata_matches[0]
-    return states[0], binary_commit, metadata_commit
+    return states[0], binary_matches[0], metadata_matches[0]
 
 
 def validate_documents(paths: Tuple[Path, Path, Path]) -> Tuple[str, str, str]:
@@ -107,18 +135,32 @@ def validate_manifest(
 
 def validate_release_body(body: str, binary_commit: str, metadata_commit: str) -> None:
     lines = [line.strip() for line in body.splitlines()]
-    accepted_forms = (
-        (
-            f"- `binarySourceCommit`（SDK 二进制源码提交）：`{binary_commit}`",
-            f"- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`{metadata_commit}`",
-        ),
-        (
-            f"二进制源码提交（binarySourceCommit A）：`{binary_commit}`",
-            f"发布元数据提交（releaseMetadataCommit B）：`{metadata_commit}`",
-        ),
+    canonical_binary = (
+        f"- `binarySourceCommit`（SDK 二进制源码提交）：`{binary_commit}`"
     )
-    forms = [form for form in accepted_forms if all(lines.count(item) == 1 for item in form)]
-    require(len(forms) == 1, "Release body 缺少或重复正式 provenance A/B 声明")
+    canonical_metadata = (
+        f"- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`{metadata_commit}`"
+    )
+    binary_lines = [
+        line
+        for line in lines
+        if re.fullmatch(
+            r"- `binarySourceCommit`（SDK 二进制源码提交）：`[^`]+`", line
+        )
+    ]
+    metadata_lines = [
+        line
+        for line in lines
+        if re.fullmatch(
+            r"- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，"
+            r"不是 SDK 二进制源码提交）：`[^`]+`",
+            line,
+        )
+    ]
+    require(
+        binary_lines == [canonical_binary] and metadata_lines == [canonical_metadata],
+        "Release body 必须使用完整 canonical 独立行唯一声明正式 provenance A/B",
+    )
     required_line = f"delivery-manifest.sourceCommit / sourceBuild.sourceCommit：`{binary_commit}`"
     require(lines.count(required_line) == 1, f"Release body 缺少或重复正式 provenance 声明: {required_line}")
     require(lines.count("B 仅用于 checksum、扫描汇总和验收事实，不是 SDK 二进制源码提交。") == 1,
