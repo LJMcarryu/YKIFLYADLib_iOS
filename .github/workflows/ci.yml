@@ -212,7 +212,7 @@ jobs:
           ).group(1)
           assert pod_version == package_version == pod_url_version == demo_pod_version
           pending_changelog_heading = f"## {pod_version}（待发布）"
-          final_changelog_heading = f"## {pod_version}"
+          formal_changelog_heading = f"## {pod_version}"
           current_release_sections = {}
           for label, document in (
               ("README.md", readme),
@@ -308,34 +308,58 @@ jobs:
                   "a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f",
                   "1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb",
               }, "6.2.3 不得沿用历史 checksum"
-              assert f"当前版本：`{pod_version}`" in readme
+              formal_sections = "\n".join(current_release_sections.values())
               for stale_marker in (
                   "发布准备",
                   "准备态",
                   "尚未生成",
+                  "尚未完成",
                   "最近正式版 `6.2.1`",
                   "当前正式 `6.2.1`",
                   "尚不存在的 `6.2.3`",
                   "待发布 `6.2.3`",
               ):
-                  assert stale_marker not in readme, stale_marker
+                  assert stale_marker not in formal_sections, stale_marker
               for stale_marker in ("待发布", "准备态"):
                   assert stale_marker not in demo_readme, stale_marker
               assert "PENDING" not in package
               assert f"/{pod_version}/YKIFLYADLib.podspec" in readme
-              assert "最新正式版本仍为 `6.2.1`" not in changelog
-              assert "发布准备内容" not in changelog
-              for stale_marker in (
-                  "进入公开仓准备态",
-                  "尚未完成",
-                  "不得作为正式发布证据",
-                  "替换准备态事实",
-              ):
-                  assert stale_marker not in release_state, stale_marker
+              frozen_boundary = (
+                  "`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 "
+                  "`delivery-manifest.json` 已经冻结"
+              )
+              public_boundary = "公开可用性以同版本 GitHub Release 和发布后 CI 为准"
+              for label, section in current_release_sections.items():
+                  assert frozen_boundary in section, (
+                      f"{label} 缺少 FORMAL 冻结事实边界: {frozen_boundary}"
+                  )
+                  assert public_boundary in section, (
+                      f"{label} 缺少远端公开可用性边界: {public_boundary}"
+                  )
+              assert "不可变发布目标" in current_release_sections["README.md"], (
+                  "README.md 缺少候选提交不可变发布目标边界"
+              )
               assert f"`{pod_version}` 正式分发资产" in release_state
               assert "delivery-manifest.json" in release_state
+              # FORMAL 只表示候选资产与发布元数据已经冻结。候选提交随后会原样
+              # 成为 annotated tag 指向的不可变提交，因此当前版本节不得提前写入
+              # 只有 publish 后才成立的远端事实；正式公开状态由 Release metadata
+              # 和下游无凭据匿名下载门禁证明，不依赖 tag 内文档自证。
+              volatile_publication_claims = (
+                  rf"`?{re.escape(pod_version)}`?\s*已正式(?:公开|发布)",
+                  r"(?:tag|Release).{0,30}(?:已|已经)(?:创建|公开|发布)",
+                  r"(?:已|已经).{0,30}(?:tag|Release).{0,30}(?:创建|公开|发布)",
+                  r"(?:匿名下载|匿名消费|匿名终验).{0,40}(?:已完成|完成|通过|成功)",
+                  r"(?:已|已经)完成.{0,20}(?:匿名下载|匿名消费|匿名终验)",
+                  r"published CI.{0,40}(?:已完成|完成|通过|成功)",
+              )
+              for claim in volatile_publication_claims:
+                  assert not re.search(claim, formal_sections, re.I | re.S), (
+                      "FORMAL 冻结提交不得提前宣称 tag/Release 已公开或匿名终验完成: "
+                      f"{claim}"
+                  )
               assert re.search(
-                  r"^" + re.escape(final_changelog_heading) + r"\s*$",
+                  r"^" + re.escape(formal_changelog_heading) + r"\s*$",
                   changelog,
                   re.M,
               )

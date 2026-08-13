@@ -741,6 +741,99 @@ class WorkflowStructureTests(unittest.TestCase):
         )
         self.assertNotIn("if", asset_provenance)
 
+    def test_formal_gate_uses_time_stable_frozen_semantics(self) -> None:
+        repository_steps = self.workflow["jobs"]["verify-repository"]["steps"]
+        version_gate = next(
+            step
+            for step in repository_steps
+            if step.get("name") == "校验版本、清单与 SwiftPM 资源"
+        )["run"]
+        for boundary in (
+            "`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 ",
+            "`delivery-manifest.json` 已经冻结",
+            "公开可用性以同版本 GitHub Release 和发布后 CI 为准",
+            'for label, section in current_release_sections.items()',
+            'current_release_sections["README.md"]',
+            "不可变发布目标",
+        ):
+            self.assertIn(boundary, version_gate)
+        self.assertIn("volatile_publication_claims", version_gate)
+        self.assertIn("FORMAL 冻结提交不得提前宣称", version_gate)
+        self.assertIn(
+            'rf"`?{re.escape(pod_version)}`?\\s*已正式(?:公开|发布)"',
+            version_gate,
+        )
+        self.assertIn(
+            'r"(?:已|已经)完成.{0,20}(?:匿名下载|匿名消费|匿名终验)"',
+            version_gate,
+        )
+        self.assertNotIn('assert f"当前版本：`{pod_version}`" in readme', version_gate)
+        self.assertNotIn("published_at", version_gate)
+
+    def test_candidate_does_not_require_published_release_facts(self) -> None:
+        jobs = self.workflow["jobs"]
+        repository_steps = jobs["verify-repository"]["steps"]
+        candidate_manifest = next(
+            step
+            for step in repository_steps
+            if step.get("name") == "固定 draft candidate 本地分发清单"
+        )["run"]
+        self.assertIn('validate_documents(document_paths)[0] == "FORMAL"', candidate_manifest)
+        for published_fact in ("published_at", "draft=false", "已正式公开", "匿名终验"):
+            self.assertNotIn(published_fact, candidate_manifest)
+
+        draft_download = next(
+            step
+            for step in jobs["verify-release-assets"]["steps"]
+            if step.get("name") == "使用最小权限下载 draft candidate 精确资产集"
+        )
+        self.assertIn("draft_candidate", draft_download["if"])
+        self.assertIn("download_draft_release.py", draft_download["run"])
+
+    def test_published_release_remains_remote_and_anonymous_evidence(self) -> None:
+        self.assertEqual(self.workflow["on"]["release"]["types"], ["published"])
+        jobs = self.workflow["jobs"]
+        repository_steps = jobs["verify-repository"]["steps"]
+        selection = next(
+            step
+            for step in repository_steps
+            if step.get("name") == "固定 Release 验证选择"
+        )["run"]
+        self.assertIn("if [[ \"${EVENT_NAME}\" == 'release' ]]", selection)
+        self.assertIn("kind='formal'", selection)
+
+        anonymous_download = next(
+            step
+            for step in jobs["verify-release-assets"]["steps"]
+            if step.get("name") == "匿名下载本次 Release 的精确资产集"
+        )
+        self.assertIn("github.event_name == 'release'", anonymous_download["if"])
+        self.assertIn("download_release_anonymously.py", anonymous_download["run"])
+        self.assertNotIn("GITHUB_TOKEN", anonymous_download.get("env", {}))
+
+    def test_tag_push_does_not_require_release_to_be_published(self) -> None:
+        jobs = self.workflow["jobs"]
+        repository_steps = jobs["verify-repository"]["steps"]
+        selection = next(
+            step
+            for step in repository_steps
+            if step.get("name") == "固定 Release 验证选择"
+        )["run"]
+        self.assertNotIn("GITHUB_REF_TYPE", selection)
+
+        tag_gate = next(
+            step
+            for step in repository_steps
+            if step.get("name") == "Tag push 校验 annotated tag 与 checkout 绑定"
+        )
+        self.assertNotIn("published", tag_gate["run"])
+        self.assertNotIn("Release", tag_gate["run"])
+        self.assertEqual(
+            jobs["verify-release-assets"]["if"],
+            "needs.verify-repository.outputs.release_kind == 'draft' || "
+            "needs.verify-repository.outputs.release_kind == 'formal'",
+        )
+
     def test_workflow_scopes_current_provenance_and_strict_scan_policy(self) -> None:
         repository_steps = self.workflow["jobs"]["verify-repository"]["steps"]
         version_gate = next(
