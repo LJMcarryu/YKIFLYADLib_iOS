@@ -1006,18 +1006,30 @@ jobs:
                   "reportMediaShakeTriggeredWithError:" in path.read_text(encoding="utf-8")
                   for path in native_feed_headers
               )
+              native_feed_reject_selector_pattern = re.compile(
+                  r"(?m)^[ \t]*-[ \t]*\([ \t]*void[ \t]*\)[ \t]*"
+                  r"nativeFeedAd[ \t]*:[ \t]*\([ \t]*IFLYNativeFeedAd[ \t]*\*[ \t]*\)"
+                  r"[ \t]*[A-Za-z_]\w*[ \t\r\n]+"
+                  r"didRejectClickWithError[ \t]*:[ \t]*\([ \t]*IFLYAdError[ \t]*\*[ \t]*\)"
+                  r"[ \t]*[A-Za-z_]\w*[ \t]*;[ \t]*$"
+              )
               for managed_api in (
                   "attachWithViewBinder:",
                   "detachAdFromContainerView:",
                   "detachFromCurrentContainer",
                   "allowsExternalClickViews",
-                  "nativeFeedAd:didRejectClickWithError:",
                   "destroy",
               ):
                   assert all(
                       managed_api in path.read_text(encoding="utf-8")
                       for path in native_feed_headers
                   ), managed_api
+              assert all(
+                  native_feed_reject_selector_pattern.search(
+                      path.read_text(encoding="utf-8")
+                  )
+                  for path in native_feed_headers
+              ), "nativeFeedAd:didRejectClickWithError:"
               for legacy_api in (
                   "IFLYNativeFeedDisplaySession",
                   "IFLYNativeFeedAdBinding",
