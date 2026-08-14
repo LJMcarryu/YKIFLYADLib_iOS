@@ -1,11 +1,15 @@
 # 版本记录
 
-## 6.2.3（待发布）
+## 6.2.3
 
-- `releaseState`：`PENDING`
-- `binarySourceCommit`（SDK 二进制源码提交）：`__IFLYADLIB_YOUKU_6_2_3_BINARY_SOURCE_COMMIT_PENDING__`
-- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`__IFLYADLIB_YOUKU_6_2_3_RELEASE_METADATA_COMMIT_PENDING__`
-- 正式签名资产、checksum、tag、Release 与匿名消费验证尚未生成；最新正式版本仍为 `6.2.2`。
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`ea0240e620b57d7275e486199099c648f51de257`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`0f26b7647e6c1aadb32eca68b24f6845639a59c2`
+- `candidateId`：`f54a629205204bc1d2a820b23160450c856368c756ea544aa1623ef130d975e5`
+- `IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256：`309c22486980cc283e76ea6d1299255b4f244e6ae4be3ef4f0ed959bd1cc0814`；`YKIFLYADLib-6.2.3.zip` 的 SHA-256：`c4c821bd97aaa7eaed3f2441476c43a6bed6e34e8deec9b6b26c1decc88ef86b`。
+- 公开可用性以同版本 GitHub Release 和发布后 CI 为准。
+- `releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。
+- Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`、`statusAtFreeze=not-run`、`evidenceIncluded=false`。
 - `6.2.3` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
 - NativeFeed Binder 新增 `allowsExternalClickViews`（默认 `NO`）。显式开启后仅接受同 window/scene 且归属可判定的同 Cell 或窄范围兄弟视图；共享、固定悬浮、离屏仍可点击或归属不明时失败关闭，并通过 `nativeFeedAd:didRejectClickWithError:` 返回 `IFLYAdErrorCodeNativeFeedClickViewsInvalid`（71503）。
 - 新增 `detachFromCurrentContainer` 固定单容器便利入口；6.2.2 的 Ad 级 attach 与容器级 detach 仍是通用主路径。

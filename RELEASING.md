@@ -17,11 +17,18 @@ checkout commit、四资产库存身份和全部 job 结论；summary 对上游�
 
 ## 6.2.3 发布状态
 
-- `releaseState`：`PENDING`
-- `binarySourceCommit`（SDK 二进制源码提交）：`__IFLYADLIB_YOUKU_6_2_3_BINARY_SOURCE_COMMIT_PENDING__`
-- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`__IFLYADLIB_YOUKU_6_2_3_RELEASE_METADATA_COMMIT_PENDING__`
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`ea0240e620b57d7275e486199099c648f51de257`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`0f26b7647e6c1aadb32eca68b24f6845639a59c2`
+- `candidateId`：`f54a629205204bc1d2a820b23160450c856368c756ea544aa1623ef130d975e5`
 
-当前进入公开仓准备态；正式签名资产、checksum、A/B、tag、Release 和匿名消费验证尚未完成，不得作为正式发布证据。
+`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `309c22486980cc283e76ea6d1299255b4f244e6ae4be3ef4f0ed959bd1cc0814`；`YKIFLYADLib-6.2.3.zip` 的 SHA-256 为 `c4c821bd97aaa7eaed3f2441476c43a6bed6e34e8deec9b6b26c1decc88ef86b`。
+
+公开可用性以同版本 GitHub Release 和发布后 CI 为准，发布后事实由编排器验证。
+
+`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。
+
+Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`、`statusAtFreeze=not-run`、`evidenceIncluded=false`。
 
 `6.2.3` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
 
@@ -70,7 +77,8 @@ build/youku/release/
 
 ### 当前联调状态
 
-`6.2.3` 已进入公开仓准备态，精确 PENDING checksum 与 A/B 占位已同步；正式产包、扫描、清单冻结、候选消费、tag、Release 和匿名终验尚未完成。以下均为历史版本事实。
+公开可用性以同版本 GitHub Release 和发布后 CI 为准。`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。
+`6.2.3` 正式分发资产已冻结；Apple Review 扫描未执行且不是发布门禁。以下均为历史版本事实。
 
 2026 年 8 月 10 日，优酷 `6.2.2` 正式分发资产由私有源码提交
 `a8ec925d3731d7d11734647aa02ca7d91d674965` 构建，发布元数据提交
