@@ -18,17 +18,15 @@
 
 ## 6.2.3 发布状态
 
-当前候选版本：`6.2.3`。公开可用性以同版本 GitHub Release 和发布后 CI 为准。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
+当前清单目标版本：`6.2.3`（发布准备）。最新公开正式版本仍为 `6.2.2`；最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物要求使用不高于 Xcode 26.2 的工具链构建，具体版本记录在 Release 的 `delivery-manifest.json`。
 
 <!-- 供发布 CI 机器校验的两提交 provenance；README、CHANGELOG、RELEASING 必须保持一致。 -->
-- `releaseState`：`FORMAL`
-- `binarySourceCommit`（SDK 二进制源码提交）：`c90c8e969b05d4d55b522cb162ab0f2e37aacc52`
-- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`b340fe7cccc27af37fc6223042f9638e507a4b63`
+- `releaseState`：`PENDING`
+- `binarySourceCommit`（SDK 二进制源码提交）：`__IFLYADLIB_YOUKU_6_2_3_BINARY_SOURCE_COMMIT_PENDING__`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`__IFLYADLIB_YOUKU_6_2_3_RELEASE_METADATA_COMMIT_PENDING__`
 
-`6.2.3` 的正式签名资产和 checksum 已完成本地校验。
-
-`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。本提交是 `6.2.3` 的不可变发布目标。
+`6.2.3` 的正式签名资产、checksum、tag 和 Release 尚未生成，当前 URL 不可用于生产依赖。
 
 `6.2.3` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
 
@@ -58,7 +56,7 @@ IFLYADLibSimple/          三个 NativeFeed 自渲染场景的 Demo 工程
 
 SDK 私有源码、构建脚本和测试代码不在本分发仓。二进制只通过同版本 GitHub Release 交付。
 
-公开可用性以同版本 GitHub Release 和发布后 CI 为准。`6.2.3` 分发清单包含真实 checksum、A/B 和 `delivery-manifest.json`。
+`6.2.3` 分发清单已进入公开仓准备态，仍使用精确 PENDING checksum 与 A/B 占位，尚未完成正式资产冻结与远程消费验证。
 
 ## Release 资产
 
