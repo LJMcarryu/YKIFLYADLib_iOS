@@ -938,6 +938,66 @@ class WorkflowStructureTests(unittest.TestCase):
         self.assertNotIn('assert f"当前版本：`{pod_version}`" in readme', version_gate)
         self.assertNotIn("published_at", version_gate)
 
+    def test_real_repository_documents_follow_embedded_validation_for_state(self) -> None:
+        repository_steps = self.workflow["jobs"]["verify-repository"]["steps"]
+        validation = next(
+            step
+            for step in repository_steps
+            if step.get("name") == "校验版本、清单与 SwiftPM 资源"
+        )
+        match = re.search(
+            r"(?ms)^python3 - <<'PY'\n(?P<script>.*?)^PY\s*$",
+            validation["run"],
+        )
+        self.assertIsNotNone(match, "未提取到 workflow 的内嵌 FORMAL Python 门禁")
+
+        document_results = [
+            private_provenance.parse_document(
+                (ROOT / name).read_text(encoding="utf-8"),
+                name,
+            )
+            for name in ("README.md", "CHANGELOG.md", "RELEASING.md")
+        ]
+        self.assertTrue(
+            all(result == document_results[0] for result in document_results[1:]),
+            f"公开文档 provenance 不一致: {document_results}",
+        )
+        release_state = document_results[0][0]
+        package = (ROOT / "Package.swift").read_text(encoding="utf-8")
+        pending_checksum = "__IFLYADLIB_YOUKU_6_2_3_CHECKSUM_PENDING__"
+        if release_state == "PENDING":
+            self.assertIn(pending_checksum, package)
+            self.skipTest("仓库仍为 PENDING；FORMAL 内嵌门禁留待候选态执行")
+
+        self.assertEqual("FORMAL", release_state)
+        self.assertNotIn(pending_checksum, package)
+
+        with tempfile.TemporaryDirectory() as directory:
+            podspec = subprocess.run(
+                ["pod", "ipc", "spec", str(ROOT / "YKIFLYADLib.podspec")],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(0, podspec.returncode, podspec.stdout + podspec.stderr)
+            podspec_json = Path(directory) / "youku-podspec.json"
+            podspec_json.write_text(podspec.stdout, encoding="utf-8")
+
+            script = match.group("script").replace(
+                json.dumps("/tmp/youku-podspec.json"),
+                json.dumps(str(podspec_json)),
+            )
+            environment = os.environ.copy()
+            environment.update({"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "main"})
+            result = subprocess.run(
+                ["python3", "-c", script],
+                cwd=ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_candidate_does_not_require_published_release_facts(self) -> None:
         jobs = self.workflow["jobs"]
         repository_steps = jobs["verify-repository"]["steps"]
