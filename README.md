@@ -23,8 +23,8 @@
 
 <!-- 供发布 CI 机器校验的两提交 provenance；README、CHANGELOG、RELEASING 必须保持一致。 -->
 - `releaseState`：`FORMAL`
-- `binarySourceCommit`（SDK 二进制源码提交）：`c90c8e969b05d4d55b522cb162ab0f2e37aacc52`
-- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`b340fe7cccc27af37fc6223042f9638e507a4b63`
+- `binarySourceCommit`（SDK 二进制源码提交）：`512f1cf861e8ee2bcdb2b6afea885dac2c0d5853`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`7ae96c819024ce918d4d2d6770506c07ed56ae32`
 
 `6.2.3` 的正式签名资产和 checksum 已完成本地校验。
 
