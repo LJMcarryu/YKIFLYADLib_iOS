@@ -3,11 +3,13 @@
 
 from __future__ import annotations
 
+import ast
 import copy
 import hashlib
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -205,6 +207,10 @@ class ReleaseMetadataTests(unittest.TestCase):
 
     def test_anonymous_metadata_rejects_noncanonical_formal_html_url(self) -> None:
         mutations = (
+            (
+                "missing html_url",
+                lambda value: value.pop("html_url"),
+            ),
             (
                 "untagged selector",
                 lambda value: value.update(
@@ -1024,7 +1030,7 @@ class WorkflowStructureTests(unittest.TestCase):
         )["run"]
         for marker in (
             "allowsExternalClickViews",
-            "nativeFeedAd:didRejectClickWithError:",
+            "native_feed_reject_selector_pattern.search",
             "detachFromCurrentContainer",
             "IFLYAdErrorCodeNativeFeedClickViewsInvalid",
             "71503",
@@ -1038,6 +1044,55 @@ class WorkflowStructureTests(unittest.TestCase):
         )["run"]
         self.assertIn("module.parse_document", state_reader)
         self.assertNotIn("re.findall", state_reader)
+
+    def test_native_feed_reject_selector_gate_accepts_whitespace_not_lookalikes(
+        self,
+    ) -> None:
+        release_gate = next(
+            step
+            for step in self.workflow["jobs"]["verify-release-assets"]["steps"]
+            if step.get("name") == "校验 checksum、双包结构、能力、资源和请求地址"
+        )["run"]
+        heredoc_prefix = "python3 - <<'PY'\n"
+        self.assertTrue(release_gate.startswith(heredoc_prefix))
+        python_source = release_gate.removeprefix(heredoc_prefix).rsplit("\nPY", 1)[0]
+        tree = ast.parse(python_source)
+        assignment = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Name)
+                and target.id == "native_feed_reject_selector_pattern"
+                for target in node.targets
+            )
+        )
+        namespace = {"re": re}
+        isolated = ast.Module(body=[assignment], type_ignores=[])
+        exec(compile(ast.fix_missing_locations(isolated), "<selector-gate>", "exec"), namespace)
+        pattern = namespace["native_feed_reject_selector_pattern"]
+
+        accepted = (
+            "- (void)nativeFeedAd:(IFLYNativeFeedAd *)ad "
+            "didRejectClickWithError:(IFLYAdError *)error;",
+            "- ( void ) nativeFeedAd : ( IFLYNativeFeedAd * ) ad\n"
+            "    didRejectClickWithError : ( IFLYAdError * ) error ;",
+        )
+        rejected = (
+            "nativeFeedAd:didRejectClickWithError:",
+            "- (void)nativeFeedAd:(IFLYNativeFeedAd *)ad "
+            "didRejectClickWithError:(NSError *)error;",
+            "- (void)anotherAd:(IFLYNativeFeedAd *)ad "
+            "didRejectClickWithError:(IFLYAdError *)error;",
+            "- (void)nativeFeedAd:(IFLYNativeFeedAd *)ad "
+            "didRejectClickWithError:(IFLYAdError *)error",
+        )
+        for declaration in accepted:
+            with self.subTest(accepted=declaration):
+                self.assertIsNotNone(pattern.search(declaration))
+        for declaration in rejected:
+            with self.subTest(rejected=declaration):
+                self.assertIsNone(pattern.search(declaration))
 
     def test_no_cache_or_plaintext_artifact_transfer(self) -> None:
         text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
