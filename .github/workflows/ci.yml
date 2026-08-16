@@ -184,6 +184,8 @@ jobs:
           printf 'tag=%s\n' "${tag}" >> "${GITHUB_OUTPUT}"
 
       - name: 校验版本、清单与 SwiftPM 资源
+        env:
+          RELEASE_VALIDATION_KIND: ${{ steps.release-selection.outputs.kind }}
         run: |
           swift package dump-package > /dev/null
           pod ipc spec YKIFLYADLib.podspec > /tmp/youku-podspec.json
@@ -281,7 +283,14 @@ jobs:
 
           checksum = re.search(r'checksum:\s*"([^"]+)"', package).group(1)
           pending_checksum = "__IFLYADLIB_YOUKU_6_2_3_CHECKSUM_PENDING__"
+          release_validation_kind = os.environ.get("RELEASE_VALIDATION_KIND", "none")
+          assert release_validation_kind in {"none", "draft", "formal"}, (
+              f"未知 Release 验证类型: {release_validation_kind}"
+          )
           is_tag_push = os.environ.get("GITHUB_REF_TYPE") == "tag"
+          frozen_document_context = (
+              is_tag_push or release_validation_kind in {"draft", "formal"}
+          )
           if is_tag_push:
               assert os.environ.get("GITHUB_REF_NAME") == pod_version, (
                   os.environ.get("GITHUB_REF_NAME"), pod_version
@@ -341,22 +350,43 @@ jobs:
               )
               assert f"`{pod_version}` 正式分发资产" in release_state
               assert "delivery-manifest.json" in release_state
-              # FORMAL 只表示候选资产与发布元数据已经冻结。候选提交随后会原样
-              # 成为 annotated tag 指向的不可变提交，因此当前版本节不得提前写入
-              # 只有 publish 后才成立的远端事实；正式公开状态由 Release metadata
-              # 和下游无凭据匿名下载门禁证明，不依赖 tag 内文档自证。
-              volatile_publication_claims = (
-                  rf"`?{re.escape(pod_version)}`?\s*已正式(?:公开|发布)",
-                  r"(?:tag|Release).{0,30}(?:已|已经)(?:创建|公开|发布)",
-                  r"(?:已|已经).{0,30}(?:tag|Release).{0,30}(?:创建|公开|发布)",
-                  r"(?:匿名下载|匿名消费|匿名终验).{0,40}(?:已完成|完成|通过|成功)",
-                  r"(?:已|已经)完成.{0,20}(?:匿名下载|匿名消费|匿名终验)",
-                  r"published CI.{0,40}(?:已完成|完成|通过|成功)",
-              )
-              for claim in volatile_publication_claims:
-                  assert not re.search(claim, formal_sections, re.I | re.S), (
-                      "FORMAL 冻结提交不得提前宣称 tag/Release 已公开或匿名终验完成: "
-                      f"{claim}"
+              if frozen_document_context:
+                  # Candidate 与 annotated tag 指向同一个不可变冻结提交；该提交不能
+                  # 自证只有 publish 后才成立的 Release、Actions 和匿名消费事实。
+                  volatile_publication_claims = (
+                      rf"`?{re.escape(pod_version)}`?\s*已正式(?:公开|发布)",
+                      r"(?:tag|Release).{0,30}(?:已|已经)(?:创建|公开|发布)",
+                      r"(?:已|已经).{0,30}(?:tag|Release).{0,30}(?:创建|公开|发布)",
+                      r"(?:匿名下载|匿名消费|匿名终验).{0,40}(?:已完成|完成|通过|成功)",
+                      r"(?:已|已经)完成.{0,20}(?:匿名下载|匿名消费|匿名终验)",
+                      r"published CI.{0,40}(?:已完成|完成|通过|成功)",
+                  )
+                  for claim in volatile_publication_claims:
+                      assert not re.search(claim, formal_sections, re.I | re.S), (
+                          "FORMAL 冻结提交不得提前宣称 tag/Release 已公开或匿名终验完成: "
+                          f"{claim}"
+                      )
+              else:
+                  release_url = (
+                      "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/"
+                      f"{pod_version}"
+                  )
+                  actions_url_pattern = re.compile(
+                      r"https://github\.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/"
+                      r"([1-9][0-9]*)"
+                  )
+                  published_run_ids = {}
+                  for label, section in current_release_sections.items():
+                      assert release_url in section, (
+                          f"{label} 缺少精确 {pod_version} GitHub Release 证据"
+                      )
+                      run_ids = set(actions_url_pattern.findall(section))
+                      assert len(run_ids) == 1, (
+                          f"{label} 必须且只能声明一个当前版本 Actions Run: {run_ids}"
+                      )
+                      published_run_ids[label] = next(iter(run_ids))
+                  assert len(set(published_run_ids.values())) == 1, (
+                      f"当前版本文档 Actions Run 不一致: {published_run_ids}"
                   )
               assert re.search(
                   r"^" + re.escape(formal_changelog_heading) + r"\s*$",

@@ -909,13 +909,18 @@ class WorkflowStructureTests(unittest.TestCase):
         )
         self.assertNotIn("if", asset_provenance)
 
-    def test_formal_gate_uses_time_stable_frozen_semantics(self) -> None:
+    def test_formal_gate_distinguishes_frozen_and_published_documents(self) -> None:
         repository_steps = self.workflow["jobs"]["verify-repository"]["steps"]
-        version_gate = next(
+        validation = next(
             step
             for step in repository_steps
             if step.get("name") == "校验版本、清单与 SwiftPM 资源"
-        )["run"]
+        )
+        version_gate = validation["run"]
+        self.assertEqual(
+            validation["env"]["RELEASE_VALIDATION_KIND"],
+            "${{ steps.release-selection.outputs.kind }}",
+        )
         for boundary in (
             "`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 ",
             "`delivery-manifest.json` 已经冻结",
@@ -926,6 +931,7 @@ class WorkflowStructureTests(unittest.TestCase):
         ):
             self.assertIn(boundary, version_gate)
         self.assertIn("volatile_publication_claims", version_gate)
+        self.assertIn("if frozen_document_context:", version_gate)
         self.assertIn("FORMAL 冻结提交不得提前宣称", version_gate)
         self.assertIn(
             'rf"`?{re.escape(pod_version)}`?\\s*已正式(?:公开|发布)"',
@@ -936,7 +942,12 @@ class WorkflowStructureTests(unittest.TestCase):
             version_gate,
         )
         self.assertNotIn('assert f"当前版本：`{pod_version}`" in readme', version_gate)
-        self.assertNotIn("published_at", version_gate)
+        for published_evidence in (
+            "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/",
+            "https://github\\.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/",
+            "当前版本文档 Actions Run 不一致",
+        ):
+            self.assertIn(published_evidence, version_gate)
 
     def test_real_repository_documents_follow_embedded_validation_for_state(self) -> None:
         repository_steps = self.workflow["jobs"]["verify-repository"]["steps"]
@@ -988,7 +999,13 @@ class WorkflowStructureTests(unittest.TestCase):
                 json.dumps(str(podspec_json)),
             )
             environment = os.environ.copy()
-            environment.update({"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "main"})
+            environment.update(
+                {
+                    "GITHUB_REF_TYPE": "branch",
+                    "GITHUB_REF_NAME": "main",
+                    "RELEASE_VALIDATION_KIND": "none",
+                }
+            )
             result = subprocess.run(
                 ["python3", "-c", script],
                 cwd=ROOT,
@@ -997,6 +1014,40 @@ class WorkflowStructureTests(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+            for label, frozen_environment in (
+                (
+                    "draft candidate",
+                    {
+                        "GITHUB_REF_TYPE": "branch",
+                        "GITHUB_REF_NAME": "release-candidate/6.2.3-test",
+                        "RELEASE_VALIDATION_KIND": "draft",
+                    },
+                ),
+                (
+                    "annotated tag",
+                    {
+                        "GITHUB_REF_TYPE": "tag",
+                        "GITHUB_REF_NAME": "6.2.3",
+                        "RELEASE_VALIDATION_KIND": "none",
+                    },
+                ),
+            ):
+                with self.subTest(context=label):
+                    environment = os.environ.copy()
+                    environment.update(frozen_environment)
+                    frozen_result = subprocess.run(
+                        ["python3", "-c", script],
+                        cwd=ROOT,
+                        env=environment,
+                        capture_output=True,
+                        text=True,
+                    )
+                    self.assertNotEqual(0, frozen_result.returncode)
+                    self.assertIn(
+                        "FORMAL 冻结提交不得提前宣称",
+                        frozen_result.stdout + frozen_result.stderr,
+                    )
 
     def test_candidate_does_not_require_published_release_facts(self) -> None:
         jobs = self.workflow["jobs"]

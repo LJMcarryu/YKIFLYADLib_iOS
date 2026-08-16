@@ -24,9 +24,10 @@ checkout commit、四资产库存身份和全部 job 结论；summary 对上游�
 
 `IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `309c22486980cc283e76ea6d1299255b4f244e6ae4be3ef4f0ed959bd1cc0814`；`YKIFLYADLib-6.2.3.zip` 的 SHA-256 为 `c4c821bd97aaa7eaed3f2441476c43a6bed6e34e8deec9b6b26c1decc88ef86b`。
 
-公开可用性以同版本 GitHub Release 和发布后 CI 为准，发布后事实由编排器验证。
+[`6.2.3`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.3) 已于 2026-08-16 正式公开；annotated tag 解引用到 `ac7c5302903e9535d1a7d847eeac24a3c0237d74`，Release 为非草稿、非预发布且精确包含 4 个资产。无 Token 匿名验证与正式消费 [Run 31940242816](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/31940242816) 均为 `success`。
 
 `releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。
+公开可用性以同版本 GitHub Release 和发布后 CI 为准。
 
 Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`、`statusAtFreeze=not-run`、`evidenceIncluded=false`。
 
@@ -66,7 +67,7 @@ build/youku/release/
 - 源码仓必须是干净提交；优酷发布版本必须与获准版本、运行时 SDK 版本、XCFramework 和交付清单一致，不改变其他渠道的版本。
 - `xcodebuild -version` 必须不高于 Xcode 26.2；本地超版本验证产物不得发布。
 - 正式命令必须设置 `IFLY_SDK_CODESIGN_IDENTITY`；两个切片的 framework 签名均须完整、非 ad-hoc 且 TeamIdentifier 一致。
-- 正式发布时设置 `IFLY_NEW_VERSION_RELEASE=1`，对两个 zip 执行 Apple 审核扫描并保留报告；分发发布与宿主审核闭环分别记录。
+- 正式发布时设置 `IFLY_NEW_VERSION_RELEASE=1`；编排器默认不执行 Apple Review 扫描，需要时仅通过 `apple-scan --execute` 主动执行并保留报告，扫描状态不改变正式发布结果。分发发布与宿主审核闭环分别记录。
 - iOS 14 及以上只有 ATT `authorized` 状态可读取或接受 IDFA；撤权清缓存，普通请求与 S2S 请求使用同一门控。
 - 二进制与 Demo 均不得调用 `canOpenURL:`；DeepLink 使用系统打开完成回调判定结果，失败时保留 landing 回退，`jumpDirectly` 保持兼容 no-op。
 - CocoaPods 消费侧显式链接 `AdSupport`、弱链接 `AppTrackingTransparency`，并通过 iOS 11 消费 Demo 的启动与依赖门禁。

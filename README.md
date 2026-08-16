@@ -18,8 +18,9 @@
 
 ## 6.2.3 发布状态
 
-当前候选版本：`6.2.3`。公开可用性以同版本 GitHub Release 和发布后 CI 为准。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
+当前最新公开正式版为 [`6.2.3`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.3)，已于 2026-08-16 发布。annotated tag 解引用到 `ac7c5302903e9535d1a7d847eeac24a3c0237d74`，4 个资产已通过无 Token 匿名验证，正式消费 [Run 31940242816](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/31940242816) 为 `success`。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物要求使用不高于 Xcode 26.2 的工具链构建，具体版本记录在 Release 的 `delivery-manifest.json`。
+公开可用性以同版本 GitHub Release 和发布后 CI 为准。
 
 <!-- 供发布 CI 机器校验的两提交 provenance；README、CHANGELOG、RELEASING 必须保持一致。 -->
 - `releaseState`：`FORMAL`
@@ -79,7 +80,7 @@ SDK 为 Objective-C 静态库，最终 App 链接必须包含 `-ObjC`。CocoaPod
 
 ## CocoaPods 接入
 
-正式发布后，以下远程方式固定使用 `6.2.3` tag 的 podspec 和同版本 GitHub Release 资产：
+以下远程方式固定使用已发布的 `6.2.3` tag、podspec 和同版本 GitHub Release 资产：
 
 ```ruby
 source 'https://cdn.cocoapods.org/'
@@ -104,7 +105,7 @@ Pod 名是 `YKIFLYADLib`，但 SDK 模块名仍是 `IFLYADLib`。不要同时集
 
 ## Swift Package Manager 接入
 
-以下远程方式待 `6.2.3` 正式公开后使用精确版本；发布前不要依赖 `main` 分支获取二进制。
+以下远程方式使用精确版本 `6.2.3`；不要依赖 `main` 分支获取二进制。
 
 在 Xcode 的 “Add Package Dependencies” 中添加：
 
