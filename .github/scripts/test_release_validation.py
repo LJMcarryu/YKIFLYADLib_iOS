@@ -718,6 +718,21 @@ class WorkflowStructureTests(unittest.TestCase):
             text=True,
         )
         cls.podspec_json.write_text(podspec.stdout, encoding="utf-8")
+        current = json.loads((ROOT / "release-state.json").read_text(encoding="utf-8"))
+        cls.previous_closed_state = copy.deepcopy(current)
+        cls.previous_closed_state.update({"version": "6.2.3", "phase": "CLOSED"})
+        cls.current_closed_state = copy.deepcopy(current)
+        cls.current_closed_state.update({"version": "6.2.4", "phase": "CLOSED"})
+
+    def patch_contract_state(self, state: dict[str, object]):
+        original_read = repository_contract.read
+
+        def read(root: Path, relative: str) -> str:
+            if relative == "release-state.json":
+                return json.dumps(state)
+            return original_read(root, relative)
+
+        return mock.patch.object(repository_contract, "read", side_effect=read)
 
     def test_yaml_modes_permissions_and_job_graph(self) -> None:
         self.assertEqual(self.workflow["permissions"], {"contents": "read"})
@@ -963,10 +978,8 @@ class WorkflowStructureTests(unittest.TestCase):
             if step.get("name") == "固定 draft candidate 本地分发清单"
         )
         self.assertIn('re.fullmatch(r"[0-9a-f]{64}", checksum)', manifest["run"])
-        self.assertIn(
-            'machine["phase"] in {"FROZEN", "PUBLISHED", "VERIFIED", "CLOSED"}',
-            manifest["run"],
-        )
+        self.assertIn('machine["version"] == version', manifest["run"])
+        self.assertIn('machine["phase"] == "FROZEN"', manifest["run"])
         self.assertNotIn("CHECKSUM_PENDING", manifest["run"])
 
         asset_provenance = next(
@@ -977,8 +990,9 @@ class WorkflowStructureTests(unittest.TestCase):
         self.assertNotIn("if", asset_provenance)
 
     def test_document_contract_is_separate_from_machine_contract(self) -> None:
-        repository_contract.verify_machine(ROOT, "none", self.podspec_json)
-        repository_contract.verify_docs(ROOT, "none")
+        with self.patch_contract_state(self.previous_closed_state):
+            repository_contract.verify_machine(ROOT, "none", self.podspec_json)
+            repository_contract.verify_docs(ROOT, "none")
         source = (
             ROOT / ".github/scripts/verify_repository_contract.py"
         ).read_text(encoding="utf-8")
@@ -988,10 +1002,12 @@ class WorkflowStructureTests(unittest.TestCase):
             "def verify_docs", 1
         )[0])
 
-    def test_repository_baseline_allows_only_previous_closed_state(self) -> None:
+    def test_repository_and_release_modes_accept_only_exact_state_matrix(self) -> None:
         previous_closed = {"version": "6.2.3", "phase": "CLOSED"}
+        current_closed = {"version": "6.2.4", "phase": "CLOSED"}
         current_frozen = {"version": "6.2.4", "phase": "FROZEN"}
         repository_contract.validate_state_version(previous_closed, "none")
+        repository_contract.validate_state_version(current_closed, "none")
         repository_contract.validate_state_version(current_frozen, "draft")
         repository_contract.validate_state_version(current_frozen, "formal")
 
@@ -1005,6 +1021,9 @@ class WorkflowStructureTests(unittest.TestCase):
             ({"version": "6.2.4", "phase": "VERIFIED"}, "formal"),
             ({"version": "6.2.4", "phase": "CLOSED"}, "formal"),
             ({"version": "6.2.4", "phase": "FROZEN"}, "none"),
+            ({"version": "6.2.4", "phase": "PREPARING"}, "none"),
+            ({"version": "6.2.4", "phase": "PUBLISHED"}, "none"),
+            ({"version": "6.2.4", "phase": "VERIFIED"}, "none"),
         ):
             with self.subTest(state=state, kind=kind):
                 with self.assertRaises(repository_contract.ContractError):
@@ -1014,6 +1033,8 @@ class WorkflowStructureTests(unittest.TestCase):
         original_read = repository_contract.read
 
         def docs_drift(root: Path, relative: str) -> str:
+            if relative == "release-state.json":
+                return json.dumps(self.previous_closed_state)
             value = original_read(root, relative)
             if relative == "README.md":
                 return value.replace(
@@ -1030,6 +1051,8 @@ class WorkflowStructureTests(unittest.TestCase):
                 repository_contract.verify_docs(ROOT, "none")
 
         def checksum_drift(root: Path, relative: str) -> str:
+            if relative == "release-state.json":
+                return json.dumps(self.previous_closed_state)
             value = original_read(root, relative)
             if relative == "Package.swift":
                 return re.sub(
@@ -1045,6 +1068,8 @@ class WorkflowStructureTests(unittest.TestCase):
                 repository_contract.verify_machine(ROOT, "none", self.podspec_json)
 
         def version_drift(root: Path, relative: str) -> str:
+            if relative == "release-state.json":
+                return json.dumps(self.previous_closed_state)
             value = original_read(root, relative)
             if relative == "YKIFLYADLib.podspec":
                 return re.sub(
@@ -1085,13 +1110,14 @@ class WorkflowStructureTests(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory(prefix="yk-bad-podspec-json-") as directory:
             bad_path = Path(directory) / "podspec.json"
-            for label, mutate in mutations:
-                with self.subTest(field=label):
-                    bad = copy.deepcopy(parsed)
-                    mutate(bad)
-                    bad_path.write_text(json.dumps(bad), encoding="utf-8")
-                    with self.assertRaises(repository_contract.ContractError):
-                        repository_contract.verify_machine(ROOT, "none", bad_path)
+            with self.patch_contract_state(self.previous_closed_state):
+                for label, mutate in mutations:
+                    with self.subTest(field=label):
+                        bad = copy.deepcopy(parsed)
+                        mutate(bad)
+                        bad_path.write_text(json.dumps(bad), encoding="utf-8")
+                        with self.assertRaises(repository_contract.ContractError):
+                            repository_contract.verify_machine(ROOT, "none", bad_path)
 
     def test_candidate_does_not_require_published_release_facts(self) -> None:
         jobs = self.workflow["jobs"]

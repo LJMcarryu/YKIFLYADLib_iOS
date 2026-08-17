@@ -347,7 +347,8 @@ jobs:
           assert podspec_json["frameworks"] == ["AdSupport"]
           assert podspec_json["weak_frameworks"] == ["AppTrackingTransparency"]
           machine = json.loads(Path("release-state.json").read_text(encoding="utf-8"))
-          assert machine["phase"] in {"FROZEN", "PUBLISHED", "VERIFIED", "CLOSED"}
+          assert machine["version"] == version
+          assert machine["phase"] == "FROZEN"
           PY
           test -z "$(git status --porcelain)"
 

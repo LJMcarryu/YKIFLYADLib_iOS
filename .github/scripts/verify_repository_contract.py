@@ -52,11 +52,10 @@ def validate_state_version(value: dict[str, object], release_kind: str) -> None:
             f"当前版本 {VERSION}/FROZEN",
         )
         return
+    require(release_kind == "none", "非法验证类型")
     require(
-        release_kind == "none"
-        and version == PREVIOUS_RELEASE_VERSION
-        and phase == "CLOSED",
-        "release-state 版本或阶段不匹配：普通 main 只允许保留上一版 CLOSED",
+        version in {PREVIOUS_RELEASE_VERSION, VERSION} and phase == "CLOSED",
+        "release-state 版本或阶段不匹配：普通 main 只允许保留上一版或当前版 CLOSED",
     )
 
 
