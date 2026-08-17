@@ -19,6 +19,7 @@ from unittest import mock
 import download_draft_release as draft
 import download_release_anonymously as anonymous
 import release_asset_identity as identity
+import verify_repository_contract as repository_contract
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -707,6 +708,16 @@ class WorkflowStructureTests(unittest.TestCase):
             text=True,
         )
         cls.workflow = json.loads(result.stdout)
+        cls._podspec_temp = tempfile.TemporaryDirectory(prefix="yk-podspec-json-")
+        cls.addClassCleanup(cls._podspec_temp.cleanup)
+        cls.podspec_json = Path(cls._podspec_temp.name) / "YKIFLYADLib.json"
+        podspec = subprocess.run(
+            ["pod", "ipc", "spec", str(ROOT / "YKIFLYADLib.podspec")],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        cls.podspec_json.write_text(podspec.stdout, encoding="utf-8")
 
     def test_yaml_modes_permissions_and_job_graph(self) -> None:
         self.assertEqual(self.workflow["permissions"], {"contents": "read"})
@@ -965,145 +976,100 @@ class WorkflowStructureTests(unittest.TestCase):
         )
         self.assertNotIn("if", asset_provenance)
 
-    def test_formal_gate_distinguishes_frozen_and_published_documents(self) -> None:
-        repository_steps = self.workflow["jobs"]["verify-repository"]["steps"]
-        validation = next(
-            step
-            for step in repository_steps
-            if step.get("name") == "校验版本、清单与 SwiftPM 资源"
-        )
-        version_gate = validation["run"]
-        self.assertEqual(
-            validation["env"]["RELEASE_VALIDATION_KIND"],
-            "${{ steps.release-selection.outputs.kind }}",
-        )
-        for boundary in (
-            "`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 ",
-            "`delivery-manifest.json` 已经冻结",
-            "公开可用性以同版本 GitHub Release 和发布后 CI 为准",
-            'for label, section in current_release_sections.items()',
-            'current_release_sections["README.md"]',
-            "不可变发布目标",
-        ):
-            self.assertIn(boundary, version_gate)
-        self.assertIn("volatile_publication_claims", version_gate)
-        self.assertIn("if frozen_document_context:", version_gate)
-        self.assertIn("FORMAL 冻结提交不得提前宣称", version_gate)
-        self.assertIn(
-            'rf"`?{re.escape(pod_version)}`?\\s*已正式(?:公开|发布)"',
-            version_gate,
-        )
-        self.assertIn(
-            'r"(?:已|已经)完成.{0,20}(?:匿名下载|匿名消费|匿名终验)"',
-            version_gate,
-        )
-        self.assertNotIn('assert f"当前版本：`{pod_version}`" in readme', version_gate)
-        for published_evidence in (
-            "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/",
-            "https://github\\.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/",
-            "当前版本文档 Actions Run 不一致",
-        ):
-            self.assertIn(published_evidence, version_gate)
+    def test_document_contract_is_separate_from_machine_contract(self) -> None:
+        repository_contract.verify_machine(ROOT, "none", self.podspec_json)
+        repository_contract.verify_docs(ROOT, "none")
+        source = (
+            ROOT / ".github/scripts/verify_repository_contract.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("def verify_machine", source)
+        self.assertIn("def verify_docs", source)
+        self.assertNotIn("README.md", source.split("def verify_machine", 1)[1].split(
+            "def verify_docs", 1
+        )[0])
 
-    def test_real_repository_documents_follow_embedded_validation_for_state(self) -> None:
-        repository_steps = self.workflow["jobs"]["verify-repository"]["steps"]
-        validation = next(
-            step
-            for step in repository_steps
-            if step.get("name") == "校验版本、清单与 SwiftPM 资源"
-        )
-        match = re.search(
-            r"(?ms)^python3 - <<'PY'\n(?P<script>.*?)^PY\s*$",
-            validation["run"],
-        )
-        self.assertIsNotNone(match, "未提取到 workflow 的内嵌 FORMAL Python 门禁")
+    def test_docs_drift_is_isolated_but_checksum_drift_fails_machine_scope(self) -> None:
+        original_read = repository_contract.read
 
-        document_results = [
-            private_provenance.parse_document(
-                (ROOT / name).read_text(encoding="utf-8"),
-                name,
-            )
-            for name in ("README.md", "CHANGELOG.md", "RELEASING.md")
-        ]
-        self.assertTrue(
-            all(result == document_results[0] for result in document_results[1:]),
-            f"公开文档 provenance 不一致: {document_results}",
-        )
-        release_state = document_results[0][0]
-        package = (ROOT / "Package.swift").read_text(encoding="utf-8")
-        pending_checksum = "__IFLYADLIB_YOUKU_6_2_3_CHECKSUM_PENDING__"
-        if release_state == "PENDING":
-            self.assertIn(pending_checksum, package)
-            self.skipTest("仓库仍为 PENDING；FORMAL 内嵌门禁留待候选态执行")
+        def docs_drift(root: Path, relative: str) -> str:
+            value = original_read(root, relative)
+            if relative == "README.md":
+                return value.replace(
+                    "`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 "
+                    "`delivery-manifest.json` 已经冻结",
+                    "",
+                    1,
+                )
+            return value
 
-        self.assertEqual("FORMAL", release_state)
-        self.assertNotIn(pending_checksum, package)
+        with mock.patch.object(repository_contract, "read", side_effect=docs_drift):
+            repository_contract.verify_machine(ROOT, "none", self.podspec_json)
+            with self.assertRaises(repository_contract.ContractError):
+                repository_contract.verify_docs(ROOT, "none")
 
-        with tempfile.TemporaryDirectory() as directory:
-            podspec = subprocess.run(
-                ["pod", "ipc", "spec", str(ROOT / "YKIFLYADLib.podspec")],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-            )
-            self.assertEqual(0, podspec.returncode, podspec.stdout + podspec.stderr)
-            podspec_json = Path(directory) / "youku-podspec.json"
-            podspec_json.write_text(podspec.stdout, encoding="utf-8")
+        def checksum_drift(root: Path, relative: str) -> str:
+            value = original_read(root, relative)
+            if relative == "Package.swift":
+                return re.sub(
+                    r'checksum:\s*"[0-9a-f]{64}"',
+                    'checksum: "not-a-checksum"',
+                    value,
+                    count=1,
+                )
+            return value
 
-            script = match.group("script").replace(
-                json.dumps("/tmp/youku-podspec.json"),
-                json.dumps(str(podspec_json)),
-            )
-            environment = os.environ.copy()
-            environment.update(
-                {
-                    "GITHUB_REF_TYPE": "branch",
-                    "GITHUB_REF_NAME": "main",
-                    "RELEASE_VALIDATION_KIND": "none",
-                }
-            )
-            result = subprocess.run(
-                ["python3", "-c", script],
-                cwd=ROOT,
-                env=environment,
-                capture_output=True,
-                text=True,
-            )
-            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        with mock.patch.object(repository_contract, "read", side_effect=checksum_drift):
+            with self.assertRaises(repository_contract.ContractError):
+                repository_contract.verify_machine(ROOT, "none", self.podspec_json)
 
-            for label, frozen_environment in (
-                (
-                    "draft candidate",
-                    {
-                        "GITHUB_REF_TYPE": "branch",
-                        "GITHUB_REF_NAME": "release-candidate/6.2.3-test",
-                        "RELEASE_VALIDATION_KIND": "draft",
-                    },
+        def version_drift(root: Path, relative: str) -> str:
+            value = original_read(root, relative)
+            if relative == "YKIFLYADLib.podspec":
+                return re.sub(
+                    r"(s\.version\s*=\s*['\"])6\.2\.3",
+                    r"\g<1>6.2.4",
+                    value,
+                    count=1,
+                )
+            return value
+
+        with mock.patch.object(repository_contract, "read", side_effect=version_drift):
+            with self.assertRaises(repository_contract.ContractError):
+                repository_contract.verify_machine(ROOT, "none", self.podspec_json)
+
+    def test_podspec_comments_cannot_substitute_for_parsed_link_contract(self) -> None:
+        podspec_source = (ROOT / "YKIFLYADLib.podspec").read_text(encoding="utf-8")
+        for marker in ("AdSupport", "AppTrackingTransparency", "-ObjC"):
+            self.assertIn(marker, podspec_source)
+        parsed = json.loads(self.podspec_json.read_text(encoding="utf-8"))
+        mutations = (
+            ("frameworks", lambda value: value.__setitem__("frameworks", [])),
+            (
+                "weak_frameworks",
+                lambda value: value.__setitem__("weak_frameworks", []),
+            ),
+            (
+                "pod_target_xcconfig",
+                lambda value: value.__setitem__(
+                    "pod_target_xcconfig", {"OTHER_LDFLAGS": "$(inherited)"}
                 ),
-                (
-                    "annotated tag",
-                    {
-                        "GITHUB_REF_TYPE": "tag",
-                        "GITHUB_REF_NAME": "6.2.3",
-                        "RELEASE_VALIDATION_KIND": "none",
-                    },
+            ),
+            (
+                "user_target_xcconfig",
+                lambda value: value.__setitem__(
+                    "user_target_xcconfig", {"OTHER_LDFLAGS": "$(inherited)"}
                 ),
-            ):
-                with self.subTest(context=label):
-                    environment = os.environ.copy()
-                    environment.update(frozen_environment)
-                    frozen_result = subprocess.run(
-                        ["python3", "-c", script],
-                        cwd=ROOT,
-                        env=environment,
-                        capture_output=True,
-                        text=True,
-                    )
-                    self.assertNotEqual(0, frozen_result.returncode)
-                    self.assertIn(
-                        "FORMAL 冻结提交不得提前宣称",
-                        frozen_result.stdout + frozen_result.stderr,
-                    )
+            ),
+        )
+        with tempfile.TemporaryDirectory(prefix="yk-bad-podspec-json-") as directory:
+            bad_path = Path(directory) / "podspec.json"
+            for label, mutate in mutations:
+                with self.subTest(field=label):
+                    bad = copy.deepcopy(parsed)
+                    mutate(bad)
+                    bad_path.write_text(json.dumps(bad), encoding="utf-8")
+                    with self.assertRaises(repository_contract.ContractError):
+                        repository_contract.verify_machine(ROOT, "none", bad_path)
 
     def test_candidate_does_not_require_published_release_facts(self) -> None:
         jobs = self.workflow["jobs"]
@@ -1125,14 +1091,37 @@ class WorkflowStructureTests(unittest.TestCase):
         )
         self.assertIn("draft_candidate", draft_download["if"])
 
-    def test_markdown_wording_checks_are_non_blocking_and_state_drives_provenance(self) -> None:
+    def test_machine_contract_is_blocking_and_document_provenance_is_non_blocking(self) -> None:
         jobs = self.workflow["jobs"]
         repository_steps = jobs["verify-repository"]["steps"]
+        machine = next(
+            step for step in repository_steps
+            if step.get("name") == "阻断校验版本、checksum、包与资源机器契约"
+        )
+        self.assertNotIn("continue-on-error", machine)
+        self.assertIn(".github/scripts/verify_repository_contract.py", machine["run"])
+        self.assertIn("--scope machine", machine["run"])
+        self.assertIn("--podspec-json", machine["run"])
+        self.assertNotIn("python3 - +", machine["run"])
         documentation = next(
             step for step in repository_steps
-            if step.get("name") == "校验版本、清单与 SwiftPM 资源"
+            if step.get("name") == "非阻断校验 Markdown 发布展示措辞"
         )
         self.assertIs(documentation["continue-on-error"], True)
+        self.assertIn("--scope docs", documentation["run"])
+        soft_steps = [
+            step.get("name")
+            for step in repository_steps
+            if step.get("continue-on-error") is True
+        ]
+        self.assertEqual(
+            soft_steps,
+            [
+                "非阻断校验 Markdown 发布展示措辞",
+                "普通分支校验 PENDING A/B provenance",
+                "校验 FORMAL A/B provenance 文档",
+            ],
+        )
         compare = next(
             step for step in repository_steps
             if step.get("name") == "Candidate/正式 tag/Release 校验 FORMAL A/B provenance（私有仓 compare）"
@@ -1192,23 +1181,17 @@ class WorkflowStructureTests(unittest.TestCase):
 
     def test_workflow_scopes_current_provenance_and_strict_scan_policy(self) -> None:
         repository_steps = self.workflow["jobs"]["verify-repository"]["steps"]
-        version_gate = next(
-            step
-            for step in repository_steps
-            if step.get("name") == "校验版本、清单与 SwiftPM 资源"
-        )["run"]
+        version_gate = (
+            ROOT / ".github/scripts/verify_repository_contract.py"
+        ).read_text(encoding="utf-8")
         for marker in (
-            "current_release_sections",
-            "缺少 {pod_version} 当前发布状态节",
-            "重声明 {pod_version} 当前发布状态节",
-            "`6.2.3` 不沿用历史风险授权",
-            "`failOnWarning=true`",
-            "`strict=true`",
-            "`requireManual=true`",
-            "`acceptedWarningRuleIds=[]`",
+            "def verify_machine",
+            "def verify_docs",
+            "release-state 版本不匹配",
+            "PREPARING 必须使用精确 PENDING checksum",
+            "FORMAL checksum 非 64 位小写 SHA-256",
+            "公开可用性以同版本 GitHub Release 和发布后 CI 为准",
         ):
-            if marker == "重声明 {pod_version} 当前发布状态节":
-                marker = "重复声明 {pod_version} 当前发布状态节"
             self.assertIn(marker, version_gate)
 
         release_gate = next(

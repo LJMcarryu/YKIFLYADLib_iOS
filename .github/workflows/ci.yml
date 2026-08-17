@@ -236,240 +236,27 @@ jobs:
           printf 'kind=%s\n' "${kind}" >> "${GITHUB_OUTPUT}"
           printf 'tag=%s\n' "${tag}" >> "${GITHUB_OUTPUT}"
 
-      - name: 校验版本、清单与 SwiftPM 资源
+      - name: 阻断校验版本、checksum、包与资源机器契约
+        env:
+          RELEASE_VALIDATION_KIND: ${{ steps.release-selection.outputs.kind }}
+          WORKFLOW_CONTROL_SHA: ${{ github.workflow_sha }}
+        run: |
+          swift package dump-package > /dev/null
+          pod ipc spec YKIFLYADLib.podspec > "${RUNNER_TEMP}/yk-podspec.json"
+          git show "${WORKFLOW_CONTROL_SHA}:.github/scripts/verify_repository_contract.py" |
+            python3 - \
+              --scope machine \
+              --release-kind "${RELEASE_VALIDATION_KIND}" \
+              --podspec-json "${RUNNER_TEMP}/yk-podspec.json"
+
+      - name: 非阻断校验 Markdown 发布展示措辞
         continue-on-error: true
         env:
           RELEASE_VALIDATION_KIND: ${{ steps.release-selection.outputs.kind }}
+          WORKFLOW_CONTROL_SHA: ${{ github.workflow_sha }}
         run: |
-          swift package dump-package > /dev/null
-          pod ipc spec YKIFLYADLib.podspec > /tmp/youku-podspec.json
-          python3 - <<'PY'
-          import json
-          import os
-          import plistlib
-          import re
-          from pathlib import Path
-
-          package = Path("Package.swift").read_text(encoding="utf-8")
-          podspec = Path("YKIFLYADLib.podspec").read_text(encoding="utf-8")
-          readme = Path("README.md").read_text(encoding="utf-8")
-          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
-          releasing = Path("RELEASING.md").read_text(encoding="utf-8")
-          demo_podfile = Path("IFLYADLibSimple/Podfile").read_text(encoding="utf-8")
-          demo_readme = Path("IFLYADLibSimple/README.md").read_text(encoding="utf-8")
-          podspec_json = json.loads(
-              Path("/tmp/youku-podspec.json").read_text(encoding="utf-8")
-          )
-          pod_version = re.search(r"s\.version\s*=\s*['\"]([^'\"]+)", podspec).group(1)
-          package_version = re.search(r"/releases/download/([^/]+)/IFLYADLib", package).group(1)
-          pod_url_version = re.search(r"/releases/download/([^/]+)/YKIFLYADLib", podspec).group(1)
-          demo_pod_version = re.search(
-              r"YKIFLYADLib_iOS/([^/]+)/YKIFLYADLib\.podspec", demo_podfile
-          ).group(1)
-          assert pod_version == package_version == pod_url_version == demo_pod_version
-          pending_changelog_heading = f"## {pod_version}（待发布）"
-          formal_changelog_heading = f"## {pod_version}"
-          current_release_sections = {}
-          for label, document in (
-              ("README.md", readme),
-              ("CHANGELOG.md", changelog),
-              ("RELEASING.md", releasing),
-          ):
-              match = re.search(
-                  rf"^##\s+(?:\[{re.escape(pod_version)}\]|{re.escape(pod_version)})"
-                  rf"(?=$|[ \t（(]).*?(?=^##\s|\Z)",
-                  document,
-                  re.M | re.S,
-              )
-              assert match, f"{label} 缺少 {pod_version} 当前发布状态节"
-              assert not re.search(
-                  rf"^##\s+(?:\[{re.escape(pod_version)}\]|{re.escape(pod_version)})"
-                  rf"(?=$|[ \t（(])",
-                  document[match.end():],
-                  re.M,
-              ), f"{label} 重复声明 {pod_version} 当前发布状态节"
-              current_release_sections[label] = match.group(0)
-          release_state_match = re.search(
-              r"### 当前联调状态\s+(.*?)(?=\n2026 年 7 月 30 日)",
-              releasing,
-              re.S,
-          )
-          assert release_state_match, "RELEASING.md 缺少 6.2.3 当前状态段"
-          release_state = release_state_match.group(1)
-          for label, section in current_release_sections.items():
-              for policy in (
-                  "`6.2.3` 不沿用历史风险授权",
-                  "`failOn=high`",
-                  "`failOnWarning=true`",
-                  "`strict=true`",
-                  "`requireManual=true`",
-                  "`acceptedWarningRuleIds=[]`",
-              ):
-                  assert policy in section, f"{label} 缺少 6.2.3 严格扫描边界: {policy}"
-          for lifecycle_token in (
-              "playRequested",
-              "pausePlay",
-              "stopPlay",
-              "resumePlay",
-              "startPlay",
-          ):
-              assert lifecycle_token in readme, lifecycle_token
-              assert lifecycle_token in demo_readme, lifecycle_token
-          for api_token in (
-              "allowsExternalClickViews",
-              "nativeFeedAd:didRejectClickWithError:",
-              "IFLYAdErrorCodeNativeFeedClickViewsInvalid",
-              "detachFromCurrentContainer",
-          ):
-              assert api_token in readme, api_token
-          assert "AdSupport" in podspec_json.get("frameworks", []), (
-              "podspec 缺少 AdSupport 强链接声明"
-          )
-          assert "AppTrackingTransparency" in podspec_json.get("weak_frameworks", []), (
-              "podspec 缺少 AppTrackingTransparency 弱链接声明"
-          )
-          assert "-ObjC" in podspec_json.get("pod_target_xcconfig", {}).get(
-              "OTHER_LDFLAGS", ""
-          ).split(), "pod target 未声明 -ObjC"
-          assert "-ObjC" in podspec_json.get("user_target_xcconfig", {}).get(
-              "OTHER_LDFLAGS", ""
-          ).split(), "aggregate/user target 未声明 -ObjC"
-
-          checksum = re.search(r'checksum:\s*"([^"]+)"', package).group(1)
-          pending_checksum = "__IFLYADLIB_YOUKU_6_2_3_CHECKSUM_PENDING__"
-          release_validation_kind = os.environ.get("RELEASE_VALIDATION_KIND", "none")
-          assert release_validation_kind in {"none", "draft", "formal"}, (
-              f"未知 Release 验证类型: {release_validation_kind}"
-          )
-          is_tag_push = os.environ.get("GITHUB_REF_TYPE") == "tag"
-          frozen_document_context = (
-              is_tag_push or release_validation_kind in {"draft", "formal"}
-          )
-          if is_tag_push:
-              assert os.environ.get("GITHUB_REF_NAME") == pod_version, (
-                  os.environ.get("GITHUB_REF_NAME"), pod_version
-              )
-          if checksum == pending_checksum:
-              assert not is_tag_push, "tag push 不得携带 PENDING checksum"
-              assert pod_version == "6.2.3"
-              assert f"当前清单目标版本：`{pod_version}`" in readme
-              assert "发布准备" in readme
-              assert "正式签名资产、checksum、tag 和 Release 尚未生成" in readme
-              assert "待发布 tag `6.2.3`" in demo_readme
-              assert "进入公开仓准备态" in release_state
-              assert "尚未完成" in release_state
-              assert re.search(
-                  r"^" + re.escape(pending_changelog_heading) + r"\s*$",
-                  changelog,
-                  re.M,
-              )
-              checksum_state = "PENDING（不可发布）"
-          else:
-              assert re.fullmatch(r"[0-9a-f]{64}", checksum)
-              assert checksum != "0" * 64
-              assert checksum not in {
-                  "a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f",
-                  "1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb",
-              }, "6.2.3 不得沿用历史 checksum"
-              formal_sections = "\n".join(current_release_sections.values())
-              for stale_marker in (
-                  "发布准备",
-                  "准备态",
-                  "尚未生成",
-                  "尚未完成",
-                  "最近正式版 `6.2.1`",
-                  "当前正式 `6.2.1`",
-                  "尚不存在的 `6.2.3`",
-                  "待发布 `6.2.3`",
-              ):
-                  assert stale_marker not in formal_sections, stale_marker
-              for stale_marker in ("待发布", "准备态"):
-                  assert stale_marker not in demo_readme, stale_marker
-              assert "PENDING" not in package
-              assert f"/{pod_version}/YKIFLYADLib.podspec" in readme
-              frozen_boundary = (
-                  "`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 "
-                  "`delivery-manifest.json` 已经冻结"
-              )
-              public_boundary = "公开可用性以同版本 GitHub Release 和发布后 CI 为准"
-              for label, section in current_release_sections.items():
-                  assert frozen_boundary in section, (
-                      f"{label} 缺少 FORMAL 冻结事实边界: {frozen_boundary}"
-                  )
-                  assert public_boundary in section, (
-                      f"{label} 缺少远端公开可用性边界: {public_boundary}"
-                  )
-              assert "不可变发布目标" in current_release_sections["README.md"], (
-                  "README.md 缺少候选提交不可变发布目标边界"
-              )
-              assert f"`{pod_version}` 正式分发资产" in release_state
-              assert "delivery-manifest.json" in release_state
-              if frozen_document_context:
-                  # Candidate 与 annotated tag 指向同一个不可变冻结提交；该提交不能
-                  # 自证只有 publish 后才成立的 Release、Actions 和匿名消费事实。
-                  volatile_publication_claims = (
-                      rf"`?{re.escape(pod_version)}`?\s*已正式(?:公开|发布)",
-                      r"(?:tag|Release).{0,30}(?:已|已经)(?:创建|公开|发布)",
-                      r"(?:已|已经).{0,30}(?:tag|Release).{0,30}(?:创建|公开|发布)",
-                      r"(?:匿名下载|匿名消费|匿名终验).{0,40}(?:已完成|完成|通过|成功)",
-                      r"(?:已|已经)完成.{0,20}(?:匿名下载|匿名消费|匿名终验)",
-                      r"published CI.{0,40}(?:已完成|完成|通过|成功)",
-                  )
-                  for claim in volatile_publication_claims:
-                      assert not re.search(claim, formal_sections, re.I | re.S), (
-                          "FORMAL 冻结提交不得提前宣称 tag/Release 已公开或匿名终验完成: "
-                          f"{claim}"
-                      )
-              else:
-                  release_url = (
-                      "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/"
-                      f"{pod_version}"
-                  )
-                  actions_url_pattern = re.compile(
-                      r"https://github\.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/"
-                      r"([1-9][0-9]*)"
-                  )
-                  published_run_ids = {}
-                  for label, section in current_release_sections.items():
-                      assert release_url in section, (
-                          f"{label} 缺少精确 {pod_version} GitHub Release 证据"
-                      )
-                      run_ids = set(actions_url_pattern.findall(section))
-                      assert len(run_ids) == 1, (
-                          f"{label} 必须且只能声明一个当前版本 Actions Run: {run_ids}"
-                      )
-                      published_run_ids[label] = next(iter(run_ids))
-                  assert len(set(published_run_ids.values())) == 1, (
-                      f"当前版本文档 Actions Run 不一致: {published_run_ids}"
-                  )
-              assert re.search(
-                  r"^" + re.escape(formal_changelog_heading) + r"\s*$",
-                  changelog,
-                  re.M,
-              )
-              assert pending_changelog_heading not in changelog
-              checksum_state = "已回填"
-          assert '.library(name: "IFLYADLib", targets: ["IFLYADLib", "IFLYAdResources"])' in package
-          assert '.copy("IFLYPlayer.bundle")' in package
-          assert Path("spm/IFLYAdResources/IFLYAdResourceAnchor.m").is_file()
-          assert Path("spm/IFLYAdResources/include/IFLYAdResourceAnchor.h").is_file()
-          executable_resources = [
-              path
-              for path in Path("spm/IFLYAdResources/IFLYPlayer.bundle").rglob("*")
-              if path.is_file() and path.stat().st_mode & 0o111
-          ]
-          assert not executable_resources, executable_resources
-          privacy_path = Path("spm/IFLYAdResources/IFLYPlayer.bundle/PrivacyInfo.xcprivacy")
-          assert privacy_path.is_file()
-          tracking_domains = plistlib.loads(
-              privacy_path.read_bytes()
-          )["NSPrivacyTrackingDomains"]
-          assert "youku-sdk.voiceads.cn" in tracking_domains
-          assert "msdk.voiceads.cn" not in tracking_domains
-          assert "youku-sdk-grey.voiceads.cn" not in tracking_domains
-          print(f"version={pod_version}, checksum={checksum_state}: {checksum}")
-          PY
-
+          git show "${WORKFLOW_CONTROL_SHA}:.github/scripts/verify_repository_contract.py" |
+            python3 - --scope docs --release-kind "${RELEASE_VALIDATION_KIND}"
       - name: 读取 A/B 发布状态
         id: provenance-state
         run: |
