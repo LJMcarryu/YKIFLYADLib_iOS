@@ -993,11 +993,18 @@ class WorkflowStructureTests(unittest.TestCase):
         current_frozen = {"version": "6.2.4", "phase": "FROZEN"}
         repository_contract.validate_state_version(previous_closed, "none")
         repository_contract.validate_state_version(current_frozen, "draft")
+        repository_contract.validate_state_version(current_frozen, "formal")
 
         for state, kind in (
             (previous_closed, "draft"),
+            (previous_closed, "formal"),
             ({"version": "6.2.3", "phase": "FROZEN"}, "none"),
             ({"version": "6.2.2", "phase": "CLOSED"}, "none"),
+            ({"version": "6.2.4", "phase": "PREPARING"}, "draft"),
+            ({"version": "6.2.4", "phase": "PUBLISHED"}, "draft"),
+            ({"version": "6.2.4", "phase": "VERIFIED"}, "formal"),
+            ({"version": "6.2.4", "phase": "CLOSED"}, "formal"),
+            ({"version": "6.2.4", "phase": "FROZEN"}, "none"),
         ):
             with self.subTest(state=state, kind=kind):
                 with self.assertRaises(repository_contract.ContractError):
@@ -1202,7 +1209,7 @@ class WorkflowStructureTests(unittest.TestCase):
         for marker in (
             "def verify_machine",
             "def verify_docs",
-            "release-state 版本不匹配",
+            "release-state 版本或阶段不匹配",
             "PREPARING 必须使用精确 PENDING checksum",
             "FORMAL checksum 非 64 位小写 SHA-256",
             "公开可用性以同版本 GitHub Release 和发布后 CI 为准",

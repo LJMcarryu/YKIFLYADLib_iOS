@@ -45,14 +45,18 @@ def state(root: Path) -> dict[str, object]:
 def validate_state_version(value: dict[str, object], release_kind: str) -> None:
     version = value.get("version")
     phase = value.get("phase")
-    if version == VERSION:
+    if release_kind in {"draft", "formal"}:
+        require(
+            version == VERSION and phase == "FROZEN",
+            "release-state 版本或阶段不匹配：candidate/tag/Release 必须为"
+            f"当前版本 {VERSION}/FROZEN",
+        )
         return
     require(
         release_kind == "none"
         and version == PREVIOUS_RELEASE_VERSION
         and phase == "CLOSED",
-        "release-state 版本不匹配：普通 main 只允许保留上一版 CLOSED，"
-        "candidate/tag/Release 必须与当前分发版本一致",
+        "release-state 版本或阶段不匹配：普通 main 只允许保留上一版 CLOSED",
     )
 
 
