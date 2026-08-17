@@ -724,6 +724,7 @@ class WorkflowStructureTests(unittest.TestCase):
             jobs["verify-swiftpm-consumer"]["needs"], ["verify-release-assets"]
         )
         self.assertNotIn("verify-swiftpm-consumer", jobs["verify-cocoapods-consumer"]["needs"])
+        self.assertEqual(jobs["control-plane-canary"]["needs"], ["verify-repository"])
 
     def test_candidate_gate_order_and_checkout_credentials(self) -> None:
         repository_steps = self.workflow["jobs"]["verify-repository"]["steps"]
@@ -788,12 +789,20 @@ class WorkflowStructureTests(unittest.TestCase):
             for step in job["steps"]:
                 if "GITHUB_TOKEN" in step.get("env", {}):
                     token_steps.append((job_id, step))
-        self.assertEqual(len(token_steps), 3)
+        self.assertEqual(len(token_steps), 4)
         self.assertNotIn(
             "${{ github.token }}",
             (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"),
         )
-        for _, step in token_steps:
+        for job_id, step in token_steps:
+            if job_id == "control-plane-canary":
+                self.assertIn("Canary", step["name"])
+                self.assertNotIn("if", step)
+                self.assertEqual(
+                    step["env"]["GITHUB_TOKEN"],
+                    "${{ secrets.DRAFT_RELEASE_READ_TOKEN }}",
+                )
+                continue
             self.assertIn("draft", step["name"])
             self.assertEqual(
                 step["env"]["GITHUB_TOKEN"],
@@ -813,15 +822,62 @@ class WorkflowStructureTests(unittest.TestCase):
 
     def test_candidate_inputs_branch_and_exact_run_names_are_bound(self) -> None:
         inputs = self.workflow["on"]["workflow_dispatch"]["inputs"]
-        for name in ("candidate_id", "candidate_release_id", "dispatch_nonce"):
+        for name in (
+            "candidate_id", "candidate_release_id", "dispatch_nonce",
+            "control_plane_canary", "canary_tag", "canary_release_id",
+            "canary_candidate_id",
+        ):
             self.assertIn(name, inputs)
         self.assertIn("draft-candidate:{0}:{1}:{2}", self.workflow["run-name"])
         self.assertIn("formal-release:{0}:{1}", self.workflow["run-name"])
+        self.assertIn("control-plane-canary:{0}:{1}:{2}", self.workflow["run-name"])
         source = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn('candidate_branch="release-candidate/${CANDIDATE_TAG}-${CANDIDATE_ID}"', source)
         self.assertIn('test "${head_commit}" = "${GITHUB_SHA}"', source)
         self.assertIn('[[ "${CANDIDATE_RELEASE_ID}" =~ ^[1-9][0-9]*$ ]]', source)
         self.assertIn('[[ "${DISPATCH_NONCE}" =~ ^[0-9a-f]{32}$ ]]', source)
+
+    def test_control_plane_canary_is_lightweight_and_uses_real_downloader(self) -> None:
+        job = self.workflow["jobs"]["control-plane-canary"]
+        source = "\n".join(step.get("run", "") for step in job["steps"])
+        self.assertIn("DRAFT_RELEASE_READ_TOKEN", json.dumps(job))
+        self.assertIn("download_draft_release.py", source)
+        self.assertIn('test "$CANARY_TAG" != "$state_version"', source)
+        self.assertIn("release-candidate/${CANARY_TAG}-${CANARY_CANDIDATE_ID}", source)
+        self.assertIn("release_control_plane_checks.py fixture", source)
+        production = (ROOT / "scripts/release_control_plane_checks.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("symlink_to", production)
+        self.assertIn("resolve_pod_root", production)
+        self.assertIn("didRejectClickWithError:", source)
+        for forbidden in ("xcodebuild", "pod install", "swift build"):
+            self.assertNotIn(forbidden, source)
+
+    def test_simple_job_has_scheme_bound_name_and_integer_json_contract(self) -> None:
+        job = self.workflow["jobs"]["verify-cocoapods-consumer"]
+        self.assertIn("IFLYADLibSimple", job["name"])
+        self.assertIn("simple_result_json", job["outputs"])
+        step = next(item for item in job["steps"] if item.get("id") == "simple-result")
+        self.assertEqual(
+            step["env"]["RELEASE_ID"],
+            "${{ needs.verify-release-assets.outputs.release_id }}",
+        )
+        assets = self.workflow["jobs"]["verify-release-assets"]
+        self.assertEqual(
+            assets["outputs"]["release_id"],
+            "${{ steps.asset-identity.outputs.release_id }}",
+        )
+        identity = next(item for item in assets["steps"] if item.get("id") == "asset-identity")
+        self.assertIn('release.get("id")', identity["run"])
+        source = step["run"]
+        for marker in (
+            '"schemaVersion": 1', '"channel": "youku"',
+            '"simpleScheme": "IFLYADLibSimple"',
+            '"artifactInventorySha256"', '"buildResult": "success"',
+            '"runId"', 'int(os.environ["RELEASE_ID"])',
+        ):
+            self.assertIn(marker, source)
 
     def test_local_python_validation_cannot_dirty_candidate_worktree(self) -> None:
         ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
@@ -897,7 +953,7 @@ class WorkflowStructureTests(unittest.TestCase):
         )
         self.assertIn('re.fullmatch(r"[0-9a-f]{64}", checksum)', manifest["run"])
         self.assertIn(
-            'verifier.validate_documents(document_paths)[0] == "FORMAL"',
+            'machine["phase"] in {"FROZEN", "PUBLISHED", "VERIFIED", "CLOSED"}',
             manifest["run"],
         )
         self.assertNotIn("CHECKSUM_PENDING", manifest["run"])
@@ -1057,7 +1113,8 @@ class WorkflowStructureTests(unittest.TestCase):
             for step in repository_steps
             if step.get("name") == "固定 draft candidate 本地分发清单"
         )["run"]
-        self.assertIn('validate_documents(document_paths)[0] == "FORMAL"', candidate_manifest)
+        self.assertIn('Path("release-state.json")', candidate_manifest)
+        self.assertNotIn("validate_documents", candidate_manifest)
         for published_fact in ("published_at", "draft=false", "已正式公开", "匿名终验"):
             self.assertNotIn(published_fact, candidate_manifest)
 
@@ -1067,7 +1124,27 @@ class WorkflowStructureTests(unittest.TestCase):
             if step.get("name") == "使用最小权限下载 draft candidate 精确资产集"
         )
         self.assertIn("draft_candidate", draft_download["if"])
-        self.assertIn("download_draft_release.py", draft_download["run"])
+
+    def test_markdown_wording_checks_are_non_blocking_and_state_drives_provenance(self) -> None:
+        jobs = self.workflow["jobs"]
+        repository_steps = jobs["verify-repository"]["steps"]
+        documentation = next(
+            step for step in repository_steps
+            if step.get("name") == "校验版本、清单与 SwiftPM 资源"
+        )
+        self.assertIs(documentation["continue-on-error"], True)
+        compare = next(
+            step for step in repository_steps
+            if step.get("name") == "Candidate/正式 tag/Release 校验 FORMAL A/B provenance（私有仓 compare）"
+        )
+        self.assertIn("--release-state release-state.json", compare["run"])
+        self.assertNotIn("--readme", compare["run"])
+        asset = next(
+            step for step in jobs["verify-release-assets"]["steps"]
+            if step.get("name") == "校验下载资产与私有源码 A/B provenance"
+        )
+        self.assertIn("--release-state release-state.json", asset["run"])
+        self.assertIn("--manifest", asset["run"])
 
     def test_published_release_remains_remote_and_anonymous_evidence(self) -> None:
         self.assertEqual(self.workflow["on"]["release"]["types"], ["published"])
@@ -1153,7 +1230,8 @@ class WorkflowStructureTests(unittest.TestCase):
             for step in repository_steps
             if step.get("name") == "读取 A/B 发布状态"
         )["run"]
-        self.assertIn("module.parse_document", state_reader)
+        self.assertIn('Path("release-state.json")', state_reader)
+        self.assertNotIn("parse_document", state_reader)
         self.assertNotIn("re.findall", state_reader)
 
     def test_native_feed_reject_selector_gate_accepts_whitespace_not_lookalikes(
