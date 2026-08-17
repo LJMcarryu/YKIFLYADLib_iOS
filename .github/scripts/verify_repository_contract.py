@@ -12,12 +12,14 @@ import sys
 from pathlib import Path
 
 
-VERSION = "6.2.3"
+VERSION = "6.2.4"
+PREVIOUS_RELEASE_VERSION = "6.2.3"
 REPOSITORY = "LJMcarryu/YKIFLYADLib_iOS"
-PENDING = "__IFLYADLIB_YOUKU_6_2_3_CHECKSUM_PENDING__"
+PENDING = "__IFLYADLIB_YOUKU_6_2_4_CHECKSUM_PENDING__"
 HISTORICAL = {
     "a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f",
     "1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb",
+    "309c22486980cc283e76ea6d1299255b4f244e6ae4be3ef4f0ed959bd1cc0814",
 }
 
 
@@ -36,9 +38,22 @@ def read(root: Path, relative: str) -> str:
 
 def state(root: Path) -> dict[str, object]:
     value = json.loads(read(root, "release-state.json"))
-    require(value.get("version") == VERSION, "release-state 版本不匹配")
     require(value.get("channel") == "youku", "release-state 渠道不匹配")
     return value
+
+
+def validate_state_version(value: dict[str, object], release_kind: str) -> None:
+    version = value.get("version")
+    phase = value.get("phase")
+    if version == VERSION:
+        return
+    require(
+        release_kind == "none"
+        and version == PREVIOUS_RELEASE_VERSION
+        and phase == "CLOSED",
+        "release-state 版本不匹配：普通 main 只允许保留上一版 CLOSED，"
+        "candidate/tag/Release 必须与当前分发版本一致",
+    )
 
 
 def one(pattern: str, text: str, label: str) -> str:
@@ -52,6 +67,7 @@ def verify_machine(
 ) -> None:
     require(release_kind in {"none", "draft", "formal"}, "非法验证类型")
     machine = state(root)
+    validate_state_version(machine, release_kind)
     package = read(root, "Package.swift")
     podspec = read(root, "YKIFLYADLib.podspec")
     podfile = read(root, "IFLYADLibSimple/Podfile")
@@ -134,6 +150,7 @@ def verify_machine(
 
 def verify_docs(root: Path, _release_kind: str) -> None:
     machine = state(root)
+    validate_state_version(machine, _release_kind)
     documents = {
         name: read(root, name)
         for name in ("README.md", "CHANGELOG.md", "RELEASING.md")

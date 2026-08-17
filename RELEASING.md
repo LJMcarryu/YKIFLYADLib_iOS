@@ -15,23 +15,23 @@
 重型验证 job 最长运行 55 分钟，结束后由无 Token、只读的 summary job 汇总 Candidate、Release、
 checkout commit、四资产库存身份和全部 job 结论；summary 对上游失败继续失败关闭。
 
-## 6.2.3 发布状态
+## 6.2.4 发布状态
 
 - `releaseState`：`FORMAL`
-- `binarySourceCommit`（SDK 二进制源码提交）：`ea0240e620b57d7275e486199099c648f51de257`
-- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`0f26b7647e6c1aadb32eca68b24f6845639a59c2`
-- `candidateId`：`f54a629205204bc1d2a820b23160450c856368c756ea544aa1623ef130d975e5`
+- `binarySourceCommit`（SDK 二进制源码提交）：`b0f745d582ce2bed5110702cff972be4153e5038`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`7b08118b43a0c4441de4c76a64f34fa54b3fe889`
+- `candidateId`：`61f427469346615982e0225fad8187611794cc0a54c452da83073e89fd5ea1bd`
 
-`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `309c22486980cc283e76ea6d1299255b4f244e6ae4be3ef4f0ed959bd1cc0814`；`YKIFLYADLib-6.2.3.zip` 的 SHA-256 为 `c4c821bd97aaa7eaed3f2441476c43a6bed6e34e8deec9b6b26c1decc88ef86b`。
+`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `ce27b5d98a925c109fa6355a8095db7201717c7e1b9b2bcbbb92265dc2272d5e`；`YKIFLYADLib-6.2.4.zip` 的 SHA-256 为 `c39a0e321a58f5ae89157530c32864f4d5501b118b173fc3f8c2bcea0d99e8c0`。
 
-[`6.2.3`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.3) 已于 2026-08-16 正式公开；annotated tag 解引用到 `ac7c5302903e9535d1a7d847eeac24a3c0237d74`，Release 为非草稿、非预发布且精确包含 4 个资产。无 Token 匿名验证与正式消费 [Run 31940242816](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/31940242816) 均为 `success`。
+`6.2.4` 的 GitHub Tag/Release、无 Token 匿名验证和正式消费验证尚待编排器完成；当前最新公开可用版仍为 `6.2.3`。
 
 `releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。
 公开可用性以同版本 GitHub Release 和发布后 CI 为准。
 
 Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`、`statusAtFreeze=not-run`、`evidenceIncluded=false`。
 
-`6.2.3` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
+`6.2.4` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
 
 ## 1. 私有源码仓底层产物诊断
 
@@ -41,7 +41,7 @@ Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`�
 IFLY_NEW_VERSION_RELEASE=1 \
 IFLY_SDK_CODESIGN_IDENTITY='正式 SDK 签名身份' \
 scripts/package-youku-release.sh \
-  --version 6.2.3 \
+  --version 6.2.4 \
   --ad-request-url 'https://youku-sdk.voiceads.cn/ad/request'
 ```
 
@@ -50,7 +50,7 @@ scripts/package-youku-release.sh \
 ```text
 build/youku/release/
 ├── IFLYADLib.xcframework.zip
-├── YKIFLYADLib-6.2.3.zip
+├── YKIFLYADLib-6.2.4.zip
 ├── checksums.txt
 └── delivery-manifest.json
 ```
@@ -74,12 +74,12 @@ build/youku/release/
 - NativeFeed 公开头、符号和 Demo 必须包含 Ad 级 `attachWithViewBinder:error:`、容器级 `detachAdFromContainerView:` 和可选 `destroy`；列表数据层只持有 Ad，Cell 不持有 Session、Binding 或首次/复用状态。
 - NativeFeed 公开头、伞头、二进制 selector、Demo 和接入文档不得再暴露 `IFLYNativeFeedDisplaySession`、`IFLYNativeFeedAdBinding`、`beginDisplaySessionWithError:`、`bindAdWithViewBinder:error:`、`unbindAd` 或 `endDisplaySession`。
 - 同一 Ad 跨 Cell 串行迁移、同容器原子接管、失败预检不破坏旧挂载、曝光前后重挂载、迟到容器 detach、视频进度/播放意图恢复、活动容器跨 TTL/视频截止时间不强拆及 detach 后失效必须通过专项测试。
-- `6.2.3` 还必须验证外部 CTA 默认关闭、同 window/scene 与归属门禁、运行时 71503 delegate 拒绝回调，以及 `detachFromCurrentContainer`。
+- `6.2.4` 还必须验证外部 CTA 默认关闭，同 Cell/专属 wrapper/window-local 三种归属、祖先路径固定、运行中 reparent 拒绝、71503 delegate 回调，以及 `detachFromCurrentContainer`。
 
 ### 当前联调状态
 
 公开可用性以同版本 GitHub Release 和发布后 CI 为准。`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。
-`6.2.3` 正式分发资产已冻结；Apple Review 扫描未执行且不是发布门禁。以下均为历史版本事实。
+`6.2.4` 正式分发资产已冻结；Apple Review 扫描未执行且不是发布门禁。以下均为历史版本事实。
 
 2026 年 8 月 10 日，优酷 `6.2.2` 正式分发资产由私有源码提交
 `a8ec925d3731d7d11734647aa02ca7d91d674965` 构建，发布元数据提交
@@ -145,7 +145,7 @@ Demo 列表专项 `16/16` 和 Youku 分发测试 `31/31` 通过。源码扫描
 
 以下清单由编排器生成、冻结和提交；维护者只在失败诊断时逐项复核，不得手工改写后直接发布。
 
-- 将 `Package.swift` 中的 URL、版本和 checksum 与 `checksums.txt` 的真实结果保持一致；`6.2.3` 准备态只允许精确 PENDING 占位，正式冻结后必须回填本次资产的真实 SwiftPM checksum。
+- 将 `Package.swift` 中的 URL、版本和 checksum 与 `checksums.txt` 的真实结果保持一致；`6.2.4` 准备态只允许精确 PENDING 占位，正式冻结后必须回填本次资产的真实 SwiftPM checksum。
 - 用源码仓 `build/youku/swiftpm-resources/IFLYPlayer.bundle` 同步覆盖本仓 `spm/IFLYAdResources/IFLYPlayer.bundle`。
 - 将 `YKIFLYADLib.podspec`、Demo `Podfile`、README、CHANGELOG 中的版本同步更新。
 - 确认 podspec 显式链接 `AdSupport`、弱链接 `AppTrackingTransparency`，并核对最终二进制没有对 `AppTrackingTransparency` 的强依赖。

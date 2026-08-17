@@ -1,5 +1,19 @@
 # 版本记录
 
+## 6.2.4（待发布）
+
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`b0f745d582ce2bed5110702cff972be4153e5038`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`7b08118b43a0c4441de4c76a64f34fa54b3fe889`
+- `candidateId`：`61f427469346615982e0225fad8187611794cc0a54c452da83073e89fd5ea1bd`
+- `IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256：`ce27b5d98a925c109fa6355a8095db7201717c7e1b9b2bcbbb92265dc2272d5e`；`YKIFLYADLib-6.2.4.zip` 的 SHA-256：`c39a0e321a58f5ae89157530c32864f4d5501b118b173fc3f8c2bcea0d99e8c0`。
+- `releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；GitHub Tag/Release、无 Token 匿名下载和正式消费验证仍待编排器完成。
+- 公开可用性以同版本 GitHub Release 和发布后 CI 为准。
+- Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`、`statusAtFreeze=not-run`、`evidenceIncluded=false`。
+- `6.2.4` 不沿用历史风险授权；主动 Apple Review 扫描仍使用 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`，未扫描不得表述为通过。
+- NativeFeed 受限外部 CTA 新增 window-local 归属：同 window/scene 内容器与 CTA 几何紧凑相邻时，非 Cell 场景不再强制共同 wrapper；绑定时固定归属类型和祖先路径，运行中 reparent 不得重新猜测归属。
+- 跨 window、页面级或近全屏容器、远距离分散、共享/固定悬浮、离屏仍可点击和归属不明仍以 `IFLYAdErrorCodeNativeFeedClickViewsInvalid`（71503）失败关闭。
+
 ## 6.2.3
 
 - `releaseState`：`FORMAL`

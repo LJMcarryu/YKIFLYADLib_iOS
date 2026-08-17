@@ -22,10 +22,45 @@ ARTIFACTS = [
     {"name": "YKIFLYADLib-6.2.3.zip", "contentSha256": "c4c821bd97aaa7eaed3f2441476c43a6bed6e34e8deec9b6b26c1decc88ef86b"},
 ]
 
+CLOSED_STATE = {
+    "schemaVersion": 1,
+    "channel": "youku",
+    "repository": "LJMcarryu/YKIFLYADLib_iOS",
+    "version": "6.2.3",
+    "phase": "CLOSED",
+    "binarySourceCommit": "ea0240e620b57d7275e486199099c648f51de257",
+    "releaseMetadataCommit": "0f26b7647e6c1aadb32eca68b24f6845639a59c2",
+    "artifactInventory": {
+        "count": 4,
+        "sha256": "24ab111ff2eb1bcf944cf421fe871803e478c5c376fd2de002ceff61f3d95428",
+    },
+    "appleReview": {
+        "requiredForRelease": False,
+        "statusAtFreeze": "not-run",
+        "evidenceIncluded": False,
+    },
+    "publication": {
+        "releaseId": 370458966,
+        "tagName": "6.2.3",
+        "tagObjectSha": "7969eef6d584116b7c1f3195f397d275799ab9c8",
+        "tagCommitSha": "ac7c5302903e9535d1a7d847eeac24a3c0237d74",
+        "releaseUrl": "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.3",
+        "publishedAt": "2026-08-16T09:53:47Z",
+        "formalConsumerRunId": 31940242816,
+        "formalConsumerRunUrl": (
+            "https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/31940242816"
+        ),
+        "conclusion": "success",
+        "verifiedAt": "2026-08-16T09:55:36Z",
+    },
+}
+
 
 class ReleaseStateTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.state = json.loads((ROOT / "release-state.json").read_text(encoding="utf-8"))
+        # CLOSED 生成与迁移单测必须使用不可变夹具，不能把候选分支
+        # 中合法变为 FROZEN 的实时 release-state 误当历史 CLOSED 事实。
+        self.state = copy.deepcopy(CLOSED_STATE)
         self.facts = {
             key: copy.deepcopy(value)
             for key, value in self.state.items()
@@ -38,17 +73,28 @@ class ReleaseStateTests(unittest.TestCase):
         path.write_text(json.dumps(self.facts), encoding="utf-8")
         return path
 
-    def test_current_state_is_rebuilt_exactly_from_content_digests(self) -> None:
+    def test_closed_fixture_is_rebuilt_exactly_from_content_digests(self) -> None:
         generated = release_state.build_closed_state(self.facts)
         self.assertEqual(generated, self.state)
-        self.assertEqual(
-            release_state.canonical_json(generated),
-            (ROOT / "release-state.json").read_text(encoding="utf-8"),
-        )
+        self.assertEqual(release_state.canonical_json(generated),
+                         release_state.canonical_json(self.state))
         self.assertEqual(generated["artifactInventory"], {
             "count": 4,
             "sha256": "24ab111ff2eb1bcf944cf421fe871803e478c5c376fd2de002ceff61f3d95428",
         })
+
+    def test_current_repository_state_is_independently_valid(self) -> None:
+        current = json.loads(
+            (ROOT / "release-state.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            release_state.validate_state(
+                current,
+                expected_channel="youku",
+                expected_repository="LJMcarryu/YKIFLYADLib_iOS",
+            ),
+            current,
+        )
 
     def test_dry_run_prints_state_without_writing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
