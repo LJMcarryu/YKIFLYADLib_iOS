@@ -18,7 +18,7 @@ open IFLYADLibSimple.xcworkspace
 
 最低支持 iOS 11.0，支持 iPhone 和 iPad。真机运行前，请在 Xcode 的 Signing & Capabilities 中选择自己的开发者 Team。
 
-Demo 已固定到 `6.2.4` tag 的 `YKIFLYADLib.podspec`；资产与元数据已冻结，但只有同版本 GitHub Release 公开且发布后 CI 成功时才对外可用。
+Demo 已固定到 `6.2.4` tag 的 `YKIFLYADLib.podspec`；同版本 GitHub Release 已公开，资产匿名校验和发布后 CI 均已完成。
 Demo 首页只有上述三个自渲染示例入口，不调用 `IFLYSplashAd` 或 `IFLYInterstitialAd` 的 SDK 内置模板渲染接口，也不包含 Banner、激励视频及其他进阶功能。三个示例均使用优酷定制联调广告位；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。
 
 `6.2.2` 保留 `6.1.2` 的全渠道共享修复：iOS 14 及以上只有 ATT `authorized` 时 SDK

@@ -18,7 +18,7 @@
 
 ## 6.2.4 发布状态
 
-`6.2.4` 的正式签名资产、checksum 和 A/B 元数据已冻结，但 GitHub Tag/Release、无 Token 匿名下载和正式消费验证尚未完成。当前最新公开可用版仍为 [`6.2.3`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.3)。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
+当前最新公开正式版为 [`6.2.4`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.4)，已于 2026-08-17 完成 Tag、Release、4 个资产无 Token 匿名校验和正式消费验证。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物使用 Xcode 26.2（Build `17C52`）构建，具体事实记录在 `delivery-manifest.json`。
 公开可用性以同版本 GitHub Release 和发布后 CI 为准。
 
@@ -30,7 +30,7 @@
 
 `IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `ce27b5d98a925c109fa6355a8095db7201717c7e1b9b2bcbbb92265dc2272d5e`；`YKIFLYADLib-6.2.4.zip` 的 SHA-256 为 `c39a0e321a58f5ae89157530c32864f4d5501b118b173fc3f8c2bcea0d99e8c0`。
 
-`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；不代表同版本 Release 已公开。候选分支会由编排器另行将 `release-state.json` 从上一版 `6.2.3/CLOSED` 推进为 `6.2.4/FROZEN`。
+`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；仓库根 `release-state.json` 已由编排器推进到 `6.2.4/CLOSED`。annotated Tag 解引用到 `c16ba284c12cf9f165c85c63fd6f846c52ad46b7`，正式消费 [Run 32027222871](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/32027222871) 为 `success`。
 
 Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`、`statusAtFreeze=not-run`、`evidenceIncluded=false`。
 
@@ -84,7 +84,7 @@ SDK 为 Objective-C 静态库，最终 App 链接必须包含 `-ObjC`。CocoaPod
 
 ## CocoaPods 接入
 
-以下远程方式固定使用 `6.2.4` tag、podspec 和同版本 GitHub Release 资产；Release 未公开前不可用：
+以下远程方式固定使用已验证的 `6.2.4` tag、podspec 和同版本 GitHub Release 资产：
 
 ```ruby
 source 'https://cdn.cocoapods.org/'
