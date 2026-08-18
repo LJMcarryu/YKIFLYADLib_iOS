@@ -18,6 +18,8 @@
 
 ## 6.2.4 发布状态
 
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.2.4","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.4"} -->
+
 当前最新公开正式版为 [`6.2.4`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.4)，已于 2026-08-17 完成 Tag、Release、4 个资产无 Token 匿名校验和正式消费验证。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物使用 Xcode 26.2（Build `17C52`）构建，具体事实记录在 `delivery-manifest.json`。
 公开可用性以同版本 GitHub Release 和发布后 CI 为准。

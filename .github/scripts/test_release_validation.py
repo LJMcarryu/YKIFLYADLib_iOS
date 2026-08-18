@@ -1038,9 +1038,8 @@ class WorkflowStructureTests(unittest.TestCase):
             value = original_read(root, relative)
             if relative == "README.md":
                 return value.replace(
-                    "`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 "
-                    "`delivery-manifest.json` 已经冻结",
-                    "",
+                    "<!-- ifly-release-status:",
+                    "<!-- removed-release-status:",
                     1,
                 )
             return value
@@ -1139,7 +1138,7 @@ class WorkflowStructureTests(unittest.TestCase):
         )
         self.assertIn("draft_candidate", draft_download["if"])
 
-    def test_machine_contract_is_blocking_and_document_provenance_is_non_blocking(self) -> None:
+    def test_machine_and_document_contracts_are_blocking(self) -> None:
         jobs = self.workflow["jobs"]
         repository_steps = jobs["verify-repository"]["steps"]
         machine = next(
@@ -1153,9 +1152,9 @@ class WorkflowStructureTests(unittest.TestCase):
         self.assertNotIn("python3 - +", machine["run"])
         documentation = next(
             step for step in repository_steps
-            if step.get("name") == "非阻断校验 Markdown 发布展示措辞"
+            if step.get("name") == "阻断校验 Markdown 发布状态契约"
         )
-        self.assertIs(documentation["continue-on-error"], True)
+        self.assertNotIn("continue-on-error", documentation)
         self.assertIn("--scope docs", documentation["run"])
         soft_steps = [
             step.get("name")
@@ -1165,9 +1164,7 @@ class WorkflowStructureTests(unittest.TestCase):
         self.assertEqual(
             soft_steps,
             [
-                "非阻断校验 Markdown 发布展示措辞",
                 "普通分支校验 PENDING A/B provenance",
-                "校验 FORMAL A/B provenance 文档",
             ],
         )
         compare = next(
@@ -1238,7 +1235,9 @@ class WorkflowStructureTests(unittest.TestCase):
             "release-state 版本或阶段不匹配",
             "PREPARING 必须使用精确 PENDING checksum",
             "FORMAL checksum 非 64 位小写 SHA-256",
-            "公开可用性以同版本 GitHub Release 和发布后 CI 为准",
+            "ifly-release-status",
+            '"releaseState": "FORMAL"',
+            '"distribution": "github-release"',
         ):
             self.assertIn(marker, version_gate)
 

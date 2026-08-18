@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""分别校验优酷渠道机器分发契约与非阻断 Markdown 展示契约。"""
+"""分别校验优酷渠道机器分发契约与阻断式 Markdown 发布契约。"""
 
 from __future__ import annotations
 
@@ -21,6 +21,9 @@ HISTORICAL = {
     "1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb",
     "309c22486980cc283e76ea6d1299255b4f244e6ae4be3ef4f0ed959bd1cc0814",
 }
+RELEASE_STATUS_RE = re.compile(
+    r"<!--\s*ifly-release-status:\s*(\{[^\r\n]*\})\s*-->"
+)
 
 
 class ContractError(RuntimeError):
@@ -34,6 +37,23 @@ def require(condition: bool, message: str) -> None:
 
 def read(root: Path, relative: str) -> str:
     return (root / relative).read_text(encoding="utf-8")
+
+
+def verify_release_status(label: str, document: str) -> None:
+    markers = RELEASE_STATUS_RE.findall(document)
+    require(len(markers) == 1, f"{label} 发布状态标记数量错误: {len(markers)}")
+    try:
+        marker = json.loads(markers[0])
+    except json.JSONDecodeError as error:
+        raise ContractError(f"{label} 发布状态标记不是合法 JSON") from error
+    expected = {
+        "schemaVersion": 1,
+        "version": VERSION,
+        "releaseState": "FORMAL",
+        "distribution": "github-release",
+        "releaseUrl": f"https://github.com/{REPOSITORY}/releases/tag/{VERSION}",
+    }
+    require(marker == expected, f"{label} 发布状态标记漂移: {marker}")
 
 
 def state(root: Path) -> dict[str, object]:
@@ -164,14 +184,8 @@ def verify_docs(root: Path, _release_kind: str) -> None:
         require("PENDING" in documents["RELEASING.md"], "RELEASING 缺少 PENDING 展示")
         require("发布准备" in demo, "Demo 缺少发布准备展示")
     else:
-        frozen = (
-            "`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 "
-            "`delivery-manifest.json` 已经冻结"
-        )
-        availability = "公开可用性以同版本 GitHub Release 和发布后 CI 为准"
         for label, document in documents.items():
-            require(frozen in document, f"{label} 缺少 FORMAL 冻结展示")
-            require(availability in document, f"{label} 缺少公开可用性展示")
+            verify_release_status(label, document)
         require(VERSION in demo, "Demo 缺少当前版本展示")
 
 
