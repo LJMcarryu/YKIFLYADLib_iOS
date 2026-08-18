@@ -20,11 +20,11 @@ checkout commit、四资产库存身份和全部 job 结论；summary 对上游�
 <!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.0","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.0"} -->
 
 - `releaseState`：`FORMAL`
-- `binarySourceCommit`（SDK 二进制源码提交）：`9eafb48cf94523d5b6eb8e91c7a9ca62fff0ffdb`
-- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`e8eca568cb68202d0d52d0351d146fe4cc8402dc`
-- `candidateId`：`d03f9f3aa4b45ade53122514b4401275f2599c47325ee4bf278fc63b3f71cad2`
+- `binarySourceCommit`（SDK 二进制源码提交）：`eb99fce9d25c428c72364a6cca525bdd60f9933b`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`def3a9d78dcb1b67959e84e7aa438c9e9be7cb93`
+- `candidateId`：`a556965f5b23c71cc07e8df741666383e084008a82f7a8e1748eed0494df43cd`
 
-`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `3b68af855022c6324f9100ebebb6fd332f9b6fdd28df11fd489da095c8333e46`；`YKIFLYADLib-6.3.0.zip` 的 SHA-256 为 `dba674e66b0de7ba3b2667e2d1a242e171edb73ae717fba9d03289e3947ea48e`。
+`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `89a12212dfc3601f0d639eb5a87c8888825bff25f4320da8f8457f3ba9c31245`；`YKIFLYADLib-6.3.0.zip` 的 SHA-256 为 `29fa01226d68ee59df0bd257db0d67d9e73bd9d0bc3a6232a93bc79897e53f90`。
 
 [`6.3.0`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.0) 使用 4 个冻结资产；公开可用性以同版本 GitHub Release 和发布后 CI 为准。
 
