@@ -1,8 +1,20 @@
 # 版本记录
 
-## 6.2.4（2026-08-17）
+## 6.3.0（2026-08-18）
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.2.4","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.4"} -->
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.0","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.0"} -->
+
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`9eafb48cf94523d5b6eb8e91c7a9ca62fff0ffdb`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`e8eca568cb68202d0d52d0351d146fe4cc8402dc`
+- `candidateId`：`d03f9f3aa4b45ade53122514b4401275f2599c47325ee4bf278fc63b3f71cad2`
+- `IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256：`3b68af855022c6324f9100ebebb6fd332f9b6fdd28df11fd489da095c8333e46`；`YKIFLYADLib-6.3.0.zip` 的 SHA-256：`dba674e66b0de7ba3b2667e2d1a242e171edb73ae717fba9d03289e3947ea48e`。
+- `releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；公开可用性以 [GitHub Release 6.3.0](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.0) 和发布后 CI 为准。
+- Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`、`statusAtFreeze=not-run`、`evidenceIncluded=false`。
+- 优酷变体的外置 CTA 可在绑定后再挂载和布局，不再要求与 containerView 存在共同层级、包装器或距离关系；`allowsExternalClickViews` 仍默认 `NO`。
+- 点击时仍须通过同 window/scene、CTA 可见可交互且面积小于 window 的 25%、广告容器前台可见比例至少 2/3，以及当前 Ad/container/generation 独占租约校验；失败以 71503 拒绝，不曝光、不监测、不跳转。
+
+## 6.2.4（2026-08-17）
 
 - `releaseState`：`FORMAL`
 - `binarySourceCommit`（SDK 二进制源码提交）：`b0f745d582ce2bed5110702cff972be4153e5038`

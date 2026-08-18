@@ -16,27 +16,33 @@
 
 所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷普通请求地址在二进制构建时固化为专属地址 `https://youku-sdk.voiceads.cn/ad/request`，不提供公开运行时 URL setter。
 
-## 6.2.4 发布状态
+## 6.3.0 发布状态
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.2.4","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.4"} -->
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.0","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.0"} -->
 
-当前最新公开正式版为 [`6.2.4`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.4)，已于 2026-08-17 完成 Tag、Release、4 个资产无 Token 匿名校验和正式消费验证。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
+当前最新公开正式版为 [`6.3.0`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.0)。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
 正式 SDK 产物使用 Xcode 26.2（Build `17C52`）构建，具体事实记录在 `delivery-manifest.json`。
 公开可用性以同版本 GitHub Release 和发布后 CI 为准。
 
 <!-- 供发布 CI 机器校验的两提交 provenance；README、CHANGELOG、RELEASING 必须保持一致。 -->
 - `releaseState`：`FORMAL`
-- `binarySourceCommit`（SDK 二进制源码提交）：`b0f745d582ce2bed5110702cff972be4153e5038`
-- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`7b08118b43a0c4441de4c76a64f34fa54b3fe889`
-- `candidateId`：`61f427469346615982e0225fad8187611794cc0a54c452da83073e89fd5ea1bd`
+- `binarySourceCommit`（SDK 二进制源码提交）：`9eafb48cf94523d5b6eb8e91c7a9ca62fff0ffdb`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`e8eca568cb68202d0d52d0351d146fe4cc8402dc`
+- `candidateId`：`d03f9f3aa4b45ade53122514b4401275f2599c47325ee4bf278fc63b3f71cad2`
 
-`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `ce27b5d98a925c109fa6355a8095db7201717c7e1b9b2bcbbb92265dc2272d5e`；`YKIFLYADLib-6.2.4.zip` 的 SHA-256 为 `c39a0e321a58f5ae89157530c32864f4d5501b118b173fc3f8c2bcea0d99e8c0`。
+`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `3b68af855022c6324f9100ebebb6fd332f9b6fdd28df11fd489da095c8333e46`；`YKIFLYADLib-6.3.0.zip` 的 SHA-256 为 `dba674e66b0de7ba3b2667e2d1a242e171edb73ae717fba9d03289e3947ea48e`。
 
-`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；仓库根 `release-state.json` 已由编排器推进到 `6.2.4/CLOSED`。annotated Tag 解引用到 `c16ba284c12cf9f165c85c63fd6f846c52ad46b7`，正式消费 [Run 32027222871](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/32027222871) 为 `success`。
+`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；候选提交中的 `release-state.json` 为 `6.3.0/FROZEN`。
 
 Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`、`statusAtFreeze=not-run`、`evidenceIncluded=false`。
 
-`6.2.4` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
+`6.3.0` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
+
+本版仅调整优酷变体的外置 CTA 校验：显式开启 `allowsExternalClickViews` 后，外部点击视图可在绑定后再挂载和布局，也不要求与广告容器存在共同层级、包装器或距离关系。点击时仍须通过同 window/scene、CTA 可见可交互且面积小于 window 的 25%、广告容器前台可见比例至少 2/3，以及当前 Ad/container/generation 独占租约校验；失败继续以 `IFLYAdErrorCodeNativeFeedClickViewsInvalid`（71503）拒绝，不曝光、不监测、不跳转。
+
+## 6.2.4 历史正式事实
+
+[`6.2.4`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.4) 已于 2026-08-17 完成 Tag、Release、4 个资产无 Token 匿名校验和正式消费验证。annotated Tag 解引用到 `c16ba284c12cf9f165c85c63fd6f846c52ad46b7`，正式消费 [Run 32027222871](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/32027222871) 为 `success`；其 A/B 分别为 `b0f745d582ce2bed5110702cff972be4153e5038` 和 `7b08118b43a0c4441de4c76a64f34fa54b3fe889`。
 
 ## 6.2.3 历史正式事实
 
@@ -68,7 +74,7 @@ IFLYADLibSimple/          三个 NativeFeed 自渲染场景的 Demo 工程
 
 SDK 私有源码、构建脚本和测试代码不在本分发仓。二进制只通过同版本 GitHub Release 交付。
 
-公开可用性以同版本 GitHub Release 和发布后 CI 为准。`6.2.4` 分发清单已包含真实 checksum、A/B 和 `delivery-manifest.json`。
+公开可用性以同版本 GitHub Release 和发布后 CI 为准。`6.3.0` 分发清单已包含真实 checksum、A/B 和 `delivery-manifest.json`。
 
 ## Release 资产
 
@@ -86,7 +92,7 @@ SDK 为 Objective-C 静态库，最终 App 链接必须包含 `-ObjC`。CocoaPod
 
 ## CocoaPods 接入
 
-以下远程方式固定使用已验证的 `6.2.4` tag、podspec 和同版本 GitHub Release 资产：
+以下远程方式固定使用 `6.3.0` tag、podspec 和同版本 GitHub Release 资产：
 
 ```ruby
 source 'https://cdn.cocoapods.org/'
@@ -96,7 +102,7 @@ target 'YourApp' do
   use_frameworks!
 
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.2.4/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.3.0/YKIFLYADLib.podspec'
 end
 ```
 
@@ -111,7 +117,7 @@ Pod 名是 `YKIFLYADLib`，但 SDK 模块名仍是 `IFLYADLib`。不要同时集
 
 ## Swift Package Manager 接入
 
-以下远程方式使用精确版本 `6.2.4`；不要依赖 `main` 分支获取二进制。
+以下远程方式使用精确版本 `6.3.0`；不要依赖 `main` 分支获取二进制。
 
 在 Xcode 的 “Add Package Dependencies” 中添加：
 
@@ -235,7 +241,7 @@ SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据�
 
 本节描述 `6.2.2` 的 SDK 托管挂载契约，实际接入必须与所选 tag 的公开头保持一致。
 
-`6.2.4` 扩展了受限外部 CTA 的非 Cell 场景：Binder 的 `allowsExternalClickViews` 仍默认 `NO`。显式开启后，SDK 接受同 Cell、专属 wrapper，以及同 window/scene 内几何紧凑相邻的 window-local 容器与 CTA，非 Cell 场景不再强制媒体提供共同 wrapper。绑定时会固定归属类型和祖先路径；共享、固定悬浮、跨 window、页面级包装、广告离屏后仍可点击、运行中 reparent 或归属不明仍失败关闭，并通过 `nativeFeedAd:didRejectClickWithError:` 通知 `IFLYAdErrorCodeNativeFeedClickViewsInvalid`（71503）。固定单容器页面可按需使用 `detachFromCurrentContainer`；常规 Cell 仍应按容器 detach。
+`6.3.0` 仅对优酷变体继续放宽受限外部 CTA：Binder 的 `allowsExternalClickViews` 仍默认 `NO`。显式开启后，外部点击视图可在绑定后才挂载和布局，也不要求与 containerView 存在共同层级、包装器或距离关系。点击时 SDK 才验证同 window/scene、CTA 可见可交互且面积小于 window 的 25%、广告容器前台可见比例至少 2/3，以及当前 Ad/container/generation 的独占租约；detach、迁移、关闭或销毁会立即使租约和绑定代次失效。失败通过 `nativeFeedAd:didRejectClickWithError:` 返回 `IFLYAdErrorCodeNativeFeedClickViewsInvalid`（71503），不曝光、不监测、不跳转。通用版、YS 和 YT 不随本版升级或改变该行为。
 
 固定卡片与复用列表使用同一套 SDK 托管挂载入口：
 

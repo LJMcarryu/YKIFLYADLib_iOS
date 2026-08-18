@@ -12,14 +12,15 @@ import sys
 from pathlib import Path
 
 
-VERSION = "6.2.4"
-PREVIOUS_RELEASE_VERSION = "6.2.3"
+VERSION = "6.3.0"
+PREVIOUS_RELEASE_VERSION = "6.2.4"
 REPOSITORY = "LJMcarryu/YKIFLYADLib_iOS"
-PENDING = "__IFLYADLIB_YOUKU_6_2_4_CHECKSUM_PENDING__"
+PENDING = "__IFLYADLIB_YOUKU_6_3_0_CHECKSUM_PENDING__"
 HISTORICAL = {
     "a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f",
     "1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb",
     "309c22486980cc283e76ea6d1299255b4f244e6ae4be3ef4f0ed959bd1cc0814",
+    "ce27b5d98a925c109fa6355a8095db7201717c7e1b9b2bcbbb92265dc2272d5e",
 }
 RELEASE_STATUS_RE = re.compile(
     r"<!--\s*ifly-release-status:\s*(\{[^\r\n]*\})\s*-->"
