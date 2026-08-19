@@ -18,7 +18,7 @@ open IFLYADLibSimple.xcworkspace
 
 最低支持 iOS 11.0，支持 iPhone 和 iPad。真机运行前，请在 Xcode 的 Signing & Capabilities 中选择自己的开发者 Team。
 
-Demo 已固定到 `6.3.0` tag 的 `YKIFLYADLib.podspec`；公开可用性以同版本 GitHub Release 和发布后 CI 为准。
+Demo 已固定到 `6.3.1` tag 的 `YKIFLYADLib.podspec`；公开可用性以同版本 GitHub Release 和发布后 CI 为准。
 Demo 首页只有上述三个自渲染示例入口，不调用 `IFLYSplashAd` 或 `IFLYInterstitialAd` 的 SDK 内置模板渲染接口，也不包含 Banner、激励视频及其他进阶功能。三个示例均使用优酷定制联调广告位；能否返回素材还取决于优酷请求域名路由和服务端广告位配置。
 
 `6.2.2` 保留 `6.1.2` 的全渠道共享修复：iOS 14 及以上只有 ATT `authorized` 时 SDK
@@ -46,7 +46,7 @@ Demo 的隐私政策链接也只允许 HTTP/HTTPS，并直接交给系统打开�
 `bidInfo`。仅 `Redirect/Download` 传入实际 `clickViews`，
 `Exposure/Unknown` 显式传 `@[]`。固定卡片和复用列表统一使用 Ad 级 attach 与容器级 detach。
 
-`6.3.0` 默认仍要求点击视图位于广告容器内。优酷媒体确需容器外 CTA 时显式开启 `allowsExternalClickViews` 并处理 `nativeFeedAd:didRejectClickWithError:`。外部点击视图可在绑定后才挂载和布局，也不要求与 containerView 存在共同层级、包装器或距离关系；点击时仍须通过同 window/scene、CTA 可见可交互且面积小于 window 的 25%、广告容器前台可见比例至少 2/3，以及当前 Ad/container/generation 的独占租约校验。失败以 71503 拒绝，不曝光、不监测、不跳转。固定单容器页面可按需使用 `detachFromCurrentContainer`。
+`6.3.1` 默认仍要求点击视图位于广告容器内。优酷媒体确需容器外 CTA 时显式开启 `allowsExternalClickViews` 并处理 `nativeFeedAd:didRejectClickWithError:`。外部点击视图可在绑定后才挂载和布局，不要求与 containerView 存在共同层级、包装器或距离关系，也不再限制其占 window 的面积比例；containerView 的非页面根父级/祖先可以作为点击层。点击时仍须通过同 window/scene、CTA 可见可交互、广告容器前台可见比例至少 2/3，以及当前 Ad/container/generation 的独占租约校验。未提供 `closeView` 时，父 `clickView` 只处理最终命中自身的触摸，任意子视图点击不进入广告点击链路；失败继续以带稳定 point 的 71503 拒绝，不曝光、不监测、不跳转。固定单容器页面可按需使用 `detachFromCurrentContainer`。
 
 曝光前滚出再回来会重新累计连续可见 `500ms`；已曝光条目恢复时不重复曝光。TTL 或视频投放截止时间不强拆当前活动容器，但会拒绝迁移到其他容器；当前容器正常 detach 后旧 Ad 不可再恢复。
 
