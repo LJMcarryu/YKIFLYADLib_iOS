@@ -2,6 +2,8 @@
 
 优酷定制版是面向 iOS 应用的静态广告 SDK，提供开屏、插屏和自渲染信息流。三种格式均支持图片或视频素材；Banner 和激励视频不在本产物中。
 
+## 6.3.2 发布状态
+
 <!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.2","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2"} -->
 
 当前正式版本：[`6.3.2`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2)。生产项目请固定到具体版本，不要依赖 `main` 分支。
