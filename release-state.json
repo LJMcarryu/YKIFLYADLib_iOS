@@ -3,7 +3,7 @@
   "channel": "youku",
   "repository": "LJMcarryu/YKIFLYADLib_iOS",
   "version": "6.3.2",
-  "phase": "FROZEN",
+  "phase": "CLOSED",
   "binarySourceCommit": "38eb0715f889fe2d585641891923511c9cc3e43e",
   "releaseMetadataCommit": "0e667f9f1a2d615d3f7e15a552f093c903ff1a57",
   "artifactInventory": {
@@ -15,5 +15,16 @@
     "statusAtFreeze": "not-run",
     "evidenceIncluded": false
   },
-  "publication": null
+  "publication": {
+    "releaseId": 375915334,
+    "tagName": "6.3.2",
+    "tagObjectSha": "4b99844db82dbe2095ac96a50f8913c9a365f4b4",
+    "tagCommitSha": "53e0b7f3ad1056049a194a51839d4fde44375e5f",
+    "releaseUrl": "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2",
+    "publishedAt": "2026-08-24T18:49:46Z",
+    "formalConsumerRunId": 32764616777,
+    "formalConsumerRunUrl": "https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/32764616777",
+    "conclusion": "success",
+    "verifiedAt": "2026-08-24T18:51:46Z"
+  }
 }
