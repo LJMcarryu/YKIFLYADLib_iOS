@@ -1,106 +1,36 @@
 # 优酷定制 IFLYADLib iOS SDK
 
-本仓库是优酷媒体定制版的二进制分发仓，仅提供以下三种广告能力：
+优酷定制版是面向 iOS 应用的静态广告 SDK，提供开屏、插屏和自渲染信息流。三种格式均支持图片或视频素材；Banner 和激励视频不在本产物中。
 
-- 开屏广告 `IFLYSplashAd`
-- 插屏广告 `IFLYInterstitialAd`
-- 自渲染信息流 `IFLYNativeFeedAd`
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.2","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2"} -->
 
-图片和视频素材均受支持。Banner、激励视频不在本产物中，对应公开头、实现符号和专属资源已物理裁剪。
+当前正式版本：[`6.3.2`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2)。生产项目请固定到具体版本，不要依赖 `main` 分支。
 
-定制版保持标准 SDK 的模块名、类前缀和品牌资源：
+## 能力矩阵
+
+| 能力 | 入口类 | 渲染方式 |
+| --- | --- | --- |
+| 开屏 | `IFLYSplashAd` | SDK 内置渲染，支持图片和视频 |
+| 插屏 | `IFLYInterstitialAd` | SDK 内置渲染，支持半屏/全屏、图片和视频 |
+| 自渲染信息流 | `IFLYNativeFeedAd` | 媒体渲染 UI，SDK 管理交互和视频 |
+| Banner | — | 本变体不提供 |
+| 激励视频 | — | 本变体不提供 |
+
+## 命名、资源和环境要求
+
+优酷版的 Pod 名称是 `YKIFLYADLib`，但 SDK module、公开类和方法仍使用标准 `IFLY*` 命名：
 
 ```objc
 #import <IFLYADLib/IFLYADLib.h>
 ```
 
-所有类型仍使用 `IFLY*` 前缀，资源包仍为 `IFLYPlayer.bundle`。优酷普通请求地址在二进制构建时固化为专属地址 `https://youku-sdk.voiceads.cn/ad/request`，不提供公开运行时 URL setter。
+资源包为 `IFLYPlayer.bundle`。SDK 支持 iOS 11.0 及以上，使用静态 XCFramework；最终 App 必须链接 `-ObjC`，不需要 Embed & Sign。
 
-## 6.3.2 发布状态
+优酷版与标准 `IFLYADLib` 包含相同的公开符号，不要在同一个 App 中同时集成两者。
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.2","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2"} -->
+## 安装
 
-当前最新公开正式版为 [`6.3.2`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2)。最低支持 iOS 11.0，支持 iPhone、iPad、arm64 真机及 arm64/x86_64 模拟器。
-正式 SDK 产物使用 Xcode 26.2（Build `17C52`）构建，具体事实记录在 `delivery-manifest.json`。
-公开可用性以同版本 GitHub Release 和发布后 CI 为准。
-
-<!-- 供发布 CI 机器校验的两提交 provenance；README、CHANGELOG、RELEASING 必须保持一致。 -->
-- `releaseState`：`FORMAL`
-- `binarySourceCommit`（SDK 二进制源码提交）：`38eb0715f889fe2d585641891923511c9cc3e43e`
-- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`0e667f9f1a2d615d3f7e15a552f093c903ff1a57`
-- `candidateId`：`b210310c95bd4790a508d6710fed1400439f598df300650f883b5898540a7837`
-
-`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `e84ba682e22049b29bce8700a401eaf9e07df70487a47dbc0495a1ad597539db`；`YKIFLYADLib-6.3.2.zip` 的 SHA-256 为 `32a50c1e256c5874f37771f0c56cbd043bc0ca59699ced2ee4293a0748145316`。
-
-`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结；候选提交中的 `release-state.json` 为 `6.3.2/FROZEN`。
-
-Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`、`statusAtFreeze=not-run`、`evidenceIncluded=false`。
-
-`6.3.2` 不沿用历史风险授权；主动 Apple Review 扫描策略固定为 `failOn=high`、`failOnWarning=true`、`strict=true`、`requireManual=true`、`acceptedWarningRuleIds=[]`。扫描状态不改写正式发布状态，未扫描不得表述为通过。
-
-本版保持 permissive 外部 CTA 契约：外部点击视图允许后挂载和后布局，不要求与 containerView 具有共同层级、包装器或距离关系，非页面根父级/祖先也可作为点击层。父级注册 CTA 会兜底普通 `UIView` 子视图；触摸路径上的媒体 `UIControl` 或媒体自有手势优先，显式注册的 CTA 自身仍由 SDK 处理，`closeView` 子树继续隔离。同 window/scene、可见交互、广告容器前台可见比例至少 2/3、当前 Ad/container/generation 独占租约，以及 `UIWindow`、VC 根视图和 containerView 本身拒绝等防线不变。失败继续使用 `IFLYAdErrorCodeNativeFeedClickViewsInvalid`（71503），错误描述包含稳定 point 和中文处理提示。
-
-## 6.3.1 历史正式事实
-
-[`6.3.1`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.1) 已于 2026-08-19 完成 Tag、Release、4 个资产无 Token 匿名校验和正式消费验证。annotated Tag 解引用到 `9d5cbf3f3ae38d08b80f00cd9dcdebdbb7e04754`，正式消费 [Run 32274114303](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/32274114303) 为 `success`；其 A/B 分别为 `2f0ecc3d286c055746377f6373ffc1c579318435` 和 `34a44f7b07b209815e78209ff72c517553a81c09`。
-
-## 6.3.0 历史正式事实
-
-[`6.3.0`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.0) 已于 2026-08-18 完成 Tag、Release、4 个资产无 Token 匿名校验和正式消费验证。annotated Tag 解引用到 `10b9aee2942334c9a4fd07262dbc56ee64188c8a`，正式消费 [Run 32147747290](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/32147747290) 为 `success`；其 A/B 分别为 `eb99fce9d25c428c72364a6cca525bdd60f9933b` 和 `def3a9d78dcb1b67959e84e7aa438c9e9be7cb93`。
-
-## 6.2.4 历史正式事实
-
-[`6.2.4`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.4) 已于 2026-08-17 完成 Tag、Release、4 个资产无 Token 匿名校验和正式消费验证。annotated Tag 解引用到 `c16ba284c12cf9f165c85c63fd6f846c52ad46b7`，正式消费 [Run 32027222871](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/32027222871) 为 `success`；其 A/B 分别为 `b0f745d582ce2bed5110702cff972be4153e5038` 和 `7b08118b43a0c4441de4c76a64f34fa54b3fe889`。
-
-## 6.2.3 历史正式事实
-
-[`6.2.3`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.3) 已于 2026-08-16 发布；annotated tag 解引用到 `ac7c5302903e9535d1a7d847eeac24a3c0237d74`，4 个资产已通过无 Token 匿名验证，正式消费 [Run 31940242816](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/31940242816) 为 `success`。其 A/B 分别为 `ea0240e620b57d7275e486199099c648f51de257` 和 `0f26b7647e6c1aadb32eca68b24f6845639a59c2`。
-
-## 6.2.2 历史正式事实
-
-以下为 `6.2.2` 历史正式事实：
-
-`6.2.2` 正式分发资产由私有源码提交
-`a8ec925d3731d7d11734647aa02ca7d91d674965` 生成；`delivery-manifest.json` 的
-`sourceCommit` 与 `sourceBuild.sourceCommit` 均保持该提交。SwiftPM zip 的 SHA-256 为
-`1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb`，合并 zip 的
-SHA-256 为 `0ba19a49cc09f4dba8b62224ba84a2f8c3447ca7ad959ae7edf06286fd89f0bc`。
-产物使用 Xcode 26.2（Build `17C52`）；两个 framework 切片均为非 ad-hoc 开发签名，
-证书 SHA-1 为 `767B1F38300A6AACAF2B7AC3A4EA052201D981BB`，`TeamIdentifier` 均为
-`FM295M5CZ5`。[GitHub Release 6.2.2](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.2.2)
-已正式公开，资产库存严格为 4 项；[published CI](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/31347053230)
-已成功完成无凭据匿名下载、资产与 A/B provenance 校验，并实际构建 Demo 和 SwiftPM 产品。
-该分发验收不代表最终宿主合规、`Validate App` 或 Apple 审核通过。
-
-## 仓库内容
-
-```text
-YKIFLYADLib.podspec       CocoaPods 分发清单
-Package.swift             Swift Package Manager 分发清单
-IFLYADLibSimple/          三个 NativeFeed 自渲染场景的 Demo 工程
-```
-
-SDK 私有源码、构建脚本和测试代码不在本分发仓。二进制只通过同版本 GitHub Release 交付。
-
-公开可用性以同版本 GitHub Release 和发布后 CI 为准。`6.3.2` 分发清单已包含真实 checksum、A/B 和 `delivery-manifest.json`。
-
-## Release 资产
-
-每个正式版本包含两个交付资产和两个校验元数据文件：
-
-| 文件 | 内容 | 适用方式 |
-| --- | --- | --- |
-| `YKIFLYADLib-<版本>.zip` | `IFLYADLib.xcframework`、`IFLYPlayer.bundle`、`LICENSE` | CocoaPods、手动集成 |
-| `IFLYADLib.xcframework.zip` | 仅静态 XCFramework | SwiftPM 二进制 target |
-
-同一 Release 还必须上传 `checksums.txt` 和 `delivery-manifest.json`。
-
-静态 XCFramework 内的资源不会自动进入宿主 App：CocoaPods 通过 podspec 投递，SwiftPM 通过仓库内资源 target 投递；只有手动集成需要自行复制 `IFLYPlayer.bundle`。
-SDK 为 Objective-C 静态库，最终 App 链接必须包含 `-ObjC`。CocoaPods 清单已配置该参数；SwiftPM 和手动接入需要在 App Target 的 `Other Linker Flags` 中添加。
-
-## CocoaPods 接入
-
-以下远程方式固定使用 `6.3.2` tag、podspec 和同版本 GitHub Release 资产：
+### CocoaPods
 
 ```ruby
 source 'https://cdn.cocoapods.org/'
@@ -108,388 +38,268 @@ platform :ios, '11.0'
 
 target 'YourApp' do
   use_frameworks!
-
   pod 'YKIFLYADLib',
       :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.3.2/YKIFLYADLib.podspec'
 end
 ```
-
-然后执行：
 
 ```bash
 pod install
 open YourApp.xcworkspace
 ```
 
-Pod 名是 `YKIFLYADLib`，但 SDK 模块名仍是 `IFLYADLib`。不要同时集成标准版 `IFLYADLib` 和优酷定制版，两者包含相同 Objective-C/C 符号。
+CocoaPods 会自动投递 `IFLYPlayer.bundle` 并传播 `-ObjC`。
 
-## Swift Package Manager 接入
+### Swift Package Manager
 
-以下远程方式使用精确版本 `6.3.2`；不要依赖 `main` 分支获取二进制。
-
-在 Xcode 的 “Add Package Dependencies” 中添加：
+在 Xcode 中添加：
 
 ```text
 https://github.com/LJMcarryu/YKIFLYADLib_iOS.git
 ```
 
-选择产品 `IFLYADLib` 即可，`IFLYPlayer.bundle` 会由同一 SwiftPM 产品自动投递，无需额外下载或复制。随后在 App Target 的 `Other Linker Flags` 添加 `-ObjC`。
+选择版本 `6.3.2` 和产品 `IFLYADLib`。SwiftPM 会自动投递资源；在 App target 的 `Other Linker Flags` 添加：
 
-## 手动接入
+```text
+-ObjC
+```
 
-1. 下载并解压 `YKIFLYADLib-<版本>.zip`。
-2. 将 `IFLYADLib.xcframework` 加入 App Target，Embed 选择 “Do Not Embed”。
-3. 将 `IFLYPlayer.bundle` 加入 App Target 的 “Copy Bundle Resources”。
-4. 在 App Target 的 `Other Linker Flags` 添加 `-ObjC`。
-5. 在代码中导入 `<IFLYADLib/IFLYADLib.h>`。
+### 手动集成
 
-## 隐私与 ATT
+从 [Release 6.3.2](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2) 下载 `YKIFLYADLib-6.3.2.zip`：
 
-宿主 App 应在发起广告请求前完成自己的隐私同意流程。iOS 14 及以上如需使用 IDFA，还应配置：
+1. 将 `IFLYADLib.xcframework` 加入 App target，Embed 选择 **Do Not Embed**。
+2. 将 `IFLYPlayer.bundle` 加入 **Copy Bundle Resources**。
+3. 在 App target 的 `Other Linker Flags` 添加 `-ObjC`。
+4. 导入 `<IFLYADLib/IFLYADLib.h>`。
+
+## 初始化、隐私和请求配置
+
+```objc
+#import <IFLYADLib/IFLYADLib.h>
+
+- (BOOL)application:(UIApplication *)application
+    didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    [IFLYAdConfig setPersonalizedEnabled:YES];
+    [IFLYAdConfig setLogEnabled:NO];
+    return YES;
+}
+```
+
+`setPersonalizedEnabled:` 只记录媒体侧个性化状态，不代替 ATT，也不会自行修改请求、填充或点击行为。正式上线建议关闭日志。
+
+iOS 14 及以上如需使用 IDFA，请配置：
 
 ```xml
 <key>NSUserTrackingUsageDescription</key>
 <string>用于获取广告标识符 IDFA，以便请求和展示相关广告。</string>
 ```
 
-SDK 的 `PrivacyInfo.xcprivacy` 位于 `IFLYPlayer.bundle`。媒体仍需根据实际业务在 App Store Connect 中完成隐私标签、ATT 和相关合规声明。
+只有 ATT `authorized` 时才读取或传入 IDFA；授权完成后请重新读取。宿主仍须在 App Store Connect 隐私标签中如实申报 SDK 实际数据处理。
 
-`6.1.2` 在 SDK 内统一收紧 IDFA 门控：iOS 14 及以上仅在 ATT 状态为
-`authorized` 时读取或接受 IDFA，未授权阶段传入的 IDFA 不会留待授权后复用；
-授权被撤回后会清除缓存。普通广告请求与 S2S 请求遵循同一规则。iOS 11～13
-继续按系统广告跟踪状态处理；CocoaPods 清单显式链接 `AdSupport`，并弱链接
-`AppTrackingTransparency`，不会让 iOS 11～13 因缺少该系统框架而无法启动。
-
-## 跳转兼容说明
-
-`6.1.2` 不再使用 `canOpenURL:` 预检 DeepLink，而是直接调用系统
-`openURL:options:completionHandler:` 并根据完成回调判断是否打开；失败时仍按既有
-规则回退 landing。非法 HTTP URL、携带凭据的 URL 和危险 scheme 会在打开前拒绝。
-历史字段 `jumpDirectly` 仅为源码兼容保留，设置后不会绕过 SDK 的监测、回退或
-安全校验，也不会改变跳转行为。
-
-## 全局配置
+三种广告都支持 `IFLYAdRequestConfig`：
 
 ```objc
-[IFLYAdConfig setPersonalizedEnabled:YES];
-[IFLYAdConfig setLogEnabled:NO];
+- (IFLYAdRequestConfig *)requestConfig {
+    IFLYAdRequestConfig *config = [[IFLYAdRequestConfig alloc] init];
+    config.requestTimeout = @5;
+    config.appName = NSBundle.mainBundle.infoDictionary[@"CFBundleDisplayName"];
+    config.appVersion = NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"];
+    config.settleType = @1;  // 0=固定价格，1=RTB
+    config.bidFloor = @0.01;
+    config.interactStatus = @1;
+    return config;
+}
 ```
 
-`setPersonalizedEnabled:` 当前只记录媒体传入的状态，不会自动过滤请求字段或改变广告行为。正式版本建议关闭 SDK 日志。
+常用字段包括 `requestId`、`requestTimeout`、`appName`、`appVersion`、`userAgent`、`idfa`、`caidList`、`settleType`、`bidFloor`、`pmpDeals` 和 `deepLinkDisabled`。广告对象可调用 `loadAd` 或：
+
+```objc
+[ad loadAdWithRequestConfig:[self requestConfig]];
+```
+
+点击、DeepLink、落地页和失败回退由 SDK 统一处理；历史 `jumpDirectly` 字段仅为兼容保留，不应用来控制业务跳转。
 
 ## 开屏广告
 
+开屏广告挂载到 window，不使用 `presentViewController:`；应在 `splashAdDidReady:` 后展示：
+
 ```objc
 @interface SplashViewController () <IFLYSplashAdDelegate>
-@property (nonatomic, strong) IFLYSplashAd *ad;
+@property (nonatomic, strong) IFLYSplashAd *splashAd;
 @end
 
 - (void)loadSplash {
-    [self.ad destroy];
-
-    IFLYSplashAd *ad = [[IFLYSplashAd alloc] initWithAdUnitId:@"开屏广告位 ID"];
+    IFLYSplashAd *ad = [[IFLYSplashAd alloc] initWithAdUnitId:@"YOUR_SPLASH_AD_UNIT_ID"];
     ad.delegate = self;
     ad.currentViewController = self;
-    self.ad = ad;
-    [ad loadAd];
+    self.splashAd = ad;
+    [ad loadAdWithRequestConfig:[self requestConfig]];
 }
 
 - (void)splashAdDidReady:(IFLYSplashAd *)ad {
-    if (ad != self.ad || !ad.isAdValid) {
-        return;
-    }
+    if (ad != self.splashAd || !ad.isAdValid) return;
     IFLYSplashAdConfig *config = [[IFLYSplashAdConfig alloc] init];
     config.traceDuration = 5;
     config.muteOnStart = YES;
     [ad showAdFromRootViewController:self config:config];
 }
 
-- (void)splashAdDidClose:(IFLYSplashAd *)ad {
-    if (ad == self.ad) {
-        [ad destroy];
-        self.ad = nil;
-    }
+- (void)splashAd:(IFLYSplashAd *)ad didFailWithError:(IFLYAdError *)error {
+    NSLog(@"Splash failed: %d %@", error.errorCode, error.errorDescription);
 }
 ```
 
-`splashAdDidLoad:` 表示响应解析成功，`splashAdDidReady:` 表示 SDK 管理的主素材已经就绪。只能在 `didReady` 后展示。
+常用回调包括 `splashAdDidLoad:`、`splashAdDidReady:`、`splashAdDidShow:`、`splashAdDidExpose:`、`splashAdDidClick:`、`splashAdDidClose:`、`splashAdDidSkip:` 和失败回调。
 
 ## 插屏广告
 
 ```objc
 @interface InterstitialViewController () <IFLYInterstitialAdDelegate>
-@property (nonatomic, strong) IFLYInterstitialAd *ad;
+@property (nonatomic, strong) IFLYInterstitialAd *interstitialAd;
 @end
 
 - (void)loadInterstitial {
-    [self.ad destroy];
-
-    IFLYInterstitialAd *ad =
-        [[IFLYInterstitialAd alloc] initWithAdUnitId:@"插屏广告位 ID"];
+    IFLYInterstitialAd *ad = [[IFLYInterstitialAd alloc] initWithAdUnitId:@"YOUR_INTERSTITIAL_AD_UNIT_ID"];
     ad.delegate = self;
     ad.currentViewController = self;
-    self.ad = ad;
-    [ad loadAd];
+    self.interstitialAd = ad;
+    [ad loadAdWithRequestConfig:[self requestConfig]];
 }
 
 - (void)interstitialAdDidReady:(IFLYInterstitialAd *)ad {
-    if (ad != self.ad || !ad.isAdValid) {
-        return;
-    }
+    if (ad != self.interstitialAd || !ad.isAdValid) return;
     IFLYInterstitialAdConfig *config = [[IFLYInterstitialAdConfig alloc] init];
     config.presentationStyle = IFLYInterstitialPresentationStyleHalfScreen;
     config.muteOnStart = YES;
     [ad showAdFromRootViewController:self config:config];
 }
+
+- (void)interstitialAd:(IFLYInterstitialAd *)ad didFailWithError:(IFLYAdError *)error {
+    NSLog(@"Interstitial failed: %d %@", error.errorCode, error.errorDescription);
+}
 ```
 
-插屏支持图片、视频以及横竖版素材。`presentationStyle` 可选择半屏或全屏；媒体不需要自行创建播放器。
+可选 `IFLYInterstitialPresentationStyleHalfScreen` 或 `IFLYInterstitialPresentationStyleFullScreen`。展示或关闭后请重新创建实例。
 
 ## 自渲染信息流
 
-本节描述 `6.2.2` 的 SDK 托管挂载契约，实际接入必须与所选 tag 的公开头保持一致。
-
-`6.3.2` 继续采用 permissive 外部 CTA 契约：Binder 的 `allowsExternalClickViews` 仍默认 `NO`。显式开启后，外部点击视图可在绑定后才挂载和布局，不要求与 containerView 存在共同层级、包装器或距离关系，也不限制其占 window 的面积比例；containerView 的非页面根父级/祖先可以作为点击层。点击时 SDK 仍验证同 window/scene、CTA 可见可交互、广告容器前台可见比例至少 2/3，以及当前 Ad/container/generation 的独占租约；detach、迁移、关闭或销毁会立即使租约和绑定代次失效。父级注册 CTA 会兜底普通 `UIView` 子视图；触摸路径上的 enabled、可交互媒体 `UIControl` 或 enabled 媒体自有手势优先，显式注册的 CTA 自身仍由 SDK 处理，`closeView` 子树继续隔离。失败通过 `nativeFeedAd:didRejectClickWithError:` 返回带稳定 point 和中文处理提示的 `IFLYAdErrorCodeNativeFeedClickViewsInvalid`（71503），不曝光、不监测、不跳转。
-
-固定卡片与复用列表使用同一套 SDK 托管挂载入口：
-
-```text
-创建 IFLYNativeFeedAd
-→ loadAd
-→ nativeFeedAdDidLoad:
-→ 读取 adData
-→ 媒体渲染 UI
-→ 构造 Binder
-→ attachWithViewBinder:error:
-→ SDK 管理曝光、点击、跳转、视频和监测
-→ Cell 离屏、复用或切换普通内容时 detachAdFromContainerView:
-→ 条目永久结束时释放数据层最后一个 Ad 强引用
-```
-
-媒体必须提交的视图生命周期动作只有 attach 和 detach。SDK 内部维护展示会话、Binding、generation 和内容级去重；媒体数据层只持 `IFLYNativeFeedAd`，Cell 不持 SDK 生命周期对象，也不记录“首次展示还是复用展示”。`destroy` 是仍持有 Ad 时主动提前终止的可选入口，不是正常回收必调项。
-
-同一逻辑条目滚出后再回来仍使用原 Ad：
-
-```text
-数据层按稳定 itemID 持有 Ad
-→ Cell 进屏时用 adData 重画 UI，并对该 Ad attach
-→ Cell 离屏或复用时只按自身 containerView detach
-→ 数据层继续持有原 Ad，回屏后对新 Cell 再次 attach
-→ 条目永久淘汰时 detach 当前容器，并释放最后一个 Ad 强引用
-```
-
-### 请求和渲染
+NativeFeed 由媒体根据 `ad.adData` 渲染 UI，SDK 负责曝光、点击、跳转、关闭、监测和视频播放器。加载成功后在主线程同步调用 `attachWithViewBinder:error:`：
 
 ```objc
-@interface NativeViewController () <IFLYNativeFeedAdDelegate>
-@property (nonatomic, strong) IFLYNativeFeedAd *ad;
-@property (nonatomic, strong) UIView *containerView;
-@property (nonatomic, strong) UIImageView *imageView;
-@property (nonatomic, strong) UIView *videoView;
-@property (nonatomic, strong) UIButton *closeButton;
+@interface NativeFeedViewController () <IFLYNativeFeedAdDelegate>
+@property (nonatomic, strong) IFLYNativeFeedAd *nativeAd;
+@property (nonatomic, strong) UIView *adContainer;
 @end
 
-- (void)loadNativeAd {
-    [self disposeNativeAd];
-
-    IFLYNativeFeedAd *ad =
-        [[IFLYNativeFeedAd alloc] initWithAdUnitId:@"自渲染广告位 ID"];
+- (void)loadNativeFeed {
+    IFLYNativeFeedAd *ad = [[IFLYNativeFeedAd alloc] initWithAdUnitId:@"YOUR_NATIVE_FEED_AD_UNIT_ID"];
     ad.delegate = self;
     ad.currentViewController = self;
     ad.muteOnStart = YES;
-    self.ad = ad;
-    [ad loadAd];
+    self.nativeAd = ad;
+    [ad loadAdWithRequestConfig:[self requestConfig]];
 }
 
 - (void)nativeFeedAdDidLoad:(IFLYNativeFeedAd *)ad {
-    if (ad != self.ad) {
-        return;
-    }
+    if (ad != self.nativeAd || !ad.adData.isMaterialComplete) return;
 
-    IFLYNativeFeedAdData *data = ad.adData;
-    if (!data.isMaterialComplete ||
-        data.materialType == IFLYNativeFeedAdMaterialTypeUnknown) {
-        [self disposeNativeAd];
-        return;
-    }
-
-    // 先根据 data 渲染媒体自己的标题、图片、广告标识和关闭按钮。
-    IFLYNativeFeedAdViewBinder *binder =
-        [[IFLYNativeFeedAdViewBinder alloc] init];
-    binder.containerView = self.containerView;
-    binder.closeView = self.closeButton;
-    binder.renderViews = @[self.containerView, self.closeButton];
-
-    BOOL clickable =
-        data.interactionType == IFLYNativeFeedAdInteractionTypeRedirect ||
-        data.interactionType == IFLYNativeFeedAdInteractionTypeDownload;
-    binder.clickViews = clickable ? @[self.containerView] : @[];
-
-    if (data.materialType == IFLYNativeFeedAdMaterialTypeVideo) {
-        binder.videoView = self.videoView;
-    } else {
-        binder.imageView = self.imageView;
-    }
+    // 先根据 ad.adData 渲染标题、品牌、图片/视频和 CTA。
+    IFLYNativeFeedAdViewBinder *binder = [[IFLYNativeFeedAdViewBinder alloc] init];
+    binder.containerView = self.adContainer;
+    binder.renderViews = @[/* 媒体实际渲染的视图 */];
+    binder.clickViews = @[/* Redirect/Download 点击视图；Exposure/Unknown 传 @[] */];
+    binder.videoView = /* 视频素材使用普通 UIView；非视频传 nil */ nil;
 
     IFLYAdError *error = nil;
     if (![ad attachWithViewBinder:binder error:&error]) {
-        [self disposeNativeAd];
+        NSLog(@"NativeFeed attach failed: %d %@", error.errorCode, error.errorDescription);
     }
 }
 
-- (void)disposeNativeAd {
-    IFLYNativeFeedAd *ad = self.ad;
-    self.ad = nil;
-    [IFLYNativeFeedAd detachAdFromContainerView:self.containerView];
-    ad.delegate = nil;
-    ad.currentViewController = nil;
-    // self.ad 是最后一个强引用时，离开本方法后 SDK 会自动完成终态清理。
-}
-
-- (void)terminateNativeAdEarly {
-    // 仅当业务仍要保留 ad 引用，但希望立刻取消请求并终止恢复能力时使用。
-    [IFLYNativeFeedAd detachAdFromContainerView:self.containerView];
-    [self.ad destroy];
+- (void)leaveScreen {
+    [IFLYNativeFeedAd detachAdFromContainerView:self.adContainer];
 }
 ```
 
-attach 必须在主线程同步调用。`containerView` 必填，Binder 中的视图必须属于该容器层级。相同 Ad 与相同活动容器重复 attach 为幂等成功；有效期内换容器时由 SDK 串行迁移，目标容器已有其他广告时会在预检成功后原子接管。新挂载预检失败不会破坏原活动挂载。
+接入规则：
 
-### UITableView / UICollectionView 复用
+- `containerView` 必填；视频素材必须提供普通 `UIView` 作为 `videoView`；不要自行创建 `AVPlayer`。
+- `interactionType` 为 `Exposure` 或 `Unknown` 时，`clickViews` 传 `@[]`；为 `Redirect` 或 `Download` 时只传实际点击视图。
+- 如确需把 CTA 放在容器外，显式设置 `binder.allowsExternalClickViews = YES`，并保证 CTA 与广告处于同一 window/scene、可见且可交互。常规接入优先让 CTA 位于容器内。
+- Cell 离屏、复用或切换普通内容时，对具体容器调用 `detachAdFromContainerView:`；不要按旧 `indexPath` 反查广告。
+- 列表数据层持有 `IFLYNativeFeedAd`，Cell 只负责渲染和 attach/detach。条目暂时离屏可继续持有同一 Ad；永久删除或退出页面时 detach、置空 delegate 并释放 Ad。
+- 绑定且曝光后可用 `startPlay`、`pausePlay`、`resumePlay`、`stopPlay` 控制 SDK 播放器。
 
-列表数据模型以稳定 `itemID` 持有 Ad，不要用会随 diff、插入和删除变化的 `indexPath` 作为广告身份：
+公开 `adData` 字段包括：`materialType`、`templateId`、`title`、`desc`、`content`、`ctaText`、`brand`、`appName`、`icon`、`mainImage`、`imageList`、`imageURLs`、`videoURL`、`videoCoverURL`、`videoDuration`、`targetURL`、`deeplinkURL`、`marketURL`、`downloadURL`、`packageName`、`interactionType` 和 `interactType`。点击和跳转由 SDK 处理，媒体不要自行打开 URL。
 
-```objc
-// didLoad：数据层只保存该逻辑条目的 Ad。
-item.ad = ad;
+NativeFeed 回调包括 `nativeFeedAdDidLoad:`、`nativeFeedAdDidRender:`、`nativeFeedAdDidExpose:`、`nativeFeedAdDidClick:`、`nativeFeedAdDidJump:`、`nativeFeedAdDidClose:`、`nativeFeedAd:didFailWithError:` 和 `nativeFeedAd:didFailToRenderWithError:`；视频素材还会触发播放状态回调。
 
-// willDisplay / Cell 配置：用 item.ad.adData 重画当前 Cell，再提交 Binder。
-IFLYAdError *error = nil;
-[item.ad attachWithViewBinder:binder error:&error];
+### 优酷媒体摇一摇
 
-// didEndDisplaying / prepareForReuse / 变成普通内容：只提交该 Cell 的容器。
-[IFLYNativeFeedAd detachAdFromContainerView:cell.adContainerView];
-
-// 条目删除、页面退出或缓存淘汰：detach 可见容器并释放最后一个 Ad 强引用。
-[IFLYNativeFeedAd detachAdFromContainerView:cell.adContainerView];
-item.ad.delegate = nil;
-item.ad.currentViewController = nil;
-item.ad = nil;
-```
-
-`attachWithViewBinder:error:` 必须在主线程调用；`detachAdFromContainerView:` 幂等，可从任意线程重复调用。`didEndDisplaying` 应直接提交回调 Cell 自身的 `containerView`，不要根据可能过期的 `indexPath` 反查广告。SDK 会给每个容器挂载分配内部 generation，旧 Cell 迟到的 detach、手势、曝光或视频事件不会影响已迁移到新 Cell 的挂载。
-
-未曝光时重挂载会重新累计连续可见 `500ms`，不累加不同 Cell 的时长；已曝光后恢复不重复发送曝光监测或公开曝光回调。同一 Ad 同时只允许一个活动容器。视频 detach 后保留播放器、进度和既有 `playRequested` 播放意图；显式 `pausePlay` / `stopPlay` 后不会因回屏自动恢复，只有 `resumePlay` / `startPlay` 才重新申请播放。
-
-素材 TTL 或视频投放截止时间在当前容器活动期间到达时，不中途强拆该 Cell；相同 Ad 与相同活动容器的幂等 attach 仍成功，但迁移到其他容器会失败。当前容器正常 detach 后旧 Ad 不再允许恢复，应释放该条目并请求新广告。
-
-### 点击语义
-
-- `Redirect`、`Download`：显式传入至少一个 `clickViews`。
-- `Exposure`、`Unknown`：必须显式传 `@[]`。
-- 不要把 `clickViews` 留为 `nil`；`nil` 会把整个容器作为默认点击区域。
-- DeepLink、landing、下载兜底和点击监测由 SDK 统一处理，媒体不要自行 `openURL`。
-
-### 媒体摇一摇上报
-
-自优酷 `6.1.1` 起，NativeFeed 由媒体负责判定摇一摇，SDK 不自主按阈值触发。广告自然曝光且有效可见期间，SDK 对全部 NativeFeed 广告被动缓存短时三轴数据，不依赖服务端 `interact` 或素材类型；媒体确认摇一摇后在主线程调用：
+优酷版额外提供媒体侧摇一摇上报接口。它只上报媒体已经识别到的摇一摇事件，不会替代普通点击：
 
 ```objc
 IFLYAdError *error = nil;
 BOOL accepted = [ad reportMediaShakeTriggeredWithError:&error];
+if (!accepted) {
+    NSLog(@"Shake report failed: %d %@", error.errorCode, error.errorDescription);
+}
 ```
 
-`YES` 只表示 SDK 已接受事件并进入宏替换、监测、跳转和点击回调，不保证一定匹配到加速度样本或跳转成功。每个逻辑广告条目最多接受一次；Cell detach/attach 不重置次数。广告尚未自然曝光、当前没有活动可见挂载、普通点击已进入处理或非主线程调用时会返回 `NO`，具体错误为 `71512`～`71515`。媒体未调用该接口时，不会形成这类摇一摇点击。
+只有广告数据声明支持该互动时才调用；普通点击、跳转和奖励逻辑仍由 SDK 管理。
 
-### 视频容器
+## S2S 和 Header Bidding
 
-媒体只需提供普通 `UIView` 作为 `binder.videoView`，不需要创建 `AVPlayer`。SDK 只管理自己创建的播放器图层，并负责：
+如平台已开通服务端竞价：
 
-- 容器尺寸变化
-- 绑定、解绑和复用
-- 前后台切换
-- 静音、缓冲、暂停、恢复和完播
-- 播放事件及广告监测
+```objc
+NSError *error = nil;
+NSString *sdkToken = [IFLYAdSDK getSdkTokenWithAdUnitId:@"YOUR_AD_UNIT_ID" error:&error];
+[ad loadAdWithServerBiddingToken:rspToken];
+```
 
-固定卡片页面退出、列表 Cell 离屏、复用或改成普通内容时，都按其 `containerView` 调用 `detachAdFromContainerView:`。逻辑条目仍在数据源时继续保留 Ad；条目永久终止时释放最后一个 Ad 强引用即可。只有业务仍持有 Ad、但需要立即取消请求或终止恢复能力时才调用 `destroy`。
-
-首次视频挂载成功后，可在 `nativeFeedAdDidRender:` 中调用 `startPlay`。后续跨 Cell attach 也可能收到 `didRender`，不应在该回调中无条件重置播放意图；回屏时应保留原 `playRequested`，只有媒体明确需要重新起播时才调用 `startPlay` / `resumePlay`。播放器的
-前后台暂停恢复、静音、缓冲、播放监测和资源释放由 SDK 管理；媒体只在
-`nativeFeedAdDidStartPlay:`、`nativeFeedAdDidPausePlay:`、
-`nativeFeedAdDidResumePlay:`、`nativeFeedAdDidPlayFinish:` 和播放失败回调中
-同步自己的封面、占位和状态 UI。两种场景都不能只移除 `videoView`，必须提交整个广告容器 detach。
-
-### 自渲染公开字段
-
-`IFLYNativeFeedAdData` 公开以下媒体渲染字段：
-
-- `creativeId`
-- `templateId` / `materialType`
-- `interactionType`
-- `interactType`
-- `title`、`desc`、`content`、`ctaText`、`brand`、`appName`
-- `adSourceMark`、`adSourceIconURL`
-- `mainImage`、`image1`、`image2`、`image3`、`imageList`、`imageURLs`、`imageSize`
-- `videoURL`、`videoCoverURL`、`videoDuration`、`videoSize`
-- `icon` / `iconURL`
-- `closeIconURL`
-- `targetURL`、`deeplinkURL`
-- `marketURL`、`downloadURL`
-- `packageName`
-- `hasShakeInteraction`
-
-`templateId` 归一值：
-
-| 值 | 类型 | 判断 |
-| --- | --- | --- |
-| `0` | Unknown | 素材无法识别 |
-| `1` | SingleImage | 存在 `img` 或 `icon` |
-| `2` | Video | 存在有效 `video` |
-| `3` | MultipleImages | `img1`、`img2` 均有效，`img3` 可选 |
-
-优先级是 `video → img1+img2 → img/icon → Unknown`。
-
-`interactionType` 只按服务端 `action_type` 归一：`1=Exposure`、
-`2=Redirect`、`3/4=Download`，`9` 及其他未支持值为 `Unknown`。
-`Exposure`、`Unknown` 必须给 Binder 显式传入空的 `clickViews`；媒体不得把它们
-兜底为可点击。`interactType` 按服务端 `interact` 归一：
-`1=Click`、`2=ClickAndShake`、`3=ClickAndSlide`、
-`4=ClickShakeAndSlide`，`5/6/7` 及其他未支持值为 `Unknown`。
-当前 NativeFeed 不安装上滑手势，包含上滑的枚举只保留归一语义。
-
-`appName` 对应服务端 `app_name`，仅用于下载类广告的应用名称。它与
-`IFLYAdRequestConfig.appName` 不同：后者是媒体宿主 App 的请求参数。
-
-### 通用竞价字段
-
-三种广告都只通过以下对象读取通用竞价字段：
+加载成功后读取公开竞价字段：
 
 ```objc
 NSNumber *price = ad.bidInfo.price;
 NSString *dealId = ad.bidInfo.dealId;
+[ad sendBidResultWithType:IFLYAdBidResultTypeWin reason:@"win"];
 ```
 
-`price` 可能为 `nil`；S2S 加载成功时为 `0`。除 NativeFeed 自渲染外，开屏和插屏
-不公开 `adData`、创意 ID 或完整服务端响应。`6.2.2` 继续只提供本节列出的自渲染
-白名单字段；CTA 使用 `ctaText`，竞价字段统一从 `bidInfo` 获取。
+Token 生命周期、通知时机和失败重试策略以平台协议为准；未开通时使用普通 `loadAd`。
 
-## Demo
+## 错误处理与生命周期
 
-[IFLYADLibSimple](./IFLYADLibSimple) 只调用 `IFLYNativeFeedAd` 自渲染能力，使用开屏、插屏和信息流三类广告位提供三个示例入口：
+- `*AdDidLoad:` 表示响应解析成功，素材可能仍在下载。
+- `*AdDidReady:` 表示内置渲染主素材已就绪，可以展示。
+- 展示前检查 `isAdValid`。
+- 页面退出时置空 delegate、调用 `destroy` 并释放强引用；NativeFeed 列表正常离屏只需 detach。
+- 所有失败通过对应 delegate 的 `didFailWithError:` 返回 `IFLYAdError`；无填充、网络错误、超时和素材不完整应按业务策略结束或重试，不要无限重试。
 
-- 自渲染开屏：使用图片/视频开屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板开屏样式。
-- 自渲染插屏：使用横竖版图片/视频插屏广告位，通过 `IFLYNativeFeedAdData` 和 Binder 复刻模板插屏样式。
-- 自渲染信息流列表复用示例，可切换图文/视频广告位，展示“数据层只持 Ad、Cell 只提交容器”的 SDK 托管挂载和媒体摇一摇上报。
+## 示例工程
 
-首次启动会先展示隐私同意页面；同意后才允许配置 SDK、请求 ATT 和加载广告。三个示例使用六个优酷定制联调广告位，其中插屏横竖版共用对应的图片或视频广告位。能否返回素材仍取决于优酷请求域名路由和服务端广告位配置。
+`IFLYADLibSimple` 当前是 NativeFeed 自渲染示例，包含图片、视频和展示布局场景。示例页面中的开屏/插屏视觉场景用于演示媒体页面布局，不调用 SDK 内置 `IFLYSplashAd` 或 `IFLYInterstitialAd`；内置格式请按本文代码接入。
 
-自渲染开屏和自渲染插屏只是媒体侧视觉示例，不调用 `IFLYSplashAd` 或 `IFLYInterstitialAd` 的 SDK 内置模板渲染接口。
+```bash
+cd IFLYADLibSimple
+pod install
+open IFLYADLibSimple.xcworkspace
+```
 
-## 能力边界
+Demo 构建成功表示 6.3.2 包能够被 CocoaPods 正确消费和链接；它不等同于线上填充，也不替代内置开屏/插屏的运行验证。
 
-本定制包不包含：
+## 常见问题
 
-- `IFLYBannerAd`
-- `IFLYRewardVideoAd`
+| 问题 | 处理方式 |
+| --- | --- |
+| 找不到 Banner 或 Reward 类 | 这两个能力不在优酷 6.3.2 产物中。 |
+| 与标准版同时链接时报符号冲突 | 优酷版和标准版都使用 `IFLY*` 符号，同一 App 只能选择其中一个。 |
+| `-ObjC` 缺失 | 在最终 App target 的 `Other Linker Flags` 添加 `-ObjC`。 |
+| NativeFeed 绑定失败 | 确认主线程调用、容器非空、视频传入 `videoView`，并让点击视图与 `interactionType` 匹配。 |
+| IDFA 为空 | 检查 ATT 授权和 `NSUserTrackingUsageDescription`；授权完成后重新读取。 |
+| 资源缺失 | 确认 `IFLYPlayer.bundle` 已由 CocoaPods/SwiftPM 投递，或已在手动集成时加入 Copy Bundle Resources。 |
 
-同一个 App 不能同时链接标准版、YS 版或其他包含相同 `IFLYADLib` 模块和符号的自包含变体。
+## 反馈与支持
+
+请在 [Issues](https://github.com/LJMcarryu/YKIFLYADLib_iOS/issues) 提交问题，并附 SDK 版本、iOS/Xcode 版本、接入方式、复现步骤和错误回调。版本变更见 [`CHANGELOG.md`](./CHANGELOG.md)。
