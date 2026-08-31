@@ -12,11 +12,12 @@ import sys
 from pathlib import Path
 
 
-VERSION = "6.3.2"
-PREVIOUS_RELEASE_VERSION = "6.3.1"
+VERSION = "6.3.3"
+PREVIOUS_RELEASE_VERSION = "6.3.2"
 REPOSITORY = "LJMcarryu/YKIFLYADLib_iOS"
-PENDING = "__IFLYADLIB_YOUKU_6_3_2_CHECKSUM_PENDING__"
+PENDING = "__IFLYADLIB_YOUKU_6_3_3_CHECKSUM_PENDING__"
 HISTORICAL = {
+    "e84ba682e22049b29bce8700a401eaf9e07df70487a47dbc0495a1ad597539db",
     "a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f",
     "1ddbe4b12ec95658845b80adb8d4d91b9a9ce778d618b4f1a9ad41d5886d1ddb",
     "309c22486980cc283e76ea6d1299255b4f244e6ae4be3ef4f0ed959bd1cc0814",
@@ -77,8 +78,10 @@ def validate_state_version(value: dict[str, object], release_kind: str) -> None:
         return
     require(release_kind == "none", "非法验证类型")
     require(
-        version in {PREVIOUS_RELEASE_VERSION, VERSION} and phase == "CLOSED",
-        "release-state 版本或阶段不匹配：普通 main 只允许保留上一版或当前版 CLOSED",
+        (version in {PREVIOUS_RELEASE_VERSION, VERSION} and phase == "CLOSED")
+        or (version == VERSION and phase == "FROZEN"),
+        "release-state 版本或阶段不匹配：普通 main 只允许保留上一版/当前版 CLOSED，"
+        "或当前版本 FROZEN",
     )
 
 
