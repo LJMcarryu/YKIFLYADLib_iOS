@@ -1,8 +1,19 @@
 # 版本记录
 
-## 6.3.2（2026-08-25）
+## 6.3.3（2026-09-01）
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.2","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2"} -->
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.3","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.3"} -->
+
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`b7e46a9f06897924d3d69d4d6a7e43f6237d8579`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`b86f5d7dc5e1105194889bc60a5ee9eec40b611f`
+- `candidateId`：`4f6324a3e6b8f9bac4652edd6d35000a132d544fc9bf636ec36928e20dbe3cb9`
+- `IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256：`0261828ec59ed8f2bfeedc3374dfd28799d7b46747074ea2442976aba6e2c4c7`；`YKIFLYADLib-6.3.3.zip` 的 SHA-256：`34e0c79487aecd7c47b1db32d9593e5e5ae163564c66f27ede375408a18e5aa8`；`checksums.txt` 的 SHA-256：`7311e891706eadf9451477640a3559dd6c119e9cf36d8505235c30a599284166`。
+- `releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。
+- NativeFeed 的 71503 描述统一为结构化 `[71503/<point>]` 中文诊断并使用诊断级日志；优酷专属能力、请求地址、permissive 外部 CTA 与媒体交互优先契约保持不变。
+- Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`、`statusAtFreeze=not-run`、`evidenceIncluded=false`。
+
+## 6.3.2（2026-08-25）
 
 - `releaseState`：`FORMAL`
 - `binarySourceCommit`（SDK 二进制源码提交）：`38eb0715f889fe2d585641891923511c9cc3e43e`

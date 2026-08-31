@@ -2,11 +2,11 @@
 
 优酷定制版是面向 iOS 应用的静态广告 SDK，提供开屏、插屏和自渲染信息流。三种格式均支持图片或视频素材；Banner 和激励视频不在本产物中。
 
-## 6.3.2 发布状态
+## 6.3.3 发布状态
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.2","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2"} -->
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.3","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.3"} -->
 
-当前正式版本：[`6.3.2`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2)。生产项目请固定到具体版本，不要依赖 `main` 分支。
+当前正式版本：[`6.3.3`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.3)。生产项目请固定到具体版本，不要依赖 `main` 分支。
 
 ## 能力矩阵
 
@@ -41,7 +41,7 @@ platform :ios, '11.0'
 target 'YourApp' do
   use_frameworks!
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.3.2/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.3.3/YKIFLYADLib.podspec'
 end
 ```
 
@@ -60,7 +60,7 @@ CocoaPods 会自动投递 `IFLYPlayer.bundle` 并传播 `-ObjC`。
 https://github.com/LJMcarryu/YKIFLYADLib_iOS.git
 ```
 
-选择版本 `6.3.2` 和产品 `IFLYADLib`。SwiftPM 会自动投递资源；在 App target 的 `Other Linker Flags` 添加：
+选择版本 `6.3.3` 和产品 `IFLYADLib`。SwiftPM 会自动投递资源；在 App target 的 `Other Linker Flags` 添加：
 
 ```text
 -ObjC
@@ -68,7 +68,7 @@ https://github.com/LJMcarryu/YKIFLYADLib_iOS.git
 
 ### 手动集成
 
-从 [Release 6.3.2](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.2) 下载 `YKIFLYADLib-6.3.2.zip`：
+从 [Release 6.3.3](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.3) 下载 `YKIFLYADLib-6.3.3.zip`：
 
 1. 将 `IFLYADLib.xcframework` 加入 App target，Embed 选择 **Do Not Embed**。
 2. 将 `IFLYPlayer.bundle` 加入 **Copy Bundle Resources**。
@@ -289,13 +289,13 @@ pod install
 open IFLYADLibSimple.xcworkspace
 ```
 
-Demo 构建成功表示 6.3.2 包能够被 CocoaPods 正确消费和链接；它不等同于线上填充，也不替代内置开屏/插屏的运行验证。
+Demo 构建成功表示 6.3.3 包能够被 CocoaPods 正确消费和链接；它不等同于线上填充，也不替代内置开屏/插屏的运行验证。
 
 ## 常见问题
 
 | 问题 | 处理方式 |
 | --- | --- |
-| 找不到 Banner 或 Reward 类 | 这两个能力不在优酷 6.3.2 产物中。 |
+| 找不到 Banner 或 Reward 类 | 这两个能力不在优酷 6.3.3 产物中。 |
 | 与标准版同时链接时报符号冲突 | 优酷版和标准版都使用 `IFLY*` 符号，同一 App 只能选择其中一个。 |
 | `-ObjC` 缺失 | 在最终 App target 的 `Other Linker Flags` 添加 `-ObjC`。 |
 | NativeFeed 绑定失败 | 确认主线程调用、容器非空、视频传入 `videoView`，并让点击视图与 `interactionType` 匹配。 |
