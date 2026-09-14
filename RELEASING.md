@@ -15,9 +15,19 @@
 重型验证 job 最长运行 55 分钟，结束后由无 Token、只读的 summary job 汇总 Candidate、Release、
 checkout commit、四资产库存身份和全部 job 结论；summary 对上游失败继续失败关闭。
 
-## 6.3.3 发布状态
+## 6.3.5 冻结与发布记录
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.3","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.3"} -->
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.5","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5"} -->
+
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`5958c2bce742a715a3725462b8694f0b2d377760`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`b8dfe3e1c60f52d7e605b3d4c9a9d57494beb2b9`
+
+`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。正式发布状态、时间和消费验证结果以版本匹配的 `release-state.json.publication` 及 [Release 6.3.5](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5) 为准。`artifactCandidateId` 为 `b50d00ecb38e4037147fe665b07434a2c350a85b7334a0f68aab976858f4dfea`。Apple Review 为 `not-run`；CocoaPods trunk 为 `not-in-scope`。
+
+`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `6a9d77527f1e46674d489d899fba27d8c68ebbf1a9b8ff1b2a5227f803ab3f09`；`YKIFLYADLib-6.3.5.zip` 的 SHA-256 为 `28d48f2ad7e691bcf0527b0e607f8f62f3fc69a9ca8412fa10df0ecc301bb158`。
+
+## 6.3.3 历史发布状态
 
 - `releaseState`：`FORMAL`
 - `binarySourceCommit`（SDK 二进制源码提交）：`b7e46a9f06897924d3d69d4d6a7e43f6237d8579`
@@ -44,7 +54,7 @@ Apple Review 扫描未执行且不是发布门禁：`requiredForRelease=false`�
 IFLY_NEW_VERSION_RELEASE=1 \
 IFLY_SDK_CODESIGN_IDENTITY='正式 SDK 签名身份' \
 scripts/package-youku-release.sh \
-  --version 6.3.3 \
+  --version 6.3.5 \
   --ad-request-url 'https://youku-sdk.voiceads.cn/ad/request'
 ```
 
@@ -53,7 +63,7 @@ scripts/package-youku-release.sh \
 ```text
 build/youku/release/
 ├── IFLYADLib.xcframework.zip
-├── YKIFLYADLib-6.3.3.zip
+├── YKIFLYADLib-6.3.5.zip
 ├── checksums.txt
 └── delivery-manifest.json
 ```
@@ -77,7 +87,7 @@ build/youku/release/
 - NativeFeed 公开头、符号和 Demo 必须包含 Ad 级 `attachWithViewBinder:error:`、容器级 `detachAdFromContainerView:` 和可选 `destroy`；列表数据层只持有 Ad，Cell 不持有 Session、Binding 或首次/复用状态。
 - NativeFeed 公开头、伞头、二进制 selector、Demo 和接入文档不得再暴露 `IFLYNativeFeedDisplaySession`、`IFLYNativeFeedAdBinding`、`beginDisplaySessionWithError:`、`bindAdWithViewBinder:error:`、`unbindAd` 或 `endDisplaySession`。
 - 同一 Ad 跨 Cell 串行迁移、同容器原子接管、失败预检不破坏旧挂载、曝光前后重挂载、迟到容器 detach、视频进度/播放意图恢复、活动容器跨 TTL/视频截止时间不强拆及 detach 后失效必须通过专项测试。
-- `6.3.3` 还必须验证外部 CTA 默认关闭、绑定时允许未挂载或零尺寸视图、点击时同 window/scene、CTA 尺寸有效且可见交互、containerView 的非页面根父级/祖先、容器 2/3 可见、独占租约、父级 CTA 对普通 `UIView` 子视图兜底、媒体 `UIControl` 与媒体自有手势优先、显式注册 CTA 自身由 SDK 处理、`closeView` 子树隔离、71503 稳定 point 与中文处理提示回调，以及 `detachFromCurrentContainer`。
+- `6.3.5` 还必须验证外部 CTA 默认关闭、绑定时允许未挂载或零尺寸视图、点击时同 window/scene、CTA 尺寸有效且可见交互、containerView 的非页面根父级/祖先、容器 2/3 可见、独占租约、父级 CTA 对普通 `UIView` 子视图兜底、媒体 `UIControl` 与媒体自有手势优先、显式注册 CTA 自身由 SDK 处理、`closeView` 子树隔离、71503 稳定 point 与中文处理提示回调，以及 `detachFromCurrentContainer`。
 
 ### 当前联调状态
 
@@ -148,7 +158,7 @@ Demo 列表专项 `16/16` 和 Youku 分发测试 `31/31` 通过。源码扫描
 
 以下清单由编排器生成、冻结和提交；维护者只在失败诊断时逐项复核，不得手工改写后直接发布。
 
-- 将 `Package.swift` 中的 URL、版本和 checksum 与 `checksums.txt` 的真实结果保持一致；`6.3.3` 准备态只允许精确 PENDING 占位，正式冻结后必须回填本次资产的真实 SwiftPM checksum。
+- 将 `Package.swift` 中的 URL、版本和 checksum 与 `checksums.txt` 的真实结果保持一致；`6.3.5` 准备态只允许精确 PENDING 占位，正式冻结后必须回填本次资产的真实 SwiftPM checksum。
 - 用源码仓 `build/youku/swiftpm-resources/IFLYPlayer.bundle` 同步覆盖本仓 `spm/IFLYAdResources/IFLYPlayer.bundle`。
 - 将 `YKIFLYADLib.podspec`、Demo `Podfile`、README、CHANGELOG 中的版本同步更新。
 - 确认 podspec 显式链接 `AdSupport`、弱链接 `AppTrackingTransparency`，并核对最终二进制没有对 `AppTrackingTransparency` 的强依赖。

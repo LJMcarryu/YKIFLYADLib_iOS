@@ -1,8 +1,18 @@
 # 版本记录
 
-## 6.3.3（2026-09-01）
+## 6.3.5
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.3","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.3"} -->
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.5","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5"} -->
+
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`5958c2bce742a715a3725462b8694f0b2d377760`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`b8dfe3e1c60f52d7e605b3d4c9a9d57494beb2b9`
+
+`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。正式发布状态、时间和消费验证结果以版本匹配的 `release-state.json.publication` 及 [Release 6.3.5](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5) 为准。`artifactCandidateId` 为 `b50d00ecb38e4037147fe665b07434a2c350a85b7334a0f68aab976858f4dfea`。Apple Review 为 `not-run`；CocoaPods trunk 为 `not-in-scope`。
+
+`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `6a9d77527f1e46674d489d899fba27d8c68ebbf1a9b8ff1b2a5227f803ab3f09`；`YKIFLYADLib-6.3.5.zip` 的 SHA-256 为 `28d48f2ad7e691bcf0527b0e607f8f62f3fc69a9ca8412fa10df0ecc301bb158`。
+
+## 6.3.3（2026-09-01）
 
 - `releaseState`：`FORMAL`
 - `binarySourceCommit`（SDK 二进制源码提交）：`b7e46a9f06897924d3d69d4d6a7e43f6237d8579`
