@@ -22,7 +22,7 @@ static NSString *const IFLYNativeFeedDemoAdItemIdentifier = @"youku-native-stabl
 @implementation IFLYNativeFeedDemoItem
 @end
 
-/// Cell 只维护媒体 UI，不保存 Session、Binding、Ad 或首次/复用状态。
+/// Cell 维护当前条目的 UI；广告对象由页面的数据层持有。
 @interface IFLYNativeFeedDemoCell : UITableViewCell
 @property (nonatomic, copy, readonly, nullable) NSString *representedItemIdentifier;
 - (BOOL)configureWithAd:(IFLYNativeFeedAd *)ad
@@ -132,7 +132,7 @@ static NSString *const IFLYNativeFeedDemoAdItemIdentifier = @"youku-native-stabl
          itemIdentifier:(NSString *)itemIdentifier
                   error:(IFLYAdError **)error {
     // Cell 可能在未触发 prepareForReuse 的情况下被直接改配。先按容器反注册旧视图，
-    // 再修改媒体 UI；SDK 内部会隔离旧 generation，不需要媒体保存 Binding。
+    // 再修改媒体 UI，避免旧广告与新内容同时占用当前 Cell。
     [self detachFromContainer];
 
     IFLYNativeFeedAdData *data = ad.adData;
@@ -313,7 +313,7 @@ static NSString *const IFLYNativeFeedDemoAdItemIdentifier = @"youku-native-stabl
     hint.numberOfLines = 2;
     hint.font = [UIFont systemFontOfSize:13.0];
     hint.textColor = [UIColor colorWithWhite:0.35 alpha:1.0];
-    hint.text = @"上下滚动让广告 Cell 离屏再回屏：数据层只保留原 Ad，Cell 仅按容器 detach、按 Ad attach。";
+    hint.text = @"向下滚动查看广告；让卡片离屏再回屏，可体验原广告恢复和视频续播。";
     [header addSubview:hint];
 
     self.slotControl = [[UISegmentedControl alloc] initWithItems:@[ @"图文", @"视频" ]];
@@ -384,7 +384,7 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
         }
 
         // TTL/视频截止时间只禁止迁移或恢复。旧 Cell 仍活动时先等其离屏 detach，
-        // 不用媒体查询或维护 SDK 内部会话状态。
+        // 旧容器离屏后再继续显示当前条目。
         if (self.attachedAdCell && self.attachedAdCell != adCell) {
             return;
         }
@@ -531,8 +531,7 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
     }
     item.ad.delegate = nil;
     item.ad.currentViewController = nil;
-    // 正常列表只需释放数据层的最后一个 Ad 强引用；SDK 自动收口请求、容器、
-    // 手势、曝光、传感器和播放器。destroy 只用于仍持有 Ad 时主动提前终止。
+    // 条目永久移除后释放最后一个 Ad 强引用；需要保留对象但立即终止时才使用 destroy。
     item.ad = nil;
 }
 
@@ -583,7 +582,7 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
     item.videoStatusText = text;
 
     // attach 内同步回调时先更新数据层，attach 返回后再回填当前 Cell。
-    // 其他时刻只更新 Controller 记录的当前容器；旧容器迟到事件由 SDK generation 隔离。
+    // 其他时刻只更新 Controller 记录的当前容器，避免把状态写入已复用的 Cell。
     IFLYNativeFeedDemoCell *cell = self.attachedAdCell;
     if (cell && cell == self.visibleAdCell &&
         [cell.representedItemIdentifier isEqualToString:item.itemIdentifier]) {
@@ -599,7 +598,7 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
         return;
     }
 
-    [self updateStatus:@"数据层只保存 Ad；会话与 Binding 由 SDK 托管"
+    [self updateStatus:@"广告数据已就绪，等待卡片显示并绑定"
                   color:[IFLYADUtil demoIndigoColor]];
     if (self.visibleAdCell && self.attachedAdCell != self.visibleAdCell) {
         [self attachCurrentAdToCell:self.visibleAdCell];

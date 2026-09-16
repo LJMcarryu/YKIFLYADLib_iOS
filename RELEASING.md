@@ -19,6 +19,8 @@ checkout commit、四资产库存身份和全部 job 结论；summary 对上游�
 
 <!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.5","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5"} -->
 
+`6.3.5` 已于 2026-09-14T12:43:28Z 正式公开，发布后的 [CocoaPods / SwiftPM 消费验证](https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/34844992729)为 `success`；本仓 `release-state.json` 为 `6.3.5/CLOSED`。Tag 和发布资产保持不可变。
+
 - `releaseState`：`FORMAL`
 - `binarySourceCommit`（SDK 二进制源码提交）：`5958c2bce742a715a3725462b8694f0b2d377760`
 - `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`b8dfe3e1c60f52d7e605b3d4c9a9d57494beb2b9`
@@ -78,7 +80,7 @@ build/youku/release/
 - 最低系统版本为 iOS 11.0。
 - 外置 `IFLYPlayer.bundle` 包含 `PrivacyInfo.xcprivacy`。
 - 源码仓必须是干净提交；优酷发布版本必须与获准版本、运行时 SDK 版本、XCFramework 和交付清单一致，不改变其他渠道的版本。
-- `xcodebuild -version` 必须不高于 Xcode 26.3；本地超版本验证产物不得发布。
+- `xcodebuild -version` 必须与所选发布计划的 Xcode version/build 精确一致；`6.3.5` 为 Xcode `26.3`、Build `17C529`，其他工具链的诊断产物不得冒充正式资产。
 - 正式命令必须设置 `IFLY_SDK_CODESIGN_IDENTITY`；两个切片的 framework 签名均须完整、非 ad-hoc 且 TeamIdentifier 一致。
 - 正式发布时设置 `IFLY_NEW_VERSION_RELEASE=1`；编排器默认不执行 Apple Review 扫描，需要时仅通过 `apple-scan --execute` 主动执行并保留报告，扫描状态不改变正式发布结果。分发发布与宿主审核闭环分别记录。
 - iOS 14 及以上只有 ATT `authorized` 状态可读取或接受 IDFA；撤权清缓存，普通请求与 S2S 请求使用同一门控。
@@ -89,7 +91,7 @@ build/youku/release/
 - 同一 Ad 跨 Cell 串行迁移、同容器原子接管、失败预检不破坏旧挂载、曝光前后重挂载、迟到容器 detach、视频进度/播放意图恢复、活动容器跨 TTL/视频截止时间不强拆及 detach 后失效必须通过专项测试。
 - `6.3.5` 还必须验证外部 CTA 默认关闭、绑定时允许未挂载或零尺寸视图、点击时同 window/scene、CTA 尺寸有效且可见交互、containerView 的非页面根父级/祖先、容器 2/3 可见、独占租约、父级 CTA 对普通 `UIView` 子视图兜底、媒体 `UIControl` 与媒体自有手势优先、显式注册 CTA 自身由 SDK 处理、`closeView` 子树隔离、71503 稳定 point 与中文处理提示回调，以及 `detachFromCurrentContainer`。
 
-### 当前联调状态
+### 历史联调与发布证据
 
 公开可用性以同版本 GitHub Release 和发布后 CI 为准。`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。
 `6.3.3` 正式分发资产已冻结；Apple Review 扫描未执行且不是发布门禁。以下均为历史版本事实。
@@ -188,6 +190,6 @@ Demo 列表专项 `16/16` 和 Youku 分发测试 `31/31` 通过。源码扫描
 3. 核对编排器发布的 GitHub Release 精确包含两个 zip、`checksums.txt` 和 `delivery-manifest.json`。
 4. 核对 Release CI 已验证精确资产白名单、两个 zip 的同源 XCFramework、URL、架构、隐私清单、SwiftPM 产品/资源和 CocoaPods Demo 编译。
 
-分发仓及 Release 必须保持 Public，确保 CocoaPods raw URL、SwiftPM 仓库和二进制资产均可匿名访问。每次发布后都要在不携带 GitHub 凭据的环境中验证仓库、podspec 和两个 Release 资产可下载。
+分发仓及 Release 必须保持 Public，确保 CocoaPods raw URL、SwiftPM 仓库和二进制资产均可匿名访问。每次发布后都要在不携带 GitHub 凭据的环境中验证仓库、podspec 和全部四项 Release 资产可下载。
 
 已发布的 tag 和 zip 不允许覆盖重打；任何二进制变化都必须发布新版本。

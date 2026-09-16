@@ -199,12 +199,12 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
     CGFloat y = 110.0;
     NSString *styleText =
         self.presentationStyle == IFLYNativeFeedDemoPresentationStyleSplash
-            ? @"复刻 SDK 模版开屏样式"
-            : @"复刻 SDK 模版插屏样式";
+            ? @"开屏布局示例"
+            : @"插屏布局示例";
     UILabel *description = [IFLYADUtil
         createSectionTitleWithText:
             [NSString stringWithFormat:
-                          @"%@：使用 IFLYNativeFeedAd 公开数据，由媒体自建 UI；不是 SDK 内置广告格式。",
+                          @"%@：使用 IFLYNativeFeedAd 加载广告，由示例创建展示页面。",
                           styleText]
                            frame:CGRectMake(margin, y, contentWidth, 42.0)];
     description.numberOfLines = 0;
@@ -845,7 +845,7 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
 
 - (void)nativeFeedAdDidRender:(IFLYNativeFeedAd *)ad {
     if ([self isCurrentAd:ad]) {
-        [self log:@"nativeFeedAdDidRender：SDK 已完成 Binder 渲染"];
+        [self log:@"nativeFeedAdDidRender：广告视图绑定成功"];
     }
 }
 
@@ -862,7 +862,7 @@ static NSTimeInterval const IFLYNativeFeedPresentationAppearTimeout = 1.0;
 
 - (void)nativeFeedAdDidExpose:(IFLYNativeFeedAd *)ad {
     if ([self isCurrentAd:ad]) {
-        [self updateStatus:@"已曝光，SDK 已完成曝光监测" color:UIColor.systemGreenColor];
+        [self updateStatus:@"已达到有效曝光条件" color:UIColor.systemGreenColor];
         [self log:@"nativeFeedAdDidExpose"];
     }
 }

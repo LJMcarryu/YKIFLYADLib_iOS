@@ -4,6 +4,8 @@
 
 <!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.5","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5"} -->
 
+正式发布于 2026-09-14；本版本的消费结果见 [RELEASING](RELEASING.md)。历史章节只描述各自版本，不替代当前接入契约。
+
 - `releaseState`：`FORMAL`
 - `binarySourceCommit`（SDK 二进制源码提交）：`5958c2bce742a715a3725462b8694f0b2d377760`
 - `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`b8dfe3e1c60f52d7e605b3d4c9a9d57494beb2b9`
@@ -11,6 +13,13 @@
 `releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。正式发布状态、时间和消费验证结果以版本匹配的 `release-state.json.publication` 及 [Release 6.3.5](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5) 为准。`artifactCandidateId` 为 `b50d00ecb38e4037147fe665b07434a2c350a85b7334a0f68aab976858f4dfea`。Apple Review 为 `not-run`；CocoaPods trunk 为 `not-in-scope`。
 
 `IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `6a9d77527f1e46674d489d899fba27d8c68ebbf1a9b8ff1b2a5227f803ab3f09`；`YKIFLYADLib-6.3.5.zip` 的 SHA-256 为 `28d48f2ad7e691bcf0527b0e607f8f62f3fc69a9ca8412fa10df0ecc301bb158`。
+
+### 变更
+
+- 同步开屏回流、视频暂停恢复与完播边界修复，加载回调按代次复核，终态清理 SDK 自有容器与资源。
+- 插屏加强回调重入与视频任务身份保护，视频素材验真在后台执行并复核文件身份；共享图片下载支持订阅独立取消。
+- NativeFeed 加强加载与曝光保护，点击使用独立落地页宿主；Release 失败日志脱敏并保留 code / point，Debug 阶段时间线不进入正式包。
+- 保留优酷专属请求地址、开屏 / 插屏 / NativeFeed 三种能力及媒体摇一摇契约；不包含 Banner 和 Reward。
 
 ## 6.3.3（2026-09-01）
 
