@@ -53,12 +53,14 @@ xcodebuild build \
 | --- | --- |
 | 开屏图片 | `__SPLASH_NATIVE_AD_UNIT_ID__` |
 | 开屏视频 | `__SPLASH_VIDEO_AD_UNIT_ID__` |
-| 插屏图片 | `__INTERSTITIAL_AD_UNIT_ID__`、`__INTERSTITIAL_LANDSCAPE_IMAGE_AD_UNIT_ID__` |
-| 插屏视频 | `__INTERSTITIAL_PORTRAIT_VIDEO_AD_UNIT_ID__`、`__INTERSTITIAL_LANDSCAPE_VIDEO_AD_UNIT_ID__` |
+| 插屏竖图 | `__INTERSTITIAL_AD_UNIT_ID__` |
+| 插屏横图 | `__INTERSTITIAL_LANDSCAPE_IMAGE_AD_UNIT_ID__` |
+| 插屏竖视频 | `__INTERSTITIAL_PORTRAIT_VIDEO_AD_UNIT_ID__` |
+| 插屏横视频 | `__INTERSTITIAL_LANDSCAPE_VIDEO_AD_UNIT_ID__` |
 | 信息流图文 | `__TYPED_ONE_NATIVE_AD_UNIT_ID__` |
 | 信息流视频 | `__FEED_VIDEO_AD_UNIT_ID__` |
 
-演示配置中插屏横竖方向共用同一图片广告位、同一视频广告位；界面上的方向选择控制示例布局，不保证服务端返回对应方向的素材。图片按钮要求单图素材，视频按钮要求视频素材；类型不匹配时页面会报错。
+演示使用八个独立联调广告位，插屏横竖方向分别使用对应的图片或视频广告位；请确保平台配置的素材方向与所选布局一致。图片按钮要求单图素材，视频按钮要求视频素材；类型不匹配时页面会报错。
 
 公共请求配置在 [IFLYADUtil.m](IFLYADLibSimple/Supporting%20Files/IFLYADUtil.m) 的 `mediaSampleRequestConfig`：当前读取宿主名称和版本，设置 5 秒超时、`settleType = 1`、`bidFloor = 0.01`、`interactStatus = 1`，并按系统授权状态提供 IDFA。交易参数是演示配置，正式接入应使用平台约定值。页面通过 `loadAdWithRequestConfig:` 发起普通请求；本示例没有 S2S 或竞价操作入口。
 
@@ -70,7 +72,7 @@ xcodebuild build \
 
 iOS 14 及以上，示例只在 ATT `authorized` 时读取 IDFA；拒绝授权后仍可进入示例，IDFA 为空不等于 SDK 安装失败。系统可能因现有授权或设备设置不再次显示弹窗。授权发生变化后重新发起请求，示例会重新读取当前状态。
 
-[Info.plist](IFLYADLibSimple/Info.plist) 已包含演示用途的 `NSUserTrackingUsageDescription`，并为了联调 HTTP 素材配置 `NSAllowsArbitraryLoads`。移植到宿主时应采用符合实际用途的文案和网络配置。`setPersonalizedEnabled:` 只记录选择，不替代 ATT，也不会阻止或改写请求、标识符和监测；参见[隐私与请求配置](../README.md#初始化隐私和请求配置)。
+工程的 **Build Settings → Privacy - Tracking Usage Description** 配置演示用途的 ATT 文案（`INFOPLIST_KEY_NSUserTrackingUsageDescription`），构建时写入 App 的 `Info.plist`；[源 Info.plist](IFLYADLibSimple/Info.plist) 为联调 HTTP 素材配置 `NSAllowsArbitraryLoads`。移植到宿主时应采用符合实际用途的文案和网络配置。`setPersonalizedEnabled:` 只记录选择，不替代 ATT，也不会阻止或改写请求、标识符和监测；参见[隐私与请求配置](../README.md#初始化隐私和请求配置)。
 
 ## 自渲染开屏
 

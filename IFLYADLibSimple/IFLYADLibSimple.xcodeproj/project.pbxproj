@@ -214,12 +214,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = FM295M5CZ5;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_PREFIX_HEADER = "$(PROJECT_DIR)/IFLYADLibSimple/Supporting Files/IFLYAdPrefixHeader.pch";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IFLYADLibSimple/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "优酷讯飞广告Demo";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "用于获取广告标识符 IDFA，以便请求和展示测试广告。";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -232,7 +233,7 @@
 				);
 				MACH_O_TYPE = mh_execute;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iflytek.youku.IFLYADLibSimple;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iflytek.icase;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -247,12 +248,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = FM295M5CZ5;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_PREFIX_HEADER = "$(PROJECT_DIR)/IFLYADLibSimple/Supporting Files/IFLYAdPrefixHeader.pch";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IFLYADLibSimple/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "优酷讯飞广告Demo";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "用于获取广告标识符 IDFA，以便请求和展示测试广告。";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -265,7 +267,7 @@
 				);
 				MACH_O_TYPE = mh_execute;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iflytek.youku.IFLYADLibSimple;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iflytek.icase;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
