@@ -394,17 +394,17 @@ jobs:
             echo "优酷 Demo 不得包含 Banner 或 Reward 接入" >&2
             exit 1
           fi
-          if grep -n -E 'DEVELOPMENT_TEAM = [A-Z0-9]+' \
-            IFLYADLibSimple/IFLYADLibSimple.xcodeproj/project.pbxproj; then
-            echo "Demo 工程不得固化 DEVELOPMENT_TEAM" >&2
-            exit 1
-          fi
           grep -R -n -E 'IFLYDemoPrivacyConsentViewController|exit\(0\)' \
             IFLYADLibSimple/IFLYADLibSimple
           python3 - <<'PY'
           import re
           from pathlib import Path
 
+          project = Path("IFLYADLibSimple/IFLYADLibSimple.xcodeproj/project.pbxproj").read_text(encoding="utf-8")
+          # 示例保留联调签名配置；接入方使用自己的 Team，CI 构建关闭代码签名。
+          teams = re.findall(r'DEVELOPMENT_TEAM = ([^;]+);', project)
+          assert len(teams) == 2 and len(set(teams)) == 1, teams
+          assert teams[0] == '""' or re.fullmatch(r"[A-Z0-9]{10}", teams[0]), teams
           home = Path("IFLYADLibSimple/IFLYADLibSimple/ViewController.m").read_text(encoding="utf-8")
           for title in (
               "自渲染开屏",
