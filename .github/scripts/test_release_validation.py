@@ -24,7 +24,7 @@ import verify_repository_contract as repository_contract
 
 ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY = "LJMcarryu/YKIFLYADLib_iOS"
-TAG = "6.3.5"
+TAG = "6.3.6"
 PREVIOUS_TAG = "6.3.3"
 CANDIDATE_ID = "a" * 64
 DISPATCH_NONCE = "d" * 32
@@ -570,7 +570,7 @@ class RequestBoundaryTests(unittest.TestCase):
 
     def test_anonymous_request_never_has_authorization(self) -> None:
         request = anonymous.build_anonymous_request(
-            "https://api.github.com/repos/owner/repo/releases/tags/6.3.5",
+            "https://api.github.com/repos/owner/repo/releases/tags/6.3.6",
             "application/vnd.github+json",
         )
         self.assertNotIn(
@@ -714,7 +714,7 @@ class AssetIdentityTests(unittest.TestCase):
 class PrivateProvenanceDocumentTests(unittest.TestCase):
     def test_pending_current_section_ignores_historical_formal_section(self) -> None:
         document = provenance_section(
-            "6.3.5（待发布）",
+            "6.3.6（待发布）",
             "PENDING",
             private_provenance.PENDING_BINARY,
             private_provenance.PENDING_METADATA,
@@ -730,7 +730,7 @@ class PrivateProvenanceDocumentTests(unittest.TestCase):
 
     def test_formal_current_section_ignores_historical_formal_section(self) -> None:
         document = provenance_section(
-            "6.3.5 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
+            "6.3.6 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
         ) + provenance_section(PREVIOUS_TAG, "FORMAL", "a" * 40, "b" * 40)
         self.assertEqual(
             private_provenance.parse_document(document, "测试文档"),
@@ -739,7 +739,7 @@ class PrivateProvenanceDocumentTests(unittest.TestCase):
 
     def test_duplicate_or_missing_current_section_fails_closed(self) -> None:
         current = provenance_section(
-            "6.3.5 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
+            "6.3.6 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
         )
         historical = provenance_section(PREVIOUS_TAG, "FORMAL", "a" * 40, "b" * 40)
         for document in (current + current, historical):
@@ -749,7 +749,7 @@ class PrivateProvenanceDocumentTests(unittest.TestCase):
 
     def test_duplicate_contract_inside_current_section_fails_closed(self) -> None:
         current = provenance_section(
-            "6.3.5 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
+            "6.3.6 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
         )
         duplicate = current + (
             f"- `releaseState`：`FORMAL`\n"
