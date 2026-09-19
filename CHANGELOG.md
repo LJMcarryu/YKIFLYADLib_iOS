@@ -1,21 +1,29 @@
 # 版本记录
 
-## 6.3.6 候选（待联调）
+## 6.3.6 冻结与发布记录
 
-<!-- ifly-release-candidate: {"schemaVersion":1,"version":"6.3.6","releaseState":"CANDIDATE","publicationState":"UNPUBLISHED","repository":"LJMcarryu/YKIFLYADLib_iOS","currentFormalVersion":"6.3.5"} -->
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.6","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6"} -->
 
-`6.3.6` 尚未发布，本节仅记录待联调候选行为。当前公开正式版仍为 `6.3.5`；既有 Tag、Release 和资产保持不可变。
+当前版本：[`6.3.6`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6)。实际发布状态、时间和消费验证结果以版本匹配的 `release-state.json.publication` 与该 Release 为准。
+
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`d203f01e1b723cf7aa6c6e93acd1e1cd3ef49894`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`23dac5a9141af4f88a878585ecbc28c50351caac`
+
+`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。`artifactCandidateId` 为 `6a4c39edb15bf1c87fd3f7e04d5d4bdf4ebb01fe2f60c0cf991fe0250a291d78`。Apple Review 为 `not-run`；CocoaPods trunk 为 `not-in-scope`。
+
+`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `99961be6f746669df9f65ed219262966a7850557edc4ff2bc9e39f31262b0dd6`；`YKIFLYADLib-6.3.6.zip` 的 SHA-256 为 `7f62ca19b2159a105a97bca6e92b4c4c9caee97a95021699a5c5a5b9b16105dd`。
 
 ### 变更
 
-- 共享 UIScene 适配：展示、落地页、外跳回流、曝光判断和 UI 生命周期使用广告的实际来源 window/Scene；完全没有来源时，只允许唯一且明确的前台应用 Scene，不跨 Scene 随机兜底。独立落地页始终归属来源 Scene。
-- 收紧开屏 `customWindow` 的 Scene 宿主验收：rootVC 仍须入窗；`customWindow` 必须可见、尺寸有限且为正、已关联 Scene，并与 `rootVC.window` 同 Scene。合法窗口可以不是 key window，可以使用较高 `windowLevel`，也可以没有 rootVC。
+- 共享 UIScene 适配：展示、落地页、外跳回流、曝光判断和 UI 生命周期使用广告的实际来源 window/Scene；完全没有来源时，只允许唯一且明确的前台应用 Scene，不跨 Scene 随机兜底。
+- 收紧开屏 `customWindow` 的 Scene 宿主验收：rootVC 仍须入窗；窗口必须可见、尺寸有限且为正、已关联 Scene，并与 `rootVC.window` 同 Scene。
 - 无 Scene、跨 Scene、隐藏或尺寸无效的 `customWindow` 会导致展示失败；失败不锁死本次机会，媒体修正后可以重试。
 - 公开 API 方法签名不变。
 
 ## 6.3.5
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.5","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5"} -->
+
 
 正式发布于 2026-09-14；本版本的消费结果见 [RELEASING](RELEASING.md)。历史章节只描述各自版本，不替代当前接入契约。
 

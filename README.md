@@ -4,19 +4,23 @@
 
 ## 版本与阅读入口
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.5","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5"} -->
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.6","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6"} -->
 
-## 6.3.6 候选联调说明
+## 6.3.6 冻结与发布记录
 
-<!-- ifly-release-candidate: {"schemaVersion":1,"version":"6.3.6","releaseState":"CANDIDATE","publicationState":"UNPUBLISHED","repository":"LJMcarryu/YKIFLYADLib_iOS","currentFormalVersion":"6.3.5"} -->
 
-`6.3.6` 目前是待联调候选，尚未发布。当前公开正式版和生产依赖仍为 [`6.3.5`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5)；已发布的 Tag、Release 和资产不追溯改变。
 
-- 公开 API 方法签名不变。
-- 共享 UIScene 适配将展示、落地页、外跳回流、曝光判断和 UI 生命周期绑定到广告的实际来源 window/Scene。没有来源时，仅在前台应用 Scene 唯一且明确时兜底，不跨 Scene 随机选择；独立落地页始终属于来源 Scene。
-- 开屏的 rootVC 仍须已经入窗。在 Scene 宿主中使用 `customWindow` 时，窗口必须可见、尺寸有限且为正、已经关联 Scene，并与 `rootVC.window` 属于同一 Scene；它可以不是 key window，可以使用较高 `windowLevel`，也可以不设置 rootVC。输入无效时展示失败，修正窗口后可重试。
+当前版本：[`6.3.6`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6)。实际发布状态、时间和消费验证结果以版本匹配的 `release-state.json.publication` 与该 Release 为准。
 
-当前正式版本：[6.3.5](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5)。生产项目请固定具体版本；版本变化见 [CHANGELOG](CHANGELOG.md)。本文适用于优酷定制版，API 以所安装版本的 framework 公开头为准。
+- `releaseState`：`FORMAL`
+- `binarySourceCommit`（SDK 二进制源码提交）：`d203f01e1b723cf7aa6c6e93acd1e1cd3ef49894`
+- `releaseMetadataCommit`（仅回填 checksum、扫描汇总和发布验收事实，不是 SDK 二进制源码提交）：`23dac5a9141af4f88a878585ecbc28c50351caac`
+
+`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已经冻结。`artifactCandidateId` 为 `6a4c39edb15bf1c87fd3f7e04d5d4bdf4ebb01fe2f60c0cf991fe0250a291d78`。Apple Review 为 `not-run`；CocoaPods trunk 为 `not-in-scope`。
+
+`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `99961be6f746669df9f65ed219262966a7850557edc4ff2bc9e39f31262b0dd6`；`YKIFLYADLib-6.3.6.zip` 的 SHA-256 为 `7f62ca19b2159a105a97bca6e92b4c4c9caee97a95021699a5c5a5b9b16105dd`。
+
+当前正式版本：[6.3.6](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6)。生产项目请固定具体版本；版本变化见 [CHANGELOG](CHANGELOG.md)。本文适用于优酷定制版，API 以所安装版本的 framework 公开头为准。
 
 - 首次接入：依次完成[安装](#安装)、[隐私与请求配置](#初始化隐私和请求配置)，再选择下方广告形式。
 - 运行示例：[Simple 运行与操作指南](IFLYADLibSimple/README.md)，包含广告位配置、隐私流程、页面操作和排错步骤。
@@ -67,7 +71,7 @@ platform :ios, '11.0'
 target 'YourApp' do
   use_frameworks!
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.3.5/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.3.6/YKIFLYADLib.podspec'
 end
 ```
 
@@ -86,7 +90,7 @@ CocoaPods 会自动投递 `IFLYPlayer.bundle` 并传播 `-ObjC`。
 https://github.com/LJMcarryu/YKIFLYADLib_iOS.git
 ```
 
-选择依赖规则 **Exact Version**，版本填 `6.3.5` 和产品 `IFLYADLib`。SwiftPM 会自动投递资源；在 App target 的 `Other Linker Flags` 添加：
+选择依赖规则 **Exact Version**，版本填 `6.3.6` 和产品 `IFLYADLib`。SwiftPM 会自动投递资源；在 App target 的 `Other Linker Flags` 添加：
 
 ```text
 -ObjC
@@ -94,7 +98,7 @@ https://github.com/LJMcarryu/YKIFLYADLib_iOS.git
 
 ### 手动集成
 
-从 [Release 6.3.5](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.5) 下载 `YKIFLYADLib-6.3.5.zip`：
+从 [Release 6.3.6](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6) 下载 `YKIFLYADLib-6.3.6.zip`：
 
 1. 将 `IFLYADLib.xcframework` 加入 App target，Embed 选择 **Do Not Embed**。
 2. 将 `IFLYPlayer.bundle` 加入 **Copy Bundle Resources**。
@@ -378,13 +382,13 @@ pod install
 open IFLYADLibSimple.xcworkspace
 ```
 
-当前 Simple 的 Podfile 固定 SDK `6.3.5`。选择 `IFLYADLibSimple` scheme 和运行设备，真机运行时设置自己的 Team / Bundle ID，并配置适用广告位。完整操作、预期回调、首次隐私流程及命令行构建见 [Simple 指南](IFLYADLibSimple/README.md)。
+当前 Simple 的 Podfile 固定 SDK `6.3.6`。选择 `IFLYADLibSimple` scheme 和运行设备，真机运行时设置自己的 Team / Bundle ID，并配置适用广告位。完整操作、预期回调、首次隐私流程及命令行构建见 [Simple 指南](IFLYADLibSimple/README.md)。
 
 ## 常见问题
 
 | 问题 | 处理方式 |
 | --- | --- |
-| 找不到 Banner 或 Reward 类 | 这两个能力不在优酷 6.3.5 产物中。 |
+| 找不到 Banner 或 Reward 类 | 这两个能力不在优酷 6.3.6 产物中。 |
 | 与标准版同时链接时报符号冲突 | 优酷版和标准版都使用 `IFLY*` 符号，同一 App 只能选择其中一个。 |
 | `-ObjC` 缺失 | 在最终 App target 的 `Other Linker Flags` 添加 `-ObjC`。 |
 | NativeFeed 绑定失败 | 确认主线程调用、容器非空、视频传入 `videoView`，并让点击视图与 `interactionType` 匹配。 |
