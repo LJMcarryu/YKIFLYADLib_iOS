@@ -26,7 +26,7 @@ pod install
 open IFLYADLibSimple.xcworkspace
 ```
 
-1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 `6.3.5` Tag 的公开 Podspec URL，不需要另行在公共索引搜索定制 Pod。
+1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 `6.3.7` 候选 Tag 的公开 Podspec URL，不需要另行在公共索引搜索定制 Pod。
 2. 打开 `IFLYADLibSimple.xcworkspace`，不要只打开 `.xcodeproj`。
 3. 选择 `IFLYADLibSimple` scheme 和运行设备。真机运行前，在 **Signing & Capabilities** 中选择自己的 Team，并填写可签名的 Bundle ID。
 4. 按下方说明替换广告位，确认该 Bundle ID 等应用信息已在平台配置。
