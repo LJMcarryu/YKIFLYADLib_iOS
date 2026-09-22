@@ -78,7 +78,7 @@ platform :ios, '11.0'
 target 'YourApp' do
   use_frameworks!
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.3.6/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.3.7/YKIFLYADLib.podspec'
 end
 ```
 
