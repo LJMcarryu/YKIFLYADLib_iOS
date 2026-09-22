@@ -4,14 +4,15 @@
 
 ## 版本与阅读入口
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.6","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6"} -->
+## 6.3.7 冻结与发布记录
 
-<!-- ifly-release-candidate: {"schemaVersion":1,"version":"6.3.7","releaseState":"CANDIDATE","publicationState":"UNPUBLISHED","repository":"LJMcarryu/YKIFLYADLib_iOS","currentFormalVersion":"6.3.6"} -->
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.7","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.7"} -->
 
-## 6.3.7 候选（尚未发布）
+6.3.7 已正式发布。正式发布状态、时间和消费验证结果以版本匹配的 `release-state.json.publication` 与 [Release 6.3.7](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.7) 为准。
 
-6.3.7 当前处于候选准备阶段，尚未发布。当前公开正式版仍为 [6.3.6](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6)；历史 Tag、Release 和资产保持不可变。
+`releaseState=FORMAL` 表示正式签名资产、checksum、A/B 和 `delivery-manifest.json` 已冻结。`artifactCandidateId` 为 `6a8c5954bfac6279f730bb2f10e6c8aae7df095a0679bfc161ce24022ebe4c94`。Apple Review 为 `not-run`；CocoaPods trunk 为 `not-in-scope`。
 
+`IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `2659e95c4a4908d942596e7bf522a5d81b9e587bc7778e731440f7897c02935b`；`YKIFLYADLib-6.3.7.zip` 的 SHA-256 为 `66af1cb3247a17652e4eecf02f95f73c4572472df695307d26ea2d94a69bdfd5`。
 ## 6.3.6 冻结与发布记录
 
 
