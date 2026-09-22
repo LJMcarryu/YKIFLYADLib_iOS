@@ -17,9 +17,9 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "IFLYADLib",
-            url: "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/download/6.3.6/IFLYADLib.xcframework.zip",
+            url: "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/download/6.3.7/IFLYADLib.xcframework.zip",
             // 6.3.5 冻结签名 zip 的 SwiftPM 校验值。
-            checksum: "99961be6f746669df9f65ed219262966a7850557edc4ff2bc9e39f31262b0dd6"
+            checksum: "2659e95c4a4908d942596e7bf522a5d81b9e587bc7778e731440f7897c02935b"
         ),
         .target(
             name: "IFLYAdResources",
