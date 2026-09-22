@@ -15,6 +15,12 @@
 重型验证 job 最长运行 55 分钟，结束后由无 Token、只读的 summary job 汇总 Candidate、Release、
 checkout commit、四资产库存身份和全部 job 结论；summary 对上游失败继续失败关闭。
 
+## 6.3.7 候选（尚未发布）
+
+<!-- ifly-release-candidate: {"schemaVersion":1,"version":"6.3.7","releaseState":"CANDIDATE","publicationState":"UNPUBLISHED","repository":"LJMcarryu/YKIFLYADLib_iOS","currentFormalVersion":"6.3.6"} -->
+
+6.3.7 当前处于候选准备阶段，尚未发布。当前公开正式版仍为 [6.3.6](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6)；历史 Tag、Release 和资产保持不可变。
+
 ## 6.3.6 冻结与发布记录
 
 <!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.6","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6"} -->
