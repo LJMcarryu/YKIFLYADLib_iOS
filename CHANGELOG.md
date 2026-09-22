@@ -11,8 +11,6 @@
 `IFLYADLib.xcframework.zip` 的 SwiftPM checksum/SHA-256 为 `2659e95c4a4908d942596e7bf522a5d81b9e587bc7778e731440f7897c02935b`；`YKIFLYADLib-6.3.7.zip` 的 SHA-256 为 `66af1cb3247a17652e4eecf02f95f73c4572472df695307d26ea2d94a69bdfd5`。
 ## 6.3.6 冻结与发布记录
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.6","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6"} -->
-
 当前版本：[`6.3.6`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6)。实际发布状态、时间和消费验证结果以版本匹配的 `release-state.json.publication` 与该 Release 为准。
 
 - `releaseState`：`FORMAL`
