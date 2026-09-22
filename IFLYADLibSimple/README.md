@@ -2,7 +2,7 @@
 
 本工程用于联调优酷定制 iOS SDK `6.3.7` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。完整安装方式与 SDK API 说明见[仓库 README](../README.md)。
 
-> 当前示例对应优酷 `6.3.7` 候选，尚未发布；公开正式版仍为 [`6.3.6`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6)，包含 UIScene 展示、落地页、外跳回流、曝光和 UI 生命周期适配。
+> 当前示例对应优酷 `6.3.7` 候选，尚未发布；公开正式版仍为 [`6.3.6`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.6)，包含 UIScene 展示、落地页、外跳回流、曝光和 UI 生命周期适配。 已发布的历史 Tag、Release 和资产保持不可变。
 
 
 ## 示例范围
