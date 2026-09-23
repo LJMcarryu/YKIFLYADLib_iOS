@@ -1,14 +1,12 @@
 # 版本记录
 
-## 6.4.0 候选（尚未发布）
+## 6.4.0 冻结与发布记录
 
-<!-- ifly-release-candidate: {"schemaVersion":1,"version":"6.4.0","releaseState":"CANDIDATE","publicationState":"UNPUBLISHED","repository":"LJMcarryu/YKIFLYADLib_iOS","currentFormalVersion":"6.3.7"} -->
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.4.0","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.0"} -->
 
-`6.4.0` 当前处于候选准备阶段，尚未发布。当前公开正式版仍为 [6.3.7](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.7)；历史 Tag、Release 和资产保持不可变。
+`6.4.0` 的正式分发资料与签名资产已经冻结；公开时间和消费结论以 `release-state.json.publication` 与 [Release 6.4.0](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.0) 的实际状态为准。
 
 ## 6.3.7 冻结与发布记录
-
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.3.7","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.7"} -->
 
 6.3.7 已正式发布。正式发布状态、时间和消费验证结果以版本匹配的 `release-state.json.publication` 与 [Release 6.3.7](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.3.7) 为准。
 
