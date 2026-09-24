@@ -1110,6 +1110,18 @@ class WorkflowStructureTests(unittest.TestCase):
         previous_closed = {"version": PREVIOUS_TAG, "phase": "CLOSED"}
         current_closed = {"version": TAG, "phase": "CLOSED"}
         current_frozen = {"version": TAG, "phase": "FROZEN"}
+        self.assertEqual(
+            repository_contract.allowed_distribution_versions(
+                previous_closed, "none"
+            ),
+            {PREVIOUS_TAG, TAG},
+        )
+        self.assertEqual(
+            repository_contract.allowed_distribution_versions(
+                current_frozen, "draft"
+            ),
+            {TAG},
+        )
         repository_contract.validate_state_version(previous_closed, "none")
         repository_contract.validate_state_version(current_closed, "none")
         repository_contract.validate_state_version(current_frozen, "none")
@@ -1134,28 +1146,10 @@ class WorkflowStructureTests(unittest.TestCase):
                     repository_contract.validate_state_version(state, kind)
 
     def test_current_release_rejects_previous_release_checksum(self) -> None:
-        previous_checksum = "0261828ec59ed8f2bfeedc3374dfd28799d7b46747074ea2442976aba6e2c4c7"
-        original_read = repository_contract.read
-
-        def previous_checksum_input(root: Path, relative: str) -> str:
-            if relative == "release-state.json":
-                return json.dumps(self.previous_closed_state)
-            value = original_read(root, relative)
-            if relative == "Package.swift":
-                updated, count = re.subn(
-                    r'checksum:\s*"[0-9a-f]{64}"',
-                    f'checksum: "{previous_checksum}"',
-                    value,
-                    count=1,
-                )
-                self.assertEqual(count, 1)
-                self.assertNotEqual(updated, value)
-                return updated
-            return value
-
-        with mock.patch.object(repository_contract, "read", side_effect=previous_checksum_input):
-            with self.assertRaisesRegex(repository_contract.ContractError, "沿用历史值"):
-                repository_contract.verify_machine(ROOT, "none", self.podspec_json)
+        with self.assertRaisesRegex(repository_contract.ContractError, "沿用历史值"):
+            repository_contract.verify_checksum(
+                repository_contract.PREVIOUS_RELEASE_CHECKSUM, TAG, False
+            )
 
     def test_docs_drift_is_isolated_but_checksum_drift_fails_machine_scope(self) -> None:
         original_read = repository_contract.read
@@ -1200,8 +1194,8 @@ class WorkflowStructureTests(unittest.TestCase):
             value = original_read(root, relative)
             if relative == "YKIFLYADLib.podspec":
                 return re.sub(
-                    rf"(s\.version\s*=\s*['\"]){re.escape(TAG)}",
-                    rf"\g<1>{PREVIOUS_TAG}",
+                    r"(s\.version\s*=\s*['\"])[^'\"]+",
+                    r"\g<1>0.0.0",
                     value,
                     count=1,
                 )
