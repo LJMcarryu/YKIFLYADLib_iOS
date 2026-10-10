@@ -1,5 +1,7 @@
 # 优酷定制 Simple 使用指南
 
+`6.4.1` 当前为发布前候选，尚未发布。当前公开正式版仍为 `6.4.0`；历史 Tag、Release 和资产保持不可变。本候选说明不改变示例当前使用的 SDK 版本。
+
 本工程用于联调优酷定制 iOS SDK `6.4.0` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。完整安装方式与 SDK API 说明见[仓库 README](../README.md)。
 
 > 当前示例对应优酷正式版本 `6.4.0`。版本公开状态与消费验证结论以 `release-state.json.publication` 和同版本 GitHub Release 的实际状态为准。
