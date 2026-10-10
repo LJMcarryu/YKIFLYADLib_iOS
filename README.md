@@ -4,15 +4,19 @@
 
 ## 版本与阅读入口
 
+## 6.4.1 冻结与发布记录
+
+<!-- ifly-release-status: {"schemaVersion":1,"version":"6.4.1","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.1"} -->
+
+`6.4.1` 的正式分发资料由同版本冻结库存生成。当前正式版本：[`6.4.1`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.1)；公开时间和消费验证结论以 `release-state.json.publication` 与同版本 GitHub Release 的实际状态为准。
+
+- 本版聚焦发布工程优化，包括发布入口、不可变回执复用、确定性脚本回归分片、匿名下载恢复、正式消费恢复、摘要日志和运行观测。
+- SDK 与 UI 行为继承 `6.4.0`，没有新增公开 API。
+- 历史 Tag、Release 和资产保持不可变。
+
 ## 6.4.0 冻结与发布记录
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.4.0","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.0"} -->
-
-## 6.4.1 候选状态
-
-<!-- ifly-release-candidate: {"schemaVersion":1,"version":"6.4.1","releaseState":"CANDIDATE","publicationState":"UNPUBLISHED","repository":"LJMcarryu/YKIFLYADLib_iOS","currentFormalVersion":"6.4.0"} -->
-
-`6.4.1` 当前为发布前候选，尚未发布。当前公开正式版仍为 `6.4.0`；历史 Tag、Release 和资产保持不可变。本候选文案不包含构建或 SDK 测试结论。
+> 以下为 `6.4.0` 历史记录；其中“当前”“本版”均只指该历史版本。
 
 `6.4.0` 的正式分发资料与签名资产已经冻结。当前正式版本：[6.4.0](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.0)；是否已完成公开及消费验证，以 `release-state.json.publication` 和同版本 GitHub Release 的实际状态为准。
 
@@ -92,7 +96,7 @@ platform :ios, '11.0'
 target 'YourApp' do
   use_frameworks!
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.4.0/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.4.1/YKIFLYADLib.podspec'
 end
 ```
 
@@ -111,7 +115,7 @@ CocoaPods 会自动投递 `IFLYPlayer.bundle` 并传播 `-ObjC`。
 https://github.com/LJMcarryu/YKIFLYADLib_iOS.git
 ```
 
-选择依赖规则 **Exact Version**，版本填 `6.4.0` 和产品 `IFLYADLib`。SwiftPM 会自动投递资源；在 App target 的 `Other Linker Flags` 添加：
+选择依赖规则 **Exact Version**，版本填 `6.4.1` 和产品 `IFLYADLib`。SwiftPM 会自动投递资源；在 App target 的 `Other Linker Flags` 添加：
 
 ```text
 -ObjC
@@ -119,7 +123,7 @@ https://github.com/LJMcarryu/YKIFLYADLib_iOS.git
 
 ### 手动集成
 
-从 [Release 6.4.0](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.0) 下载 `YKIFLYADLib-6.4.0.zip`：
+从 [Release 6.4.1](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.1) 下载本版本完整包；精确文件名以该 Release 的真实资产清单为准。解压后：
 
 1. 将 `IFLYADLib.xcframework` 加入 App target，Embed 选择 **Do Not Embed**。
 2. 将 `IFLYPlayer.bundle` 加入 **Copy Bundle Resources**。
@@ -403,13 +407,13 @@ pod install
 open IFLYADLibSimple.xcworkspace
 ```
 
-当前 Simple 的 Podfile 固定 SDK `6.4.0`。选择 `IFLYADLibSimple` scheme 和运行设备，真机运行时设置自己的 Team / Bundle ID，并配置适用广告位。完整操作、预期回调、首次隐私流程及命令行构建见 [Simple 指南](IFLYADLibSimple/README.md)。
+当前 Simple 的 Podfile 固定 SDK `6.4.1`。选择 `IFLYADLibSimple` scheme 和运行设备，真机运行时设置自己的 Team / Bundle ID，并配置适用广告位。完整操作、预期回调、首次隐私流程及命令行构建见 [Simple 指南](IFLYADLibSimple/README.md)。
 
 ## 常见问题
 
 | 问题 | 处理方式 |
 | --- | --- |
-| 找不到 Banner 或 Reward 类 | 这两个能力不在优酷 6.4.0 产物中。 |
+| 找不到 Banner 或 Reward 类 | 这两个能力不在优酷 6.4.1 产物中。 |
 | 与标准版同时链接时报符号冲突 | 优酷版和标准版都使用 `IFLY*` 符号，同一 App 只能选择其中一个。 |
 | `-ObjC` 缺失 | 在最终 App target 的 `Other Linker Flags` 添加 `-ObjC`。 |
 | NativeFeed 绑定失败 | 确认主线程调用、容器非空、视频传入 `videoView`，并让点击视图与 `interactionType` 匹配。 |
