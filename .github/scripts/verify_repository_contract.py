@@ -11,13 +11,13 @@ import shlex
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path.cwd() / ".github/scripts"))
+from release_metadata_control import ReleaseControlError, validate_release_control
 
-VERSION = "6.4.0"
-PREVIOUS_RELEASE_VERSION = "6.3.7"
-PREVIOUS_RELEASE_CHECKSUM = "2659e95c4a4908d942596e7bf522a5d81b9e587bc7778e731440f7897c02935b"
+PREVIOUS_RELEASE_CHECKSUM = "9972b6afbe3dbb814e321fdf5e9705711371c67f437200d6a89f26e286923f55"
 REPOSITORY = "LJMcarryu/YKIFLYADLib_iOS"
-PENDING = "__IFLYADLIB_YOUKU_6_4_0_CHECKSUM_PENDING__"
 HISTORICAL = {
+    "2659e95c4a4908d942596e7bf522a5d81b9e587bc7778e731440f7897c02935b",
     "0261828ec59ed8f2bfeedc3374dfd28799d7b46747074ea2442976aba6e2c4c7",
     "e84ba682e22049b29bce8700a401eaf9e07df70487a47dbc0495a1ad597539db",
     "a3c31e6fc523aa2bb1af71849ba1dc893d94e69ae68246eab4d9d20cbb07232f",
@@ -43,6 +43,31 @@ def require(condition: bool, message: str) -> None:
 
 def read(root: Path, relative: str) -> str:
     return (root / relative).read_text(encoding="utf-8")
+
+
+def release_versions(root: Path, release_kind: str) -> tuple[str, str]:
+    validation_mode = {
+        "none": "repository",
+        "draft": "draft_candidate",
+        "formal": "formal_release",
+    }[release_kind]
+    state_value = json.loads(read(root, "release-state.json"))
+    try:
+        control = validate_release_control(
+            json.loads(read(root, ".github/scripts/release-control.json")),
+            repository=REPOSITORY,
+            channel="youku",
+            release_phase=state_value.get("phase"),
+            release_version=state_value.get("version"),
+            validation_mode=validation_mode,
+        )
+    except ReleaseControlError as error:
+        raise ContractError(str(error)) from error
+    return control["closedVersion"], control["targetVersion"]
+
+
+def pending_checksum(version: str) -> str:
+    return f"__IFLYADLIB_YOUKU_{version.replace('.', '_')}_CHECKSUM_PENDING__"
 
 
 def verify_release_status(
@@ -76,54 +101,79 @@ def state(root: Path) -> dict[str, object]:
     return value
 
 
-def validate_state_version(value: dict[str, object], release_kind: str) -> None:
+def validate_state_version(
+    value: dict[str, object],
+    release_kind: str,
+    *,
+    closed_version: str,
+    target_version: str,
+) -> None:
     version = value.get("version")
     phase = value.get("phase")
     if release_kind in {"draft", "formal"}:
         require(
-            version == VERSION and phase == "FROZEN",
+            version == target_version and phase == "FROZEN",
             "release-state 版本或阶段不匹配：candidate/tag/Release 必须为"
-            f"当前版本 {VERSION}/FROZEN",
+            f"当前版本 {target_version}/FROZEN",
         )
         return
     require(release_kind == "none", "非法验证类型")
     require(
-        (version in {PREVIOUS_RELEASE_VERSION, VERSION} and phase == "CLOSED")
-        or (version == VERSION and phase == "FROZEN"),
+        (version in {closed_version, target_version} and phase == "CLOSED")
+        or (version == target_version and phase == "FROZEN"),
         "release-state 版本或阶段不匹配：普通 main 只允许保留上一版/当前版 CLOSED，"
         "或当前版本 FROZEN",
     )
 
 
 def allowed_distribution_versions(
-    value: dict[str, object], release_kind: str
+    value: dict[str, object],
+    release_kind: str,
+    *,
+    closed_version: str,
+    target_version: str,
 ) -> set[str]:
-    validate_state_version(value, release_kind)
+    validate_state_version(
+        value,
+        release_kind,
+        closed_version=closed_version,
+        target_version=target_version,
+    )
     if (
         release_kind == "none"
-        and value.get("version") == PREVIOUS_RELEASE_VERSION
+        and value.get("version") == closed_version
         and value.get("phase") == "CLOSED"
     ):
-        return {PREVIOUS_RELEASE_VERSION, VERSION}
-    return {VERSION}
+        return {closed_version, target_version}
+    return {target_version}
 
 
-def verify_checksum(checksum: str, distribution_version: str, preparing: bool) -> None:
+def verify_checksum(
+    checksum: str,
+    distribution_version: str,
+    preparing: bool,
+    *,
+    closed_version: str,
+    target_version: str,
+) -> None:
     if preparing:
-        require(distribution_version == VERSION, "PREPARING 只允许当前分发版本")
-        require(checksum == PENDING, "PREPARING 必须使用精确 PENDING checksum")
+        require(distribution_version == target_version, "PREPARING 只允许当前分发版本")
+        require(
+            checksum == pending_checksum(target_version),
+            "PREPARING 必须使用精确 PENDING checksum",
+        )
         return
     require(
         re.fullmatch(r"[0-9a-f]{64}", checksum) is not None,
         "FORMAL checksum 非 64 位小写 SHA-256",
     )
-    if distribution_version == PREVIOUS_RELEASE_VERSION:
+    if distribution_version == closed_version:
         require(
             checksum == PREVIOUS_RELEASE_CHECKSUM,
             "上一正式版本 checksum 与冻结值不一致",
         )
         return
-    require(distribution_version == VERSION, "非法分发版本")
+    require(distribution_version == target_version, "非法分发版本")
     require(
         checksum != "0" * 64
         and checksum != PREVIOUS_RELEASE_CHECKSUM
@@ -143,7 +193,13 @@ def verify_machine(
 ) -> None:
     require(release_kind in {"none", "draft", "formal"}, "非法验证类型")
     machine = state(root)
-    allowed_versions = allowed_distribution_versions(machine, release_kind)
+    closed_version, target_version = release_versions(root, release_kind)
+    allowed_versions = allowed_distribution_versions(
+        machine,
+        release_kind,
+        closed_version=closed_version,
+        target_version=target_version,
+    )
     package = read(root, "Package.swift")
     podspec = read(root, "YKIFLYADLib.podspec")
     podfile = read(root, "IFLYADLibSimple/Podfile")
@@ -173,7 +229,13 @@ def verify_machine(
     )
     checksum = one(r'checksum:\s*"([^"]+)"', package, "SwiftPM checksum")
     preparing = machine.get("phase") == "PREPARING"
-    verify_checksum(checksum, version, preparing)
+    verify_checksum(
+        checksum,
+        version,
+        preparing,
+        closed_version=closed_version,
+        target_version=target_version,
+    )
     if release_kind in {"draft", "formal"}:
         require(not preparing, f"{release_kind} 禁止 PREPARING")
     for marker in (
@@ -221,7 +283,13 @@ def verify_machine(
 
 def verify_docs(root: Path, _release_kind: str) -> None:
     machine = state(root)
-    allowed_versions = allowed_distribution_versions(machine, _release_kind)
+    closed_version, target_version = release_versions(root, _release_kind)
+    allowed_versions = allowed_distribution_versions(
+        machine,
+        _release_kind,
+        closed_version=closed_version,
+        target_version=target_version,
+    )
     documents = {
         name: read(root, name)
         for name in ("README.md", "CHANGELOG.md", "RELEASING.md")
