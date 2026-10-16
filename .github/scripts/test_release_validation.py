@@ -29,6 +29,7 @@ RELEASE_CONTROL = json.loads(
 )
 TAG = RELEASE_CONTROL["targetVersion"]
 PREVIOUS_TAG = RELEASE_CONTROL["closedVersion"]
+HISTORICAL_DOCUMENT_TAG = PREVIOUS_TAG if PREVIOUS_TAG != TAG else "0.0.0"
 CONTROL_VERSIONS = {
     "closed_version": PREVIOUS_TAG,
     "target_version": TAG,
@@ -725,7 +726,7 @@ class PrivateProvenanceDocumentTests(unittest.TestCase):
             "PENDING",
             private_provenance.PENDING_BINARY,
             private_provenance.PENDING_METADATA,
-        ) + provenance_section(PREVIOUS_TAG, "FORMAL", "a" * 40, "b" * 40)
+        ) + provenance_section(HISTORICAL_DOCUMENT_TAG, "FORMAL", "a" * 40, "b" * 40)
         self.assertEqual(
             private_provenance.parse_document(document, "测试文档"),
             (
@@ -738,7 +739,7 @@ class PrivateProvenanceDocumentTests(unittest.TestCase):
     def test_formal_current_section_ignores_historical_formal_section(self) -> None:
         document = provenance_section(
             f"{TAG} 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
-        ) + provenance_section(PREVIOUS_TAG, "FORMAL", "a" * 40, "b" * 40)
+        ) + provenance_section(HISTORICAL_DOCUMENT_TAG, "FORMAL", "a" * 40, "b" * 40)
         self.assertEqual(
             private_provenance.parse_document(document, "测试文档"),
             ("FORMAL", BINARY_COMMIT, METADATA_COMMIT),
@@ -748,7 +749,7 @@ class PrivateProvenanceDocumentTests(unittest.TestCase):
         current = provenance_section(
             f"{TAG} 发布状态", "FORMAL", BINARY_COMMIT, METADATA_COMMIT
         )
-        historical = provenance_section(PREVIOUS_TAG, "FORMAL", "a" * 40, "b" * 40)
+        historical = provenance_section(HISTORICAL_DOCUMENT_TAG, "FORMAL", "a" * 40, "b" * 40)
         for document in (current + current, historical):
             with self.subTest(document=document):
                 with self.assertRaises(private_provenance.VerificationError):
@@ -796,6 +797,53 @@ class PrivateProvenanceDocumentTests(unittest.TestCase):
                         BINARY_COMMIT,
                         METADATA_COMMIT,
                     )
+
+
+class ReleaseChecksumContractTests(unittest.TestCase):
+    def test_known_closed_versions_require_their_exact_frozen_checksum(self) -> None:
+        for version, checksum in repository_contract.CLOSED_RELEASE_CHECKSUMS.items():
+            with self.subTest(version=version):
+                repository_contract.verify_checksum(
+                    checksum, version, False,
+                    closed_version=version, target_version="6.4.2",
+                )
+                for other_version, other in repository_contract.CLOSED_RELEASE_CHECKSUMS.items():
+                    if other_version != version:
+                        with self.subTest(other_version=other_version), self.assertRaisesRegex(
+                            repository_contract.ContractError, "冻结值不一致"
+                        ):
+                            repository_contract.verify_checksum(
+                                other, version, False,
+                                closed_version=version, target_version="6.4.2",
+                            )
+
+    def test_unknown_closed_version_fails_even_with_a_known_checksum(self) -> None:
+        for checksum in repository_contract.CLOSED_RELEASE_CHECKSUMS.values():
+            with self.subTest(checksum=checksum), self.assertRaisesRegex(
+                repository_contract.ContractError, "缺少固定 checksum"
+            ):
+                repository_contract.verify_checksum(
+                    checksum, "0.0.0", False,
+                    closed_version="0.0.0", target_version="6.4.2",
+                )
+
+    def test_target_rejects_every_frozen_historical_and_zero_checksum(self) -> None:
+        rejected = (
+            set(repository_contract.CLOSED_RELEASE_CHECKSUMS.values())
+            | repository_contract.HISTORICAL | {"0" * 64}
+        )
+        for checksum in rejected:
+            with self.subTest(checksum=checksum), self.assertRaisesRegex(
+                repository_contract.ContractError, "沿用历史值"
+            ):
+                repository_contract.verify_checksum(
+                    checksum, "6.4.2", False,
+                    closed_version="6.4.1", target_version="6.4.2",
+                )
+        repository_contract.verify_checksum(
+            "f" * 64, "6.4.2", False,
+            closed_version="6.4.1", target_version="6.4.2",
+        )
 
 
 class WorkflowStructureTests(unittest.TestCase):
@@ -1170,69 +1218,74 @@ class WorkflowStructureTests(unittest.TestCase):
         )[0])
 
     def test_repository_and_release_modes_accept_only_exact_state_matrix(self) -> None:
-        previous_closed = {"version": PREVIOUS_TAG, "phase": "CLOSED"}
-        current_closed = {"version": TAG, "phase": "CLOSED"}
-        current_frozen = {"version": TAG, "phase": "FROZEN"}
+        previous_tag, target_tag = "6.4.0", "6.4.1"
+        control_versions = {
+            "closed_version": previous_tag, "target_version": target_tag,
+        }
+        previous_closed = {"version": previous_tag, "phase": "CLOSED"}
+        current_closed = {"version": target_tag, "phase": "CLOSED"}
+        current_frozen = {"version": target_tag, "phase": "FROZEN"}
         self.assertEqual(
             repository_contract.allowed_distribution_versions(
-                previous_closed, "none", **CONTROL_VERSIONS
+                previous_closed, "none", **control_versions
             ),
-            {PREVIOUS_TAG, TAG},
+            {previous_tag, target_tag},
         )
         self.assertEqual(
             repository_contract.allowed_distribution_versions(
-                current_frozen, "draft", **CONTROL_VERSIONS
+                current_frozen, "draft", **control_versions
             ),
-            {TAG},
+            {target_tag},
         )
         self.assertEqual(
             repository_contract.allowed_distribution_versions(
-                current_closed, "none", **CONTROL_VERSIONS
+                current_closed, "none", **control_versions
             ),
-            {TAG},
+            {target_tag},
         )
         repository_contract.validate_state_version(
-            previous_closed, "none", **CONTROL_VERSIONS
+            previous_closed, "none", **control_versions
         )
         repository_contract.validate_state_version(
-            current_closed, "none", **CONTROL_VERSIONS
+            current_closed, "none", **control_versions
         )
         repository_contract.validate_state_version(
-            current_frozen, "none", **CONTROL_VERSIONS
+            current_frozen, "none", **control_versions
         )
         repository_contract.validate_state_version(
-            current_frozen, "draft", **CONTROL_VERSIONS
+            current_frozen, "draft", **control_versions
         )
         repository_contract.validate_state_version(
-            current_frozen, "formal", **CONTROL_VERSIONS
+            current_frozen, "formal", **control_versions
         )
 
         for state, kind in (
             (previous_closed, "draft"),
             (previous_closed, "formal"),
-            ({"version": PREVIOUS_TAG, "phase": "FROZEN"}, "none"),
+            ({"version": previous_tag, "phase": "FROZEN"}, "none"),
             ({"version": "6.2.4", "phase": "CLOSED"}, "none"),
-            ({"version": TAG, "phase": "PREPARING"}, "draft"),
-            ({"version": TAG, "phase": "PUBLISHED"}, "draft"),
-            ({"version": TAG, "phase": "VERIFIED"}, "formal"),
-            ({"version": TAG, "phase": "CLOSED"}, "formal"),
-            ({"version": TAG, "phase": "PREPARING"}, "none"),
-            ({"version": TAG, "phase": "PUBLISHED"}, "none"),
-            ({"version": TAG, "phase": "VERIFIED"}, "none"),
+            ({"version": target_tag, "phase": "PREPARING"}, "draft"),
+            ({"version": target_tag, "phase": "PUBLISHED"}, "draft"),
+            ({"version": target_tag, "phase": "VERIFIED"}, "formal"),
+            ({"version": target_tag, "phase": "CLOSED"}, "formal"),
+            ({"version": target_tag, "phase": "PREPARING"}, "none"),
+            ({"version": target_tag, "phase": "PUBLISHED"}, "none"),
+            ({"version": target_tag, "phase": "VERIFIED"}, "none"),
         ):
             with self.subTest(state=state, kind=kind):
                 with self.assertRaises(repository_contract.ContractError):
                     repository_contract.validate_state_version(
-                        state, kind, **CONTROL_VERSIONS
+                        state, kind, **control_versions
                     )
 
     def test_current_release_rejects_previous_release_checksum(self) -> None:
         with self.assertRaisesRegex(repository_contract.ContractError, "沿用历史值"):
             repository_contract.verify_checksum(
                 repository_contract.PREVIOUS_RELEASE_CHECKSUM,
-                TAG,
+                "6.4.2",
                 False,
-                **CONTROL_VERSIONS,
+                closed_version="6.4.1",
+                target_version="6.4.2",
             )
 
     def test_docs_drift_is_isolated_but_checksum_drift_fails_machine_scope(self) -> None:
