@@ -1,12 +1,12 @@
 # 优酷定制 Simple 使用指南
 
-> `6.4.2` 为候选版本，尚未发布。当前公开正式版和生产依赖仍为 [`6.4.1`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.1)；历史 Tag、Release 和资产保持不可变。
+> `6.4.2` 的正式分发资料以同版本真实冻结 manifest 为准。当前正式版本：[`6.4.2`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.2)；公开时间和消费验证结论以 `release-state.json.publication` 与同版本 GitHub Release 的实际状态为准。历史 Tag、Release 和资产保持不可变。
 
-本工程用于联调优酷定制 iOS SDK `6.4.1` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。完整安装方式与 SDK API 说明见[仓库 README](../README.md)。
+本工程用于联调优酷定制 iOS SDK `6.4.2` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。完整安装方式与 SDK API 说明见[仓库 README](../README.md)。
 
-`6.4.1` 继承 `6.4.0` 的公开 API 与 UI 行为，没有新增公开 API；优酷仍只包含开屏、插屏和自渲染信息流，不新增 Banner 或 Reward。
+`6.4.2` 继承 `6.4.0` 的公开 API 与 UI 行为，没有新增公开 API；优酷仍只包含开屏、插屏和自渲染信息流，不新增 Banner 或 Reward。
 
-> 当前示例对应优酷正式版本 `6.4.1`。版本公开状态与消费验证结论以 `release-state.json.publication` 和同版本 GitHub Release 的实际状态为准。
+> 当前示例对应优酷正式版本 `6.4.2`。版本公开状态与消费验证结论以 `release-state.json.publication` 和同版本 GitHub Release 的实际状态为准。
 
 
 ## 示例范围
@@ -30,7 +30,7 @@ pod install
 open IFLYADLibSimple.xcworkspace
 ```
 
-1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 `6.4.1` Tag 的公开 Podspec URL，不需要另行在公共索引搜索定制 Pod。
+1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 `6.4.2` Tag 的公开 Podspec URL，不需要另行在公共索引搜索定制 Pod。
 2. 打开 `IFLYADLibSimple.xcworkspace`，不要只打开 `.xcodeproj`。
 3. 选择 `IFLYADLibSimple` scheme 和运行设备。真机运行前，在 **Signing & Capabilities** 中选择自己的 Team，并填写可签名的 Bundle ID。
 4. 按下方说明替换广告位，确认该 Bundle ID 等应用信息已在平台配置。
