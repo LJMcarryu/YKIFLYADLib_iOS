@@ -1,13 +1,6 @@
 # 优酷定制 Simple 使用指南
 
-> `6.4.2` 的正式分发资料以同版本真实冻结 manifest 为准。当前正式版本：[`6.4.2`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.2)；公开时间和消费验证结论以 `release-state.json.publication` 与同版本 GitHub Release 的实际状态为准。历史 Tag、Release 和资产保持不可变。
-
-本工程用于联调优酷定制 iOS SDK `6.4.2` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。完整安装方式与 SDK API 说明见[仓库 README](../README.md)。
-
-`6.4.2` 继承 `6.4.0` 的公开 API 与 UI 行为，没有新增公开 API；优酷仍只包含开屏、插屏和自渲染信息流，不新增 Banner 或 Reward。
-
-> 当前示例对应优酷正式版本 `6.4.2`。版本公开状态与消费验证结论以 `release-state.json.publication` 和同版本 GitHub Release 的实际状态为准。
-
+本工程用于联调优酷定制 iOS SDK `6.4.2` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。安装与格式入口见[仓库 README](../README.md)，详细说明见[接入指南](../docs/接入指南/安装方式.md)。
 
 ## 示例范围
 
@@ -17,7 +10,7 @@
 | 自渲染插屏 | `IFLYNativeFeedAd` | 图片 / 视频、横竖素材布局、半屏 / 全屏、关闭与视频封面 |
 | 自渲染信息流示例 | `IFLYNativeFeedAd` | 真实列表中的图文 / 视频卡片、Cell 复用、离屏回屏、媒体摇一摇接口 |
 
-三个页面都由示例自己创建 UI。SDK 本身还提供内置开屏 `IFLYSplashAd` 和内置插屏 `IFLYInterstitialAd`，但这里的视觉页面不会调用它们；接入内置格式时参考[根 README](../README.md#开屏广告)，其展示配置与回调也不同。优酷包不提供 Banner 和激励视频。
+三个页面都由示例自己创建 UI。SDK 本身还提供内置开屏 `IFLYSplashAd` 和内置插屏 `IFLYInterstitialAd`，但这里的视觉页面不会调用它们；接入内置格式时参考[开屏指南](../docs/接入指南/开屏广告.md)和[插屏指南](../docs/接入指南/插屏广告.md)，其展示配置与回调也不同。优酷包不提供 Banner 和激励视频。
 
 ## 从下载到运行
 
@@ -75,11 +68,11 @@ xcodebuild build \
 
 首次启动先显示隐私页面，可以打开[SDK 隐私政策](https://aimarx.com/help-center/sdk-privacy-policy)。选择“同意并继续”后才会配置 SDK、进入首页并尝试申请 ATT。页面本身不自动请求广告，进入并操作对应示例后才会加载。
 
-同意记录保存在本地，下次启动直接进入首页。需要重新验证首次体验时，可删除示例 App 后重新安装。选择“不同意并退出应用”会结束本演示进程；宿主接入时应按自己的产品流程处理拒绝选择，不要直接复制示例退出行为。
+同意记录保存在本地，下次启动直接进入首页。需要重新验证首次体验时，可删除示例 App 后重新安装。示例隐私界面用于演示；宿主应提供自己的同意与拒绝流程。
 
 iOS 14 及以上，示例只在 ATT `authorized` 时读取 IDFA；拒绝授权后仍可进入示例，IDFA 为空不等于 SDK 安装失败。系统可能因现有授权或设备设置不再次显示弹窗。授权发生变化后重新发起请求，示例会重新读取当前状态。
 
-工程的 **Build Settings → Privacy - Tracking Usage Description** 配置演示用途的 ATT 文案（`INFOPLIST_KEY_NSUserTrackingUsageDescription`），构建时写入 App 的 `Info.plist`；[源 Info.plist](IFLYADLibSimple/Info.plist) 为联调 HTTP 素材配置 `NSAllowsArbitraryLoads`。移植到宿主时应采用符合实际用途的文案和网络配置。`setPersonalizedEnabled:` 只记录选择，不替代 ATT，也不会阻止或改写请求、标识符和监测；参见[隐私与请求配置](../README.md#初始化隐私和请求配置)。
+工程的 **Build Settings → Privacy - Tracking Usage Description** 配置演示用途的 ATT 文案（`INFOPLIST_KEY_NSUserTrackingUsageDescription`），构建时写入 App 的 `Info.plist`；[源 Info.plist](IFLYADLibSimple/Info.plist) 为联调 HTTP 素材配置 `NSAllowsArbitraryLoads`。移植到宿主时应采用符合实际用途的文案和网络配置。`setPersonalizedEnabled:` 只记录选择，不替代 ATT，也不会阻止或改写请求、标识符和监测；参见[隐私与请求配置](../docs/接入指南/隐私与请求配置.md)。
 
 ## 自渲染开屏
 
@@ -127,7 +120,7 @@ iOS 14 及以上，示例只在 ATT `authorized` 时读取 IDFA；拒绝授权�
 
 先让当前广告自然曝光并保持有效可见，再点击该按钮。它代表“宿主已判定摇一摇发生”，接受后进入真实广告点击流程，可能打开落地页；不要把它当成无副作用的状态查询。生产接入只在宿主实际识别到事件后调用。
 
-调用必须在主线程。`YES` 表示事件已接受，不保证取得传感器样本或跳转成功；同一已加载广告最多接受一次，离屏再回屏不会重置；已经处理普通点击后不能重复上报。是否允许调用不以 `interactionType`、`interactType`、素材类型或目标地址为筛选条件。失败时读取 `IFLYAdError`：
+调用必须在主线程。`YES` 表示事件已接受，不保证跳转成功；同一已加载广告最多接受一次，离屏再回屏不会重置；已经处理普通点击后不能重复上报。是否允许调用不以 `interactionType`、`interactType`、素材类型或目标地址为筛选条件。失败时读取 `IFLYAdError`：
 
 | 错误码 | 含义 / 操作 |
 | --- | --- |
@@ -136,7 +129,7 @@ iOS 14 及以上，示例只在 ATT `authorized` 时读取 IDFA；拒绝授权�
 | `71514` | 已处理点击或已有点击正在处理；不要对同一广告重复上报 |
 | `71515` | 调用不在主线程；修正调用位置 |
 
-真机验证传感器、外跳和授权行为；模拟器中的按钮调用不能证明真实摇动识别正确。接口详情见[媒体摇一摇](../README.md#优酷媒体摇一摇)。
+真机验证传感器、外跳和授权行为；模拟器中的按钮调用不能证明真实摇动识别正确。接口详情见[媒体摇一摇](../docs/接入指南/自渲染信息流.md#优酷媒体摇一摇)。
 
 ## 回调如何判断
 
