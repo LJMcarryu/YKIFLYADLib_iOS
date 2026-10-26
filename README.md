@@ -1,5 +1,12 @@
 # 优酷定制 IFLYADLib iOS SDK
 
+## 6.4.4 候选
+
+<!-- ifly-release-candidate: {"schemaVersion":1,"version":"6.4.4","releaseState":"CANDIDATE","publicationState":"UNPUBLISHED","repository":"LJMcarryu/YKIFLYADLib_iOS","currentFormalVersion":"6.4.2"} -->
+
+`6.4.4` 为候选，尚未发布；当前公开正式版和生产依赖保持 `6.4.2`。历史 Tag、Release 和资产保持不可变。
+
+
 本仓库提供面向 iOS 应用的优酷定制广告 SDK，包含开屏、插屏和自渲染信息流，以及安装说明和 Objective-C 示例。
 
 当前正式版本：[`6.4.2`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.2)。生产项目请固定具体版本。
