@@ -1,11 +1,7 @@
 # 优酷定制 Simple 使用指南
 
-## 6.4.4 候选
 
-`6.4.4` 为候选，尚未发布；当前公开正式版和生产依赖保持 `6.4.2`。历史 Tag、Release 和资产保持不可变。
-
-
-本工程用于联调优酷定制 iOS SDK `6.4.2` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。安装与格式入口见[仓库 README](../README.md)，详细说明见[接入指南](../docs/接入指南/安装方式.md)。
+本工程用于联调优酷定制 iOS SDK `6.4.4` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。安装与格式入口见[仓库 README](../README.md)，详细说明见[接入指南](../docs/接入指南/安装方式.md)。
 
 ## 示例范围
 
@@ -28,7 +24,7 @@ pod install
 open IFLYADLibSimple.xcworkspace
 ```
 
-1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 `6.4.2` Tag 的公开 Podspec URL，不需要另行在公共索引搜索定制 Pod。
+1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 `6.4.4` Tag 的公开 Podspec URL，不需要另行在公共索引搜索定制 Pod。
 2. 打开 `IFLYADLibSimple.xcworkspace`，不要只打开 `.xcodeproj`。
 3. 选择 `IFLYADLibSimple` scheme 和运行设备。真机运行前，在 **Signing & Capabilities** 中选择自己的 Team，并填写可签名的 Bundle ID。
 4. 按下方说明替换广告位，确认该 Bundle ID 等应用信息已在平台配置。

@@ -1,6 +1,4 @@
-# 6.4.4 为候选，尚未发布；当前公开正式版与生产依赖保持 6.4.2。
-# 历史 Tag、Release 和资产保持不可变。
-# 本示例固定使用 6.4.2；公开时间与消费验证结论以 release-state.json.publication 和同版本 GitHub Release 的实际状态为准。
+# 本示例固定使用 6.4.4；公开时间与消费验证结论以 release-state.json.publication 和同版本 GitHub Release 的实际状态为准。
 # 历史 Tag、Release 和资产保持不可变。
 
 source 'https://cdn.cocoapods.org/'
@@ -8,7 +6,7 @@ source 'https://cdn.cocoapods.org/'
 platform :ios, '11.0'
 
 
-# 6.4.2 继承 6.4.0，公开 API 方法签名不变。UIScene 展示、落地页、外跳回流、曝光和 UI 生命周期绑定实际来源 window/Scene；
+# 6.4.4 继承 6.4.0，公开 API 方法签名不变。UIScene 展示、落地页、外跳回流、曝光和 UI 生命周期绑定实际来源 window/Scene；
 # 无来源时只允许唯一且明确的前台应用 Scene，不跨 Scene 随机兜底，独立落地页始终属于来源 Scene。
 # 开屏 rootVC 仍须入窗；Scene 宿主的 customWindow 须可见、尺寸有限且为正、已关联且与 rootVC.window 同 Scene，
 # 可为非 key、高 windowLevel、无 rootVC；非法输入展示失败，修正后可重试。正式 Tag、Release 和资产以同版本发布记录为准。
@@ -18,5 +16,5 @@ target 'IFLYADLibSimple' do
 
   # 优酷 Model B 单包：只含开屏、插屏和自渲染信息流，模块及公开 API 仍为 IFLYADLib / IFLY*。
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.4.2/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.4.4/YKIFLYADLib.podspec'
 end
