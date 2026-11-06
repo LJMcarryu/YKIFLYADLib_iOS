@@ -3,9 +3,9 @@
 
 本仓库提供面向 iOS 应用的优酷定制广告 SDK，包含开屏、插屏和自渲染信息流，以及安装说明和 Objective-C 示例。
 
-当前正式版本：[`6.4.4`](https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.4)。生产项目请固定具体版本。
+当前正式版本：[`6.4.6`](https://download-adsdk.voiceads.cn/ios_sdk/6.4.6/youku/release-record.json)。生产项目请固定具体版本。
 
-<!-- ifly-release-status: {"schemaVersion":1,"version":"6.4.4","releaseState":"FORMAL","distribution":"github-release","releaseUrl":"https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.4"} -->
+<!-- ifly-release-status: {"version":"6.4.6","status":"FORMAL","distribution":"tos","releaseUrl":"https://download-adsdk.voiceads.cn/ios_sdk/6.4.6/youku/release-record.json"} -->
 
 [接入指南索引](docs/接入指南/README.md) · [运行示例](IFLYADLibSimple/README.md) · [安装方式](docs/接入指南/安装方式.md) · [隐私与请求配置](docs/接入指南/隐私与请求配置.md) · [更新记录](CHANGELOG.md) · [排错](docs/接入指南/生命周期与排错.md) · [支持](#隐私许可与支持)
 
@@ -56,7 +56,7 @@ platform :ios, '11.0'
 target 'YourApp' do
   use_frameworks!
   pod 'YKIFLYADLib',
-      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.4.4/YKIFLYADLib.podspec'
+      :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.4.6/YKIFLYADLib.podspec'
 end
 ```
 
@@ -102,3 +102,9 @@ CocoaPods 自动投递 `IFLYPlayer.bundle`、传播 `-ObjC` 并处理 `AdSupport
 ## 接入指南入口
 
 完整主题索引见[接入指南索引](docs/接入指南/README.md)。
+
+## 6.4.6 分发与验收
+
+本版 SDK 二进制改由火山云 TOS 分发，下载基础地址为 `https://download-adsdk.voiceads.cn/ios_sdk/6.4.6/youku`。SwiftPM 与 CocoaPods 的公开版本入口保持，生产项目固定 `6.4.6`。从共享源码重新构建，包含点击字段 `ids_a` / `__IDS_A__`、CAID 时间字段和加速度计不可用守卫；旧版本不能据此解释为已包含这些变化。优酷包含 NativeFeed 摇/扭 fallback，适用条件须按本版接口与接入指南确认。
+
+产物清单、大小、SHA-256、源码与元数据提交见 [TOS 发布记录](https://download-adsdk.voiceads.cn/ios_sdk/6.4.6/youku/release-record.json)。只有该记录存在且 `release-state.json` 为 `CLOSED` 才表示本版发布完成。正式证据包含匿名下载以及 SwiftPM/CocoaPods 的 simulator/device 编译链接与资源检查；普通 CI 只检查元数据。CocoaPods trunk、Apple 人工审核与真实媒体验收不在本次分发完成范围。
