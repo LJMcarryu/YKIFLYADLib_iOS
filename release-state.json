@@ -1,30 +1,39 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 4,
+  "distributionBackend": "tos",
+  "phase": "FROZEN",
+  "version": "6.4.6",
   "channel": "youku",
   "repository": "LJMcarryu/YKIFLYADLib_iOS",
-  "version": "6.4.4",
-  "phase": "CLOSED",
-  "binarySourceCommit": "25ebc73166c9596822cfcf4e93d74fc6c98bd5e4",
-  "releaseMetadataCommit": "56aaeb4d5b76858b266981d30afd76bff6a73ad2",
-  "artifactInventory": {
-    "count": 4,
-    "sha256": "5ee1e02d8e7f5be3028880582ba71bd49e0bb825bcd4fdbc5ee9115a95e86c5b"
-  },
-  "appleReview": {
-    "requiredForRelease": false,
-    "statusAtFreeze": "not-run",
-    "evidenceIncluded": false
-  },
-  "publication": {
-    "releaseId": 424111990,
-    "tagName": "6.4.4",
-    "tagObjectSha": "120d8e0a11aea2632439eab97e58280ca95609aa",
-    "tagCommitSha": "9e0acb4f78eddd534a6ea6cea47db6559e654a25",
-    "releaseUrl": "https://github.com/LJMcarryu/YKIFLYADLib_iOS/releases/tag/6.4.4",
-    "publishedAt": "2026-10-26T10:51:47Z",
-    "formalConsumerRunId": 40310691741,
-    "formalConsumerRunUrl": "https://github.com/LJMcarryu/YKIFLYADLib_iOS/actions/runs/40310691741",
-    "conclusion": "success",
-    "verifiedAt": "2026-10-26T10:55:00Z"
-  }
+  "artifactCandidateId": "adb5093d05d9d47522e29a916fbbe9fbf762dbe632e5441baecfc1e214d61e71",
+  "binarySourceCommit": "b50f1af836e06ba61414d580c154617c24c34bfa",
+  "releaseMetadataCommit": "1b043f4b14fec0977c7431a51aa0bdde81474080",
+  "uploadInventorySha256": "c40019ffdaa9ba39f8419a91b4d34db4c08ac93a6407a8706326ba2f166d0103",
+  "channelInventorySha256": "8f9707c78965d1920eb1a7743af4781e6b8d4ad78e012cffc47f82bdd8135cbe",
+  "assets": [
+    {
+      "name": "IFLYADLib.xcframework.zip",
+      "size": 3127130,
+      "sha256": "c3bab370d667fc1b8bc17fde47fa9994a83d6479b151af63806cc7705bd30c37",
+      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.4.6/youku/IFLYADLib.xcframework.zip"
+    },
+    {
+      "name": "YKIFLYADLib-6.4.6.zip",
+      "size": 3160009,
+      "sha256": "db7ebeafd3ea475da7684cf759d3ea5d991da1b996eb1df28c5c04332f0d72f5",
+      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.4.6/youku/YKIFLYADLib-6.4.6.zip"
+    },
+    {
+      "name": "checksums.txt",
+      "size": 288,
+      "sha256": "13eec8970b712be671e1bac0e59921d6fa01527ce870c41e94591d7cd3838519",
+      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.4.6/youku/checksums.txt"
+    },
+    {
+      "name": "delivery-manifest.json",
+      "size": 3112,
+      "sha256": "31f806fc0c22448314e8be924e982d4b7eb10023e0cf822523bfe01e023aec62",
+      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.4.6/youku/delivery-manifest.json"
+    }
+  ]
 }
