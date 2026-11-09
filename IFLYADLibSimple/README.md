@@ -24,7 +24,7 @@ pod install
 open IFLYADLibSimple.xcworkspace
 ```
 
-1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 `6.5.0` Tag 的公开 Podspec URL，不需要另行在公共索引搜索定制 Pod。
+1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 CocoaPods 官方 trunk 的 `6.5.0`，不需要另行在公共索引搜索定制 Pod。
 2. 打开 `IFLYADLibSimple.xcworkspace`，不要只打开 `.xcodeproj`。
 3. 选择 `IFLYADLibSimple` scheme 和运行设备。真机运行前，在 **Signing & Capabilities** 中选择自己的 Team，并填写可签名的 Bundle ID。
 4. 按下方说明替换广告位，确认该 Bundle ID 等应用信息已在平台配置。
@@ -152,7 +152,7 @@ iOS 14 及以上，示例只在 ATT `authorized` 时读取 IDFA；拒绝授权�
 
 | 现象 | 排查步骤 |
 | --- | --- |
-| `pod install` 下载或 TLS 失败 | 检查到 GitHub、`raw.githubusercontent.com` 及 CocoaPods CDN 的网络连接和代理；连接恢复后重试，保留固定版本 URL |
+| `pod install` 下载或 TLS 失败 | 检查 CocoaPods trunk、TOS 下载地址和代理；连接恢复后重试，保留固定版本号 |
 | 找不到模块或链接报错 | 确认安装成功且打开 workspace；检查 scheme、`-ObjC`、重复 framework 和资源投递 |
 | 真机签名失败 | 设置自己的 Team 和 Bundle ID，并确认设备已包含在签名配置中 |
 | 首页未出现 ATT 弹窗 | 先完成隐私同意，再查看设备系统版本与现有 ATT 状态；授权不会每次启动都弹出 |
