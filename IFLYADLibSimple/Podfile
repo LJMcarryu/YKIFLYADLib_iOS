@@ -1,4 +1,4 @@
-# 本示例固定使用 6.4.7；极速发布未验证，verification=not-run。
+# 本示例固定使用 6.5.0；极速发布未验证，verification=not-run。
 # 历史 Tag、Release 和资产保持不可变。
 
 source 'https://cdn.cocoapods.org/'
@@ -15,5 +15,5 @@ target 'IFLYADLibSimple' do
   use_frameworks!
 
   # 优酷 Model B 单包：只含开屏、插屏和自渲染信息流，模块及公开 API 仍为 IFLYADLib / IFLY*。
-  pod 'YKIFLYADLib', :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.4.7/YKIFLYADLib.podspec'
+  pod 'YKIFLYADLib', :podspec => 'https://raw.githubusercontent.com/LJMcarryu/YKIFLYADLib_iOS/6.5.0/YKIFLYADLib.podspec'
 end
