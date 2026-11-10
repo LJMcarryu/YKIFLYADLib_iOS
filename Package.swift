@@ -1,8 +1,7 @@
 // swift-tools-version:5.9
 
-// 优酷定制包。二进制模块名保持 IFLYADLib。
-// 静态 binaryTarget 不会投递外置 IFLYPlayer.bundle，因此产品同时包含资源 target；
-// SDK 会从 SwiftPM 生成的资源 bundle 中定位其内嵌的 IFLYPlayer.bundle。
+// 优酷定制 SDK，导入模块名为 IFLYADLib；product 自动包含资源。
+// 在宿主 App target 的 Other Linker Flags 中添加 -ObjC。
 
 import PackageDescription
 

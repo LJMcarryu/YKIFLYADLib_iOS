@@ -1,5 +1,4 @@
-# 优酷媒体定制包分发。
-# Pod 身份使用 YKIFLYADLib，二进制模块、公开类前缀和资源仍保持 IFLYADLib / IFLY* / IFLYPlayer.bundle。
+# 优酷定制 SDK：Pod 名为 YKIFLYADLib，模块名为 IFLYADLib。
 
 Pod::Spec.new do |s|
   s.name = 'YKIFLYADLib'
