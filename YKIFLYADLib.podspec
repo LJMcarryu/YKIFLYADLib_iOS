@@ -1,6 +1,5 @@
-# 优酷媒体定制 Model B 单包分发。
+# 优酷媒体定制包分发。
 # Pod 身份使用 YKIFLYADLib，二进制模块、公开类前缀和资源仍保持 IFLYADLib / IFLY* / IFLYPlayer.bundle。
-# 正式合并包由私有源码仓 scripts/package-youku-release.sh 生成。
 
 Pod::Spec.new do |s|
   s.name = 'YKIFLYADLib'
