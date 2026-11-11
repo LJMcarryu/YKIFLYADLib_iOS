@@ -1,7 +1,7 @@
 # 优酷定制 IFLYADLib iOS SDK
 
 <!-- ifly-fast-release-notice:start -->
-当前版本：`6.5.1`。本版尚未完成安装、构建与广告展示验证，请先在宿主 App 中联调。
+当前版本：`6.5.1`。本版已通过 CocoaPods、SwiftPM、手动集成的安装及 arm64 模拟器/设备架构构建验证；真机广告展示仍需在宿主 App 中联调。
 
 <!-- ifly-release-status: {"version":"6.5.1","status":"FAST_UNVERIFIED","distribution":"tos","releaseUrl":"https://download-adsdk.voiceads.cn/ios_sdk/6.5.1/youku/fast-release-record.json"} -->
 
@@ -16,9 +16,10 @@
 | 接入方式 | 独立示例 | 首次准备 |
 | --- | --- | --- |
 | CocoaPods | [IFLYADLibSimple](IFLYADLibSimple/README.md) | 在示例目录运行 `pod install` |
+| SwiftPM | [YKIFLYADLibSwiftPMSimple](YKIFLYADLibSwiftPMSimple/README.md) | 打开 workspace，解析远程 6.5.1 包 |
 | 手动集成 | [YKIFLYADLibManualSimple](YKIFLYADLibManualSimple/README.md) | 运行示例内 `准备SDK.py`，再打开 workspace |
 
-各示例固定的 SDK 版本与运行步骤以其 README 为准。6.5.0 请选择 CocoaPods 或手动集成；SwiftPM 将在 6.5.1 修复后恢复。
+三种示例均固定使用 SDK `6.5.1`，具体运行步骤见各自 README。同一 App 只选择一种接入方式。
 
 ## 能力与接入身份
 
@@ -36,7 +37,7 @@
 | framework / 导入模块 | `IFLYADLib` |
 | 外置资源 | `IFLYPlayer.bundle` |
 | 链接要求 | 静态 XCFramework；最终 App 保留 `$(inherited)` 和 `-ObjC`，选择 **Do Not Embed** |
-| 同一 App 的选择 | CocoaPods、手动集成二选一；只安装一份 SDK 发行包 |
+| 同一 App 的选择 | CocoaPods、SwiftPM、手动集成三选一；只安装一份 SDK 发行包 |
 
 类和方法使用 `IFLY*` 命名。优酷版与标准 `IFLYADLib` 含相同公开符号，不要在同一个 App 中同时链接。
 

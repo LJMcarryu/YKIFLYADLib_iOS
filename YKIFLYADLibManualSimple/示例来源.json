@@ -1,6 +1,6 @@
 {
-  "sdkVersion": "6.5.0",
-  "sdkTagCommit": "cc94552689f414530675bff366083bee805538d4",
+  "sdkVersion": "6.5.1",
+  "sdkTagCommit": "920ce446b46fd5450660197478836f082f74947c",
   "demoSourceCommit": "067f84680e0b886ea76b2337fb27e2ae468507cb",
   "demoSourceDirectory": "IFLYADLibSimple",
   "integration": "manual",
@@ -27,7 +27,7 @@
     "SDKResources/IFLYPlayer.bundle/IFLYFPlayer_close_volume@2x.png": "08554deab6a60632ce078015b8b18d574ce5d7b8fbc0a48dcfd9a369198a8ecb",
     "SDKResources/IFLYPlayer.bundle/IFLYPlayer_bottom_shadow.png": "f1409334d7bcc8816a132bbf4d25f22b920b1ce0222d373ed3883439557abb86",
     "SDKResources/IFLYPlayer.bundle/IFLYFPlayer_close_volume@3x.png": "d33298dd5563a1ae35ef18334e05eff110103dfe1488c506cc0f1a03c747d375",
-    "SDKResources/IFLYPlayer.bundle/PrivacyInfo.xcprivacy": "c9fb381bf10ef98af3dfa6cc890eaa783102e2041b2a0400b4bf1eebd99c51bd",
+    "SDKResources/IFLYPlayer.bundle/PrivacyInfo.xcprivacy": "1631bf3d711da2672fc3b07d22608e742f8005b8d946f9d8704dcc9c4e6b1301",
     "SDKResources/IFLYPlayer.bundle/IFLYFPlayer_close_volume.png": "8070e2b1fd783948f235afedc954994615fb7da37337c4e8ea66c22b023370d8",
     "SDKResources/IFLYPlayer.bundle/IFLYPlayer_play@2x.png": "f36b7920ad4b89dfaa34e9ca23867b9d2c48fb20a1940e2bb839f09a97d77ab7",
     "SDKResources/IFLYPlayer.bundle/IFLYPlayer_top_shadow.png": "68cceee3a6e5c5c7170e0a1801b225405c8b91e7a18696363779dca6eeb2fd11"
