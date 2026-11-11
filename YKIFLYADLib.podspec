@@ -3,11 +3,11 @@
 Pod::Spec.new do |s|
   s.name = 'YKIFLYADLib'
   s.module_name = 'IFLYADLib'
-  s.version = '6.5.0'
+  s.version = '6.5.1'
   s.summary = '优酷定制 IFLYADLib：开屏、插屏和自渲染信息流。'
   s.homepage = 'https://github.com/LJMcarryu/YKIFLYADLib_iOS'
   s.author = { 'IFLY' => '讯飞AI营销' }
-  s.source = { :http => 'https://download-adsdk.voiceads.cn/ios_sdk/6.5.0/youku/YKIFLYADLib-6.5.0.zip' }
+  s.source = { :http => 'https://download-adsdk.voiceads.cn/ios_sdk/6.5.1/youku/YKIFLYADLib-6.5.1.zip' }
   s.license = { :type => 'MIT', :file => 'LICENSE' }
 
   s.platform = :ios, '11.0'
