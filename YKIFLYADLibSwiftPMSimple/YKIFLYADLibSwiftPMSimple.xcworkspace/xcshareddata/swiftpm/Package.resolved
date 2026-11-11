@@ -1,0 +1,15 @@
+{
+  "originHash" : "dcbdd6ebce114651b62bf1e7fb9ad5d8bbac2965ad06690b29fbb93dad7f8496",
+  "pins" : [
+    {
+      "identity" : "ykiflyadlib_ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/LJMcarryu/YKIFLYADLib_iOS.git",
+      "state" : {
+        "revision" : "cc94552689f414530675bff366083bee805538d4",
+        "version" : "6.5.0"
+      }
+    }
+  ],
+  "version" : 3
+}
