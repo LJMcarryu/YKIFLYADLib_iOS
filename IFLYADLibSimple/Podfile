@@ -1,4 +1,4 @@
-# 本示例固定使用 6.5.1；请运行 pod install 生成锁文件。安装与运行需在宿主 App 中验证。
+# 本示例固定使用 6.5.2；请运行 pod install 生成锁文件。安装与运行需在宿主 App 中验证。
 # 历史 Tag、Release 和资产保持不可变。
 
 source 'https://cdn.cocoapods.org/'
@@ -15,5 +15,5 @@ target 'IFLYADLibSimple' do
   use_frameworks!
 
   # 优酷 Model B 单包：只含开屏、插屏和自渲染信息流，模块及公开 API 仍为 IFLYADLib / IFLY*。
-  pod 'YKIFLYADLib', '6.5.1'
+  pod 'YKIFLYADLib', '6.5.2'
 end
