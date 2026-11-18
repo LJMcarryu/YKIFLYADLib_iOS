@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "distributionBackend": "tos",
-  "phase": "FROZEN",
+  "phase": "CLOSED",
   "version": "6.5.3-beta.1",
   "channel": "youku",
   "repository": "LJMcarryu/YKIFLYADLib_iOS",
@@ -35,5 +35,8 @@
       "sha256": "0db84ab987bc09f2e3d1a4a197d7e1ff67a257ef13f90af1c0d57842a8678033",
       "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3-beta.1/youku/delivery-manifest.json"
     }
-  ]
+  ],
+  "distributionRevisionId": "6ada19ad8f0e8c669d1e65016962f25d8c16fce272e9ee0b2885b8b13d6efe19",
+  "verifyReceiptSha256": "3143f87adc1b4d596d52f4efa28324741b27373e2db651612e9f6e7390dd9657",
+  "tagCommit": "0cb030e8e59a63d0b469bc00296fea485e7785bf"
 }
