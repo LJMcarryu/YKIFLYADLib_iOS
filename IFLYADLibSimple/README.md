@@ -1,13 +1,13 @@
 # 优酷定制 Simple 使用指南
 
 > 本示例遵循公开仓 Demo 契约：固定 SDK 版本、独立 Podfile、可复现运行说明和脱敏问题反馈。
-本工程用于联调优酷定制 iOS SDK `6.5.2` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。安装与格式入口见[仓库 README](../README.md)，详细说明见[接入指南](../docs/接入指南/安装方式.md)。
+本工程用于联调优酷定制 iOS SDK `6.5.3-beta.1` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。安装与格式入口见[仓库 README](../README.md)，详细说明见[接入指南](../docs/接入指南/安装方式.md)。
 
 ## 下载入口与版本
 
-无需 Git 时，可下载 [GitHub main 分支源码 ZIP](https://github.com/LJMcarryu/YKIFLYADLib_iOS/archive/refs/heads/main.zip)，解压后进入 `YKIFLYADLib_iOS-main/IFLYADLibSimple/`，再执行下方安装命令。不要只下载 `.xcodeproj`。使用 Git 的命令见下文；已有副本先确认本页与 Podfile 都固定 SDK `6.5.2`。
+无需 Git 时，可下载 [GitHub main 分支源码 ZIP](https://github.com/LJMcarryu/YKIFLYADLib_iOS/archive/refs/heads/main.zip)，解压后进入 `YKIFLYADLib_iOS-main/IFLYADLibSimple/`，再执行下方安装命令。不要只下载 `.xcodeproj`。使用 Git 的命令见下文；已有副本先确认本页与 Podfile 都固定 SDK `6.5.3-beta.1`。
 
-依赖安装后核对 `Podfile.lock` 中 `YKIFLYADLib` 为 `6.5.2`。版本找不到或锁文件冲突的处理见[安装指南](../docs/接入指南/安装方式.md#cocoapods)。
+依赖安装后核对 `Podfile.lock` 中 `YKIFLYADLib` 为 `6.5.3-beta.1`。版本找不到或锁文件冲突的处理见[安装指南](../docs/接入指南/安装方式.md#cocoapods)。
 
 ## 示例范围
 
@@ -30,7 +30,7 @@ pod install
 open IFLYADLibSimple.xcworkspace
 ```
 
-1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 CocoaPods 官方 trunk 的 `6.5.2`，不需要另行在公共索引搜索定制 Pod。
+1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 固定版本 Tag 的 Podspec，版本为 `6.5.3-beta.1`，不需要另行在公共索引搜索定制 Pod。
 2. 打开 `IFLYADLibSimple.xcworkspace`，不要只打开 `.xcodeproj`。
 3. 选择 `IFLYADLibSimple` scheme 和运行设备。真机运行前，在 **Signing & Capabilities** 中选择自己的 Team，并填写可签名的 Bundle ID。
 4. 按下方说明替换广告位，确认该 Bundle ID 等应用信息已在平台配置。
