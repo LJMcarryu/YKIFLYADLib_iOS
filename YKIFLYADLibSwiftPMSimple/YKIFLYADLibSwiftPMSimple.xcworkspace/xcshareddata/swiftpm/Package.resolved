@@ -1,15 +1,15 @@
 {
-  "originHash" : "dcbdd6ebce114651b62bf1e7fb9ad5d8bbac2965ad06690b29fbb93dad7f8496",
-  "pins" : [
+  "originHash": "dcbdd6ebce114651b62bf1e7fb9ad5d8bbac2965ad06690b29fbb93dad7f8496",
+  "pins": [
     {
-      "identity" : "ykiflyadlib_ios",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/LJMcarryu/YKIFLYADLib_iOS.git",
-      "state" : {
-        "revision" : "0cb030e8e59a63d0b469bc00296fea485e7785bf",
-        "version" : "6.5.3-beta.1"
+      "identity": "ykiflyadlib_ios",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/LJMcarryu/YKIFLYADLib_iOS.git",
+      "state": {
+        "revision": "5b3f0e9e1ae229af72c17a7163dee2581ac3c1a9",
+        "version": "6.5.3"
       }
     }
   ],
-  "version" : 3
+  "version": 3
 }

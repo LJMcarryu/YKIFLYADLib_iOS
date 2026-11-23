@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "version": "6.5.3-beta.1",
+  "version": "6.5.3",
   "channel": "youku",
   "assets": [
     {
       "name": "IFLYADLib.xcframework",
-      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3-beta.1/youku/IFLYADLib.xcframework.zip",
+      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3/youku/IFLYADLib.xcframework.zip",
       "sha256": "1b8ef5f3670d1d675a038367bcb494ff65a235315680beec3383947c655a5a7b"
     }
   ]

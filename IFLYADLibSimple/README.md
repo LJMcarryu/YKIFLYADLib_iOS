@@ -5,9 +5,9 @@
 
 ## 下载入口与版本
 
-无需 Git 时，可下载 [GitHub main 分支源码 ZIP](https://github.com/LJMcarryu/YKIFLYADLib_iOS/archive/refs/heads/main.zip)，解压后进入 `YKIFLYADLib_iOS-main/IFLYADLibSimple/`，再执行下方安装命令。不要只下载 `.xcodeproj`。使用 Git 的命令见下文；已有副本先确认本页与 Podfile 都固定 SDK `6.5.3-beta.1`。
+无需 Git 时，可下载 [GitHub main 分支源码 ZIP](https://github.com/LJMcarryu/YKIFLYADLib_iOS/archive/refs/heads/main.zip)，解压后进入 `YKIFLYADLib_iOS-main/IFLYADLibSimple/`，再执行下方安装命令。不要只下载 `.xcodeproj`。使用 Git 的命令见下文；已有副本先确认本页与 Podfile 都固定 SDK `6.5.3`。
 
-依赖安装后核对 `Podfile.lock` 中 `YKIFLYADLib` 为 `6.5.3-beta.1`。版本找不到或锁文件冲突的处理见[安装指南](../docs/接入指南/安装方式.md#cocoapods)。
+依赖安装后核对 `Podfile.lock` 中 `YKIFLYADLib` 为 `6.5.3`。版本找不到或锁文件冲突的处理见[安装指南](../docs/接入指南/安装方式.md#cocoapods)。
 
 ## 示例范围
 
@@ -30,7 +30,7 @@ pod install
 open IFLYADLibSimple.xcworkspace
 ```
 
-1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 固定版本 Tag 的 Podspec，版本为 `6.5.3-beta.1`，不需要另行在公共索引搜索定制 Pod。
+1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 固定版本 Tag 的 Podspec，版本为 `6.5.3`，不需要另行在公共索引搜索定制 Pod。
 2. 打开 `IFLYADLibSimple.xcworkspace`，不要只打开 `.xcodeproj`。
 3. 选择 `IFLYADLibSimple` scheme 和运行设备。真机运行前，在 **Signing & Capabilities** 中选择自己的 Team，并填写可签名的 Bundle ID。
 4. 按下方说明替换广告位，确认该 Bundle ID 等应用信息已在平台配置。
@@ -181,6 +181,6 @@ iOS 14 及以上，示例只在 ATT `authorized` 时读取 IDFA；拒绝授权�
 
 完成图文/视频、关闭、跳转与回流、快速滚动和前后台测试。另行验证 iOS 最低支持版本、真机传感器、真实广告位填充及监测结果。先查[生命周期与排错](../docs/接入指南/生命周期与排错.md)；通过双方约定的支持渠道反馈时提供 SDK / iOS / Xcode 版本、接入方式、页面与按钮、重现步骤及错误码，去除 IDFA、token、用户信息和完整请求内容。
 
-## 6.5.3-beta.1 接入验证
+## 6.5.3 快速发布说明
 
-2026-11-19，SDK `6.5.3-beta.1` 已通过 Xcode 26.2 / 17C52 下的 Debug、arm64 模拟器和设备架构构建，以及版本、链接、资源与隐私清单核对。构建使用 `CODE_SIGNING_ALLOWED=NO`；未验证真机安装、真实广告运行、签名分发或 Apple 审核。
+本示例已同步至 SDK `6.5.3`；本次快速发布未执行独立安装、构建与广告展示复验，请按发布回执在宿主 App 中联调。
