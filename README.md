@@ -1,8 +1,15 @@
 # 优酷定制 IFLYADLib iOS SDK
 
+<!-- ifly-fast-release-notice:start -->
+当前版本：`6.5.3`。本版尚未完成安装、构建与广告展示验证，请先在宿主 App 中联调。
+
+<!-- ifly-release-status: {"version":"6.5.3","status":"FAST_UNVERIFIED","distribution":"tos","releaseUrl":"https://download-adsdk.voiceads.cn/ios_sdk/6.5.3/youku/fast-release-record.json"} -->
+
+<!-- ifly-fast-release-notice:end -->
+
 预发布候选：`6.5.3-beta.1`，仅供接入测试。生产环境默认继续使用 `6.5.2`。安装可用性与验收范围以同版发布记录为准；本说明不代表本版真机广告运行、宿主联调或 Apple 审核已通过。
 
-<!-- ifly-release-status: {"version":"6.5.3-beta.1","status":"FORMAL","distribution":"tos","releaseUrl":"https://download-adsdk.voiceads.cn/ios_sdk/6.5.3-beta.1/youku/release-record.json"} -->
+
 
 本仓库提供面向 iOS 应用的优酷定制广告 SDK，包含开屏、插屏和自渲染信息流，以及安装说明和 Objective-C 示例。
 
@@ -59,10 +66,10 @@
 仅在测试分支中选用本预发布；常规生产接入继续使用下方 `6.5.2` 安装配置。完成同版发布后，需要测试时将 Podfile 中的对应依赖精确指定为：
 
 ```ruby
-pod 'YKIFLYADLib', '6.5.3-beta.1'
+pod 'YKIFLYADLib', '6.5.3'
 ```
 
-保留既有资源与链接配置，重新执行 `pod install` 并检查 `Podfile.lock` 中的版本。SwiftPM 测试接入请选择 Exact Version `6.5.3-beta.1`，不要使用浮动版本范围。
+保留既有资源与链接配置，重新执行 `pod install` 并检查 `Podfile.lock` 中的版本。SwiftPM 测试接入请选择 Exact Version `6.5.3`，不要使用浮动版本范围。
 
 本预发布移除 `IFLYNativeFeedAdData.marketURL` 和 `IFLYNativeFeedAdData.downloadURL`。使用这些属性的接入方须移除访问并重新编译适配层。`targetURL` 仅表示落地页地址，不能等价替代已移除的商店或下载地址；点击和跳转继续由 SDK 处理。详情见[NativeFeed 迁移说明](docs/接入指南/自渲染信息流.md#653-beta1-迁移)。
 
@@ -76,7 +83,7 @@ platform :ios, '11.0'
 
 target 'YourApp' do
   use_frameworks!
-  pod 'YKIFLYADLib', '6.5.2'
+  pod 'YKIFLYADLib', '6.5.3'
 end
 ```
 

@@ -16,8 +16,8 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "IFLYADLib",
-            url: "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3-beta.1/youku/IFLYADLib.xcframework.zip",
-            checksum: "1b8ef5f3670d1d675a038367bcb494ff65a235315680beec3383947c655a5a7b"
+            url: "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3/youku/IFLYADLib.xcframework.zip",
+            checksum: "a0c775e69eb7b5acb486094ce4db6da9fba7a8627f7068229378f3a2c5c2a297"
         ),
         .target(
             name: "IFLYAdResources",

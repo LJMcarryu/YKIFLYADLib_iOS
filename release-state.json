@@ -1,42 +1,41 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
+  "mode": "fast",
   "distributionBackend": "tos",
-  "phase": "CLOSED",
-  "version": "6.5.3-beta.1",
+  "phase": "FAST_PUBLISHED",
+  "verification": "not-run",
+  "version": "6.5.3",
   "channel": "youku",
   "repository": "LJMcarryu/YKIFLYADLib_iOS",
-  "artifactCandidateId": "1365053f3685323355b8a0f3efe3c08ba6ef6e874733867baf4cbdbe70e9dcda",
-  "binarySourceCommit": "7b5feefc17bc6f75848cb369056a0eed924565e4",
-  "releaseMetadataCommit": "4aba8be24e2c36f2eef972b05872be7789e726a8",
-  "uploadInventorySha256": "c85b4abce643c5c82b90b06d79b019001b3dd355dd044f87b4b24f22887537e6",
-  "channelInventorySha256": "9769f7555100f1841e255e61ed7b818b7690fba3ecfc8310b245563fe3bfc2c4",
+  "releaseRecordUrl": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3/youku/fast-release-record.json",
   "assets": [
     {
       "name": "IFLYADLib.xcframework.zip",
-      "size": 3304033,
-      "sha256": "1b8ef5f3670d1d675a038367bcb494ff65a235315680beec3383947c655a5a7b",
-      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3-beta.1/youku/IFLYADLib.xcframework.zip"
+      "size": 3332321,
+      "sha256": "a0c775e69eb7b5acb486094ce4db6da9fba7a8627f7068229378f3a2c5c2a297",
+      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3/youku/IFLYADLib.xcframework.zip",
+      "key": "ios_sdk/6.5.3/youku/IFLYADLib.xcframework.zip"
     },
     {
-      "name": "YKIFLYADLib-6.5.3-beta.1.zip",
-      "size": 3336854,
-      "sha256": "2cb7085c23a18b51b0313b690d3af21c60fb412743bf4f7cec0fe315c77e7d8f",
-      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3-beta.1/youku/YKIFLYADLib-6.5.3-beta.1.zip"
+      "name": "YKIFLYADLib-6.5.3.zip",
+      "size": 3446118,
+      "sha256": "2c71cc6b43220a3738d24967e881d957fed4d3835288a647de7261f17f8fc9fe",
+      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3/youku/YKIFLYADLib-6.5.3.zip",
+      "key": "ios_sdk/6.5.3/youku/YKIFLYADLib-6.5.3.zip"
     },
     {
       "name": "checksums.txt",
-      "size": 295,
-      "sha256": "7cbe934718f042a892872e1592098b6485ec6e0734aae4a1bd88460220301351",
-      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3-beta.1/youku/checksums.txt"
+      "size": 288,
+      "sha256": "20f77a5eea70dcb26c3f60e5d424c102ce261d1af752a809999055a2b2fdc4e7",
+      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3/youku/checksums.txt",
+      "key": "ios_sdk/6.5.3/youku/checksums.txt"
     },
     {
       "name": "delivery-manifest.json",
-      "size": 3223,
-      "sha256": "0db84ab987bc09f2e3d1a4a197d7e1ff67a257ef13f90af1c0d57842a8678033",
-      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3-beta.1/youku/delivery-manifest.json"
+      "size": 1043,
+      "sha256": "b61eb2b345b486c3c370f9d5f143976e6c7f1e575e0d41a5af64422c0ee98746",
+      "url": "https://download-adsdk.voiceads.cn/ios_sdk/6.5.3/youku/delivery-manifest.json",
+      "key": "ios_sdk/6.5.3/youku/delivery-manifest.json"
     }
-  ],
-  "distributionRevisionId": "6ada19ad8f0e8c669d1e65016962f25d8c16fce272e9ee0b2885b8b13d6efe19",
-  "verifyReceiptSha256": "3143f87adc1b4d596d52f4efa28324741b27373e2db651612e9f6e7390dd9657",
-  "tagCommit": "0cb030e8e59a63d0b469bc00296fea485e7785bf"
+  ]
 }
