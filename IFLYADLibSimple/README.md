@@ -1,13 +1,12 @@
 # 优酷定制 Simple 使用指南
 
-> 本示例遵循公开仓 Demo 契约：固定 SDK 版本、独立 Podfile、可复现运行说明和脱敏问题反馈。
 本工程用于联调优酷定制 iOS SDK `6.5.4` 的自渲染广告。示例使用公开模块 `IFLYADLib`，安装包名称为 `YKIFLYADLib`，最低支持 iOS 11.0。安装与格式入口见[仓库 README](../README.md)，详细说明见[接入指南](../docs/接入指南/安装方式.md)。
 
 ## 下载入口与版本
 
-无需 Git 时，可下载 [GitHub main 分支源码 ZIP](https://github.com/LJMcarryu/YKIFLYADLib_iOS/archive/refs/heads/main.zip)，解压后进入 `YKIFLYADLib_iOS-main/IFLYADLibSimple/`，再执行下方安装命令。不要只下载 `.xcodeproj`。使用 Git 的命令见下文；已有副本先确认本页与 Podfile 都固定 SDK `6.5.3`。
+无需 Git 时，可下载 [GitHub main 分支源码 ZIP](https://github.com/LJMcarryu/YKIFLYADLib_iOS/archive/refs/heads/main.zip)，解压后进入 `YKIFLYADLib_iOS-main/IFLYADLibSimple/`，再执行下方安装命令。不要只下载 `.xcodeproj`。使用 Git 的命令见下文；已有副本先确认本页与 Podfile 都固定 SDK `6.5.4`。
 
-依赖安装后核对 `Podfile.lock` 中 `YKIFLYADLib` 为 `6.5.3`。版本找不到或锁文件冲突的处理见[安装指南](../docs/接入指南/安装方式.md#cocoapods)。
+依赖安装后核对 `Podfile.lock` 中 `YKIFLYADLib` 为 `6.5.4`。版本找不到或锁文件冲突的处理见[安装指南](../docs/接入指南/安装方式.md#cocoapods)。
 
 ## 示例范围
 
@@ -30,7 +29,7 @@ pod install
 open IFLYADLibSimple.xcworkspace
 ```
 
-1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 固定版本 Tag 的 Podspec，版本为 `6.5.3`，不需要另行在公共索引搜索定制 Pod。
+1. 确认 `pod install` 成功；[Podfile](Podfile) 使用 固定版本 Tag 的 Podspec，版本为 `6.5.4`，不需要另行在公共索引搜索定制 Pod。
 2. 打开 `IFLYADLibSimple.xcworkspace`，不要只打开 `.xcodeproj`。
 3. 选择 `IFLYADLibSimple` scheme 和运行设备。真机运行前，在 **Signing & Capabilities** 中选择自己的 Team，并填写可签名的 Bundle ID。
 4. 按下方说明替换广告位，确认该 Bundle ID 等应用信息已在平台配置。
@@ -158,7 +157,7 @@ iOS 14 及以上，示例只在 ATT `authorized` 时读取 IDFA；拒绝授权�
 
 | 现象 | 排查步骤 |
 | --- | --- |
-| `pod install` 下载或 TLS 失败 | 检查 CocoaPods trunk、TOS 下载地址和代理；连接恢复后重试，保留固定版本号 |
+| `pod install` 下载或 TLS 失败 | 检查 GitHub 与 TOS 下载地址和代理；连接恢复后重试，保留固定版本号 |
 | 找不到模块或链接报错 | 确认安装成功且打开 workspace；检查 scheme、`-ObjC`、重复 framework 和资源投递 |
 | 真机签名失败 | 设置自己的 Team 和 Bundle ID，并确认设备已包含在签名配置中 |
 | 首页未出现 ATT 弹窗 | 先完成隐私同意，再查看设备系统版本与现有 ATT 状态；授权不会每次启动都弹出 |
@@ -181,6 +180,6 @@ iOS 14 及以上，示例只在 ATT `authorized` 时读取 IDFA；拒绝授权�
 
 完成图文/视频、关闭、跳转与回流、快速滚动和前后台测试。另行验证 iOS 最低支持版本、真机传感器、真实广告位填充及监测结果。先查[生命周期与排错](../docs/接入指南/生命周期与排错.md)；通过双方约定的支持渠道反馈时提供 SDK / iOS / Xcode 版本、接入方式、页面与按钮、重现步骤及错误码，去除 IDFA、token、用户信息和完整请求内容。
 
-## 6.5.3 快速发布说明
+## 已验证范围
 
-本示例已同步至 SDK `6.5.3`；本次快速发布未执行独立安装、构建与广告展示复验，请按发布回执在宿主 App 中联调。
+2026-11-24，固定 SDK `6.5.4`，使用 Xcode 26.2 完成 Debug 的 iOS Simulator arm64 和 iOS 设备 arm64 构建，并核对依赖身份、链接符号、资源及隐私清单。设备架构构建关闭代码签名。未安装或运行 App，未验证广告加载、填充、展示、点击跳转、签名分发、x86_64 或 iOS 11 设备运行。

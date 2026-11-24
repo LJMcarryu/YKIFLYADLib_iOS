@@ -18,10 +18,10 @@
 | 接入方式 | 独立示例 | 首次准备 |
 | --- | --- | --- |
 | CocoaPods | [IFLYADLibSimple](IFLYADLibSimple/README.md) | 在示例目录运行 `pod install` |
-| SwiftPM | [YKIFLYADLibSwiftPMSimple](YKIFLYADLibSwiftPMSimple/README.md) | 打开 workspace，解析远程 6.5.3 包 |
+| SwiftPM | [YKIFLYADLibSwiftPMSimple](YKIFLYADLibSwiftPMSimple/README.md) | 打开 workspace，解析远程 6.5.4 包 |
 | 手动集成 | [YKIFLYADLibManualSimple](YKIFLYADLibManualSimple/README.md) | 运行示例内 `准备SDK.py`，再打开 workspace |
 
-三种接入示例均已同步至 SDK `6.5.3`；本次快速发布未执行安装、构建与广告展示复验，请按发布回执在宿主 App 中联调。
+三种接入示例的依赖均固定为 SDK `6.5.4`；各方式的验证范围见对应示例 README，接入后仍需在实际宿主 App 中验证广告展示与业务流程。
 
 ## 能力与接入身份
 
@@ -57,9 +57,13 @@
 
 包清单版本不单独代表全部 Xcode 的二进制兼容性。运行示例后的检查方法与模拟器、真机验证边界见 [Simple 指南](IFLYADLibSimple/README.md)；具体版本的构建及消费验证范围见本页版本验证说明与同版发布记录。
 
-## 6.5.3 版本说明
+## 6.5.4 版本说明
 
-当前版本为 6.5.3；接入时将 Podfile 中的对应依赖精确指定为：
+修复自渲染信息流从横屏打开仅竖屏落地页时反复旋转的问题。使用默认方向配置的接入方无需新增适配；升级后请在宿主 App 中核对左右横屏进入落地页、关闭返回和前后台切换。
+
+本次快速发布未执行安装、构建与广告展示复验；旧系统真机、真实媒体宿主及 Apple 审核仍需分别验证。
+
+当前版本为 6.5.4；接入时将 Podfile 中的对应依赖精确指定为：
 
 ```ruby
 pod 'YKIFLYADLib', '6.5.4'
@@ -67,7 +71,7 @@ pod 'YKIFLYADLib', '6.5.4'
 
 保留既有资源与链接配置，重新执行 `pod install` 并检查 `Podfile.lock` 中的版本。SwiftPM 测试接入请选择 Exact Version `6.5.4`，不要使用浮动版本范围。
 
-6.5.3 移除 `IFLYNativeFeedAdData.marketURL` 和 `IFLYNativeFeedAdData.downloadURL`。使用这些属性的接入方须移除访问并重新编译适配层。`targetURL` 仅表示落地页地址，不能等价替代已移除的商店或下载地址；点击和跳转继续由 SDK 处理。详情见[NativeFeed 迁移说明](docs/接入指南/自渲染信息流.md#653-beta1-迁移)。
+6.5.3 移除 `IFLYNativeFeedAdData.marketURL` 和 `IFLYNativeFeedAdData.downloadURL`。使用这些属性的接入方须移除访问并重新编译适配层。`targetURL` 仅表示落地页地址，不能等价替代已移除的商店或下载地址；点击和跳转继续由 SDK 处理。详情见[NativeFeed 迁移说明](docs/接入指南/自渲染信息流.md#653-迁移)。
 
 ## 安装
 

@@ -1,6 +1,6 @@
 {
-  "sdkVersion": "6.5.3",
-  "sdkTagCommit": "5b3f0e9e1ae229af72c17a7163dee2581ac3c1a9",
+  "sdkVersion": "6.5.4",
+  "sdkTagCommit": "59c661e4e13ade725ae12f5cc2029e1c7906b576",
   "demoSourceCommit": "067f84680e0b886ea76b2337fb27e2ae468507cb",
   "demoSourceDirectory": "IFLYADLibSimple",
   "integration": "manual",
